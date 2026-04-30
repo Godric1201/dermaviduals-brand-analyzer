@@ -283,7 +283,7 @@ def display_results():
             st.warning("No top brands to explain.")
         else:
             explain_prompt = f"""
-    You are analyzing AI-generated professional skincare brand recommendations.
+    You are analyzing AI-generated {category} brand or provider recommendations in {market}.
 
     Based on the data below, explain WHY each top brand is selected by AI.
 
@@ -292,6 +292,7 @@ def display_results():
     - What authority the brand has
     - What makes it preferred over others
     - What query type it wins
+    - Whether it is associated with high-intent use cases, comparison queries, local intent, decision-stage searches, or trust signals
 
     Top brands per category:
     {top_brands.to_string(index=False)}
@@ -305,7 +306,7 @@ def display_results():
     - Winning Brand: Y
     - Why AI selects it:
     - What signal it owns:
-    - Strategic implication for Dermaviduals:
+    - Strategic implication for {brand}:
     """
 
             if "brand_win_explanation" not in st.session_state:
@@ -314,19 +315,28 @@ def display_results():
             st.write(st.session_state["brand_win_explanation"])
 
     # =========================
-    # 7. How Dermaviduals Can Replace Winners
+    # 7. How Target Brand Can Replace Winners
     # =========================
-    with st.expander("How Dermaviduals Can Replace These Brands", expanded=False):
+    with st.expander(f"How {brand} Can Replace These Brands", expanded=False):
         if top_brands.empty:
             st.warning("No replacement strategy available because no positive brand winners were detected.")
         else:
             replace_prompt = f"""
     You are a senior GEO strategist.
 
-    Based on the AI visibility data below, explain how Dermaviduals can replace the currently dominant brands in AI-generated recommendations.
+    Based on the AI visibility data below, explain how {brand} can replace the currently dominant brands in AI-generated {category} recommendations in {market}.
 
     Target brand:
-    Dermaviduals
+    {brand}
+
+    Category:
+    {category}
+
+    Market:
+    {market}
+
+    Audience:
+    {audience}
 
     Dominant brands per category:
     {top_brands.to_string(index=False)}
@@ -344,9 +354,9 @@ def display_results():
 
     1. What the competitor currently owns in AI perception
     2. Why AI recommends that competitor
-    3. What Dermaviduals should do to compete
+    3. What {brand} should do to compete
     4. What content should be created
-    5. What query or keyword cluster Dermaviduals should target
+    5. What query or keyword cluster {brand} should target
 
     Use this format:
 
@@ -355,10 +365,11 @@ def display_results():
     - AI-owned territory:
     - Why it wins:
     - Weakness or opening:
-    - Dermaviduals replacement strategy:
+    - {brand} replacement strategy:
     - Content to create:
     - Target queries:
 
+    Focus on generic GEO territories such as high-intent use cases, comparison queries, local intent, decision-stage searches, and trust signals.
     Be specific. Avoid generic SEO advice.
     """
 
@@ -446,8 +457,19 @@ def display_results():
     Based on the data below, explain:
 
     1. What concepts each competitor is associated with
-    2. What concepts Dermaviduals is missing
-    3. Why AI does not recommend Dermaviduals
+    2. What concepts {brand} is missing
+    3. Why AI does not recommend {brand}
+
+    Category:
+    {category}
+
+    Market:
+    {market}
+
+    Audience:
+    {audience}
+
+    Focus on generic GEO concepts such as high-intent use cases, comparison queries, local intent, decision-stage searches, and trust signals.
 
     Competitors:
     {", ".join(competitors)}

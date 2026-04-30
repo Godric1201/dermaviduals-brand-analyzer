@@ -31,8 +31,10 @@ def run_visibility_analysis(
     fixed_prompts,
     on_progress=None,
     prompt_limit=None,
+    competitors=None,
 ):
-    competitors = get_competitors()
+    if competitors is None:
+        competitors = get_competitors()
 
     ai_prompts = generate_search_prompts(
         brand=brand,
@@ -99,7 +101,10 @@ def run_visibility_analysis(
         detailed_df=detailed_df,
         summary_df=summary_df,
         raw_answers=raw_answers,
-        report_language=report_language
+        report_language=report_language,
+        category=category,
+        market=market,
+        audience=audience
     )
 
     return {

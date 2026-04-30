@@ -6,12 +6,11 @@ def generate_action_plan(
     detailed_df,
     summary_df,
     raw_answers,
-    report_language="English"
+    report_language="English",
+    category="category",
+    market="target market",
+    audience="target audience"
 ):
-    market = "Hong Kong"
-    audience = "skincare-conscious consumers in Hong Kong"
-    category = "professional skincare / clinic-grade skincare"
-
     summary_table = summary_df.to_string(index=False)
 
     trigger_pivot = detailed_df.pivot_table(
@@ -58,7 +57,7 @@ AI Answer:
     )
 
     prompt = f"""
-You are a senior AI visibility strategist specializing in Generative Engine Optimization (GEO), AI recommendation behavior, and professional skincare markets.
+You are a senior AI visibility strategist specializing in Generative Engine Optimization (GEO), AI recommendation behavior, and category visibility.
 
 Your task:
 Analyze AI-generated search visibility results and produce a decision-level AI visibility strategy report.
@@ -71,7 +70,7 @@ Context:
 - Market: {market}
 - Audience: {audience}
 - Category: {category}
-- Business context: professional skincare, clinic-grade skincare, barrier repair, sensitive skin, post-treatment care, skin therapist recommendations
+- Business context: {category}, {market}, {audience}, category authority, high-intent use cases, comparison queries, local intent, decision-stage searches, and trust signals
 
 Data:
 Summary Table:
@@ -91,7 +90,7 @@ Important competitor rule:
 - Do NOT list non-summary-table brands as dominant brands in Trigger-Level Mapping.
 - If non-summary-table brands appear in raw AI answers, mention them only once in a short note called "Secondary Market Signals."
 - Do NOT include La Roche-Posay, CeraVe, Avène, EltaMD, Obagi, SkinCeuticals, or SkinMedica as dominant competitors unless they appear in the Summary Table.
-- The strategic focus must remain on {brand} versus the professional / clinic-grade competitor set in the Summary Table.
+- The strategic focus must remain on {brand} versus the benchmark competitors in the Summary Table.
 
 ========================
 OUTPUT STRUCTURE
@@ -114,16 +113,16 @@ Use concrete numbers from the Summary Table.
 
 ## 2. AI Recommendation Logic
 
-Explain how AI appears to choose professional skincare brands.
+Explain how AI appears to choose brands or providers in the {category} category.
 
 Analyze signals such as:
-- clinical authority
-- dermatologist / skin therapist association
+- category authority
+- trusted experts, partners, reviewers, and decision-makers
 - repeated online presence
-- problem-solution fit
+- use-case fit
 - comparison visibility
-- Hong Kong relevance
-- professional channel credibility
+- {market} relevance
+- credibility and trust signals
 
 For each signal, use this format:
 - Signal:
@@ -132,16 +131,16 @@ For each signal, use this format:
 
 Each signal should cite at least one number from the Summary Table or Trigger-Level Visibility Table when possible.
 
-Do not infer from general skincare knowledge alone. Tie the logic back to the Summary Table, Trigger-Level Visibility Table, Detailed Prompt-Level Sample, or Raw AI Answers Sample.
+Do not infer from general category knowledge alone. Tie the logic back to the Summary Table, Trigger-Level Visibility Table, Detailed Prompt-Level Sample, or Raw AI Answers Sample.
 
 ---
 
 ## 3. Trigger-Level Mapping
 
-Analyze which prompt types or skin-concern themes trigger brand recommendations.
+Analyze which prompt types or category themes trigger brand recommendations.
 
 Use only the Trigger-Level Visibility Table, Detailed Prompt-Level Sample, and Summary Table when identifying dominant brands.
-Do not infer dominant brands from general skincare knowledge.
+Do not infer dominant brands from general category knowledge.
 Do not list non-summary-table brands as dominant brands.
 
 For each relevant trigger, explain:
@@ -151,14 +150,13 @@ For each relevant trigger, explain:
 - What this means strategically
 
 Include these themes if present in the data:
-- sensitive skin
-- barrier repair
-- acne-prone skin
-- post-treatment care
-- pigmentation
-- anti-aging
-- professional / clinic-grade skincare
-- Hong Kong professional skincare
+- high-intent use cases
+- comparison queries
+- local intent
+- decision-stage searches
+- trust signals
+- {market} relevance
+- {category} recommendations
 - comparison queries
 
 Format:
@@ -185,7 +183,7 @@ For each meaningful competitor, explain:
 - Share of voice
 - Strongest trigger categories, with actual scores
 - Likely reason it is recommended
-- Skin concern or authority territory it appears to own
+- Category need or authority territory it appears to own
 
 Example style:
 - iS Clinical:
@@ -206,12 +204,12 @@ Do NOT just say "low SEO."
 
 Diagnose AI-specific barriers:
 - missing semantic association with high-value query themes
-- weak English-language AI footprint
-- insufficient third-party professional mentions
+- weak market-relevant AI footprint
+- insufficient third-party trust signals
 - lack of comparison pages
-- weak problem-solution mapping
+- weak use-case mapping
 - unclear category ownership
-- weak Hong Kong professional skincare association
+- weak {market} {category} association
 
 Tie every major diagnosis to a number where possible, such as:
 - total mentions
@@ -270,10 +268,10 @@ For each asset, include:
 
 Include:
 - comparison pages
-- sensitive skin / barrier repair articles
-- post-treatment care content
-- Hong Kong-specific professional skincare content
-- clinic / skin therapist education content
+- high-intent use-case content
+- decision-stage content
+- {market}-specific {category} content
+- trusted expert, partner, reviewer, and decision-maker education content
 
 Do not recommend broad SEO content unless it clearly supports AI recall, comparison presence, or semantic association.
 
@@ -306,7 +304,7 @@ If recommending partnerships or professional endorsements, explain exactly how t
 If non-summary-table brands appear in the raw AI answers, mention them briefly here only.
 
 Explain:
-- What they reveal about broader AI skincare bias
+- What they reveal about broader AI category bias
 - Why they should not be treated as primary competitors in this report
 
 If there are no relevant secondary signals, write:

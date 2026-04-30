@@ -42,7 +42,7 @@ Competitor rule:
 - Do not make La Roche-Posay, CeraVe, Avène, EltaMD, Obagi, or SkinCeuticals the main competitors unless they appear in the Summary Table with meaningful visibility.
 
 Your task:
-Generate a concise GEO action section for improving {brand}'s visibility in AI-generated professional skincare recommendations.
+Generate a concise GEO action section for improving {brand}'s visibility in AI-generated {category} recommendations.
 
 Structure your response exactly like this:
 
@@ -63,12 +63,12 @@ Create a table with these columns:
 Include 5-6 territories only.
 
 Focus on:
-- sensitive skin
-- barrier repair
-- post-treatment care
-- corneotherapy
-- clinic-grade skincare
-- Hong Kong professional skincare
+- category authority
+- high-intent use cases
+- comparison queries
+- local intent
+- decision-stage searches
+- trust signals
 
 ### 3. Content Assets to Build First
 Create a table with:
@@ -87,7 +87,7 @@ Rules:
 - Be data-driven.
 - Do not give generic SEO advice.
 - Avoid broad marketing actions such as influencer campaigns or email campaigns unless clearly tied to AI visibility.
-- Focus on AI recall, semantic association, comparison content, query territory ownership, and third-party professional mentions.
+- Focus on AI recall, semantic association, comparison content, query territory ownership, and third-party trust signals.
 - Write in {report_language}.
 """
 

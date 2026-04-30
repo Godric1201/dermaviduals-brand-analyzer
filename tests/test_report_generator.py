@@ -80,3 +80,31 @@ def test_create_executive_docx_report_supports_quick_test_mode_metadata():
 
     assert "TEST VERSION ONLY" in document_xml
     assert "Not Client Deliverable" in document_xml
+
+
+def test_create_executive_docx_report_uses_generic_category_wording():
+    report_bytes = create_test_report(
+        category="cafes",
+        market="Berlin",
+        audience="remote workers",
+    )
+
+    assert_valid_docx_bytes(report_bytes)
+
+    with ZipFile(BytesIO(report_bytes)) as docx:
+        document_xml = docx.read("word/document.xml").decode("utf-8")
+
+    blocked_terms = [
+        "professional skincare",
+        "sensitive skin",
+        "barrier repair",
+        "clinic-grade",
+        "post-treatment",
+        "Hong Kong clinic-grade skincare",
+    ]
+
+    for term in blocked_terms:
+        assert term not in document_xml
+
+    assert "cafes" in document_xml
+    assert "Berlin" in document_xml

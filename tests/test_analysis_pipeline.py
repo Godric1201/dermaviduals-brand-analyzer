@@ -3,14 +3,20 @@ import pandas as pd
 import analysis_pipeline
 
 
-def patch_pipeline_dependencies(monkeypatch):
+def patch_pipeline_dependencies(monkeypatch, captured_prompt_kwargs=None):
+    def fake_generate_search_prompts(**kwargs):
+        if captured_prompt_kwargs is not None:
+            captured_prompt_kwargs.update(kwargs)
+
+        return [
+            {"category": "AI 1", "prompt": "AI prompt 1"},
+            {"category": "AI 2", "prompt": "AI prompt 2"},
+        ]
+
     monkeypatch.setattr(
         analysis_pipeline,
         "generate_search_prompts",
-        lambda **kwargs: [
-            {"category": "AI 1", "prompt": "AI prompt 1"},
-            {"category": "AI 2", "prompt": "AI prompt 2"},
-        ],
+        fake_generate_search_prompts,
     )
     monkeypatch.setattr(
         analysis_pipeline,
@@ -59,7 +65,7 @@ def patch_pipeline_dependencies(monkeypatch):
     )
 
 
-def run_test_analysis(prompt_limit, on_progress=None):
+def run_test_analysis(prompt_limit, on_progress=None, competitors=None):
     return analysis_pipeline.run_visibility_analysis(
         brand="Dermaviduals",
         category="skincare products",
@@ -73,6 +79,7 @@ def run_test_analysis(prompt_limit, on_progress=None):
         ],
         on_progress=on_progress,
         prompt_limit=prompt_limit,
+        competitors=competitors,
     )
 
 
@@ -99,3 +106,17 @@ def test_run_visibility_analysis_uses_all_prompts_without_limit(monkeypatch):
 
     assert len(result["prompts"]) == 4
     assert len(result["raw_answers"]) == 4
+
+
+def test_run_visibility_analysis_uses_custom_competitors(monkeypatch):
+    captured_prompt_kwargs = {}
+    patch_pipeline_dependencies(monkeypatch, captured_prompt_kwargs)
+    custom_competitors = ["Brand A", "Brand B"]
+
+    result = run_test_analysis(
+        prompt_limit=1,
+        competitors=custom_competitors,
+    )
+
+    assert result["competitors"] == custom_competitors
+    assert captured_prompt_kwargs["competitors"] == custom_competitors
