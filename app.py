@@ -15,6 +15,7 @@ from prompts import build_fixed_prompts
 from ui_formatters import (
     df_to_markdown_table,
     format_display_text,
+    replace_target_brand_for_display,
     translate_dataframe_columns,
 )
 
@@ -145,6 +146,16 @@ def display_results():
     raw_answers = st.session_state["raw_answers"]
     recommendations = st.session_state["recommendations"]
     plan = st.session_state["plan"]
+    summary_display_df = replace_target_brand_for_display(
+        summary_df,
+        raw_brand=brand,
+        display_brand=display_brand
+    )
+    detailed_display_df = replace_target_brand_for_display(
+        detailed_df,
+        raw_brand=brand,
+        display_brand=display_brand
+    )
     run_mode = st.session_state.get("run_mode", "Full Report Mode")
     prompt_limit = st.session_state.get("prompt_limit")
     is_quick_test_mode = run_mode == "Quick Test Mode"
@@ -227,7 +238,7 @@ def display_results():
     # =========================
     st.subheader(t["benchmark"])
     st.dataframe(
-        translate_dataframe_columns(summary_df),
+        translate_dataframe_columns(summary_display_df),
         use_container_width=True
     )
 
@@ -277,7 +288,11 @@ def display_results():
         )
 
         st.dataframe(
-            top_brands[["prompt_category", "brand", "visibility_score"]],
+            replace_target_brand_for_display(
+                top_brands[["prompt_category", "brand", "visibility_score"]],
+                raw_brand=brand,
+                display_brand=display_brand
+            ),
             use_container_width=True
         )
     else:
@@ -423,7 +438,7 @@ def display_results():
     # =========================
     st.subheader(t["prompt_level"])
     st.dataframe(
-        translate_dataframe_columns(detailed_df),
+        translate_dataframe_columns(detailed_display_df),
         use_container_width=True
     )
 
@@ -547,7 +562,7 @@ def display_results():
     st.subheader(t["exports"])
 
     # Build clean executive report tables
-    summary_report_df = summary_df.copy()
+    summary_report_df = summary_display_df.copy()
 
     summary_columns = [
         "brand",
@@ -578,7 +593,11 @@ def display_results():
     )
 
     top_brands_report_md = df_to_markdown_table(
-        top_brands[["prompt_category", "brand", "visibility_score"]],
+        replace_target_brand_for_display(
+            top_brands[["prompt_category", "brand", "visibility_score"]],
+            raw_brand=brand,
+            display_brand=display_brand
+        ),
         max_rows=25
     ) if not top_brands.empty else "_No positive brand winners detected._"
 
@@ -732,8 +751,12 @@ def display_results():
         market=display_market,
         category=display_category,
         audience=display_audience,
-        summary_df=summary_df,
-        top_brands_df=top_brands,
+        summary_df=summary_display_df,
+        top_brands_df=replace_target_brand_for_display(
+            top_brands,
+            raw_brand=brand,
+            display_brand=display_brand
+        ),
         recommendations=recommendations,
         strategy_report=plan,
         gap_analysis=st.session_state.get("gap_analysis", ""),

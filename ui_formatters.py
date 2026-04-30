@@ -7,6 +7,18 @@ def format_display_text(value):
     return value
 
 
+def replace_target_brand_for_display(df, raw_brand, display_brand):
+    display_df = df.copy()
+
+    if "brand" not in display_df.columns:
+        return display_df
+
+    mask = display_df["brand"].astype(str).str.lower() == str(raw_brand).lower()
+    display_df.loc[mask, "brand"] = display_brand
+
+    return display_df
+
+
 def translate_dataframe_columns(df):
     return df.rename(columns={
         "brand": "Brand",
