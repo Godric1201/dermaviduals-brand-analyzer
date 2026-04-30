@@ -1,6 +1,10 @@
 import pandas as pd
 
-from ui_formatters import format_display_text, replace_target_brand_for_display
+from ui_formatters import (
+    format_brand_names_for_display,
+    format_display_text,
+    replace_target_brand_for_display,
+)
 
 
 def test_format_display_text_title_cases_lowercase_values():
@@ -59,6 +63,41 @@ def test_replace_target_brand_for_display_handles_missing_brand_column():
         raw_brand="espresso house",
         display_brand="Espresso House",
     )
+
+    assert result.equals(df)
+    assert result is not df
+
+
+def test_format_brand_names_for_display_formats_competitors_without_mutating_original():
+    df = pd.DataFrame([
+        {"brand": "coffee fellows", "score": 1},
+        {"brand": "einstein kaffee", "score": 2},
+        {"brand": "starbuks", "score": 3},
+        {"brand": "iS Clinical", "score": 4},
+    ])
+
+    result = format_brand_names_for_display(df)
+
+    assert result["brand"].tolist() == [
+        "Coffee Fellows",
+        "Einstein Kaffee",
+        "Starbuks",
+        "iS Clinical",
+    ]
+    assert df["brand"].tolist() == [
+        "coffee fellows",
+        "einstein kaffee",
+        "starbuks",
+        "iS Clinical",
+    ]
+
+
+def test_format_brand_names_for_display_handles_missing_brand_column():
+    df = pd.DataFrame([
+        {"name": "coffee fellows", "score": 1},
+    ])
+
+    result = format_brand_names_for_display(df)
 
     assert result.equals(df)
     assert result is not df

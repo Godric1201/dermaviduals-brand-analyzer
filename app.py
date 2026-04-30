@@ -15,6 +15,7 @@ from prompts import build_fixed_prompts
 from ui_formatters import (
     df_to_markdown_table,
     format_display_text,
+    format_brand_names_for_display,
     replace_target_brand_for_display,
     translate_dataframe_columns,
 )
@@ -147,12 +148,12 @@ def display_results():
     recommendations = st.session_state["recommendations"]
     plan = st.session_state["plan"]
     summary_display_df = replace_target_brand_for_display(
-        summary_df,
+        format_brand_names_for_display(summary_df),
         raw_brand=brand,
         display_brand=display_brand
     )
     detailed_display_df = replace_target_brand_for_display(
-        detailed_df,
+        format_brand_names_for_display(detailed_df),
         raw_brand=brand,
         display_brand=display_brand
     )
@@ -289,7 +290,9 @@ def display_results():
 
         st.dataframe(
             replace_target_brand_for_display(
-                top_brands[["prompt_category", "brand", "visibility_score"]],
+                format_brand_names_for_display(
+                    top_brands[["prompt_category", "brand", "visibility_score"]]
+                ),
                 raw_brand=brand,
                 display_brand=display_brand
             ),
@@ -594,7 +597,9 @@ def display_results():
 
     top_brands_report_md = df_to_markdown_table(
         replace_target_brand_for_display(
-            top_brands[["prompt_category", "brand", "visibility_score"]],
+            format_brand_names_for_display(
+                top_brands[["prompt_category", "brand", "visibility_score"]]
+            ),
             raw_brand=brand,
             display_brand=display_brand
         ),
@@ -753,7 +758,7 @@ def display_results():
         audience=display_audience,
         summary_df=summary_display_df,
         top_brands_df=replace_target_brand_for_display(
-            top_brands,
+            format_brand_names_for_display(top_brands),
             raw_brand=brand,
             display_brand=display_brand
         ),
