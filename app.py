@@ -1,7 +1,18 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from app_constants import (
+    ANSWER_LANGUAGE,
+    AUDIENCE,
+    BRAND,
+    CATEGORY,
+    MARKET,
+    REPORT_LANGUAGE,
+    TRANSLATIONS,
+)
+from analysis_pipeline import get_competitors
 from prompts import FIXED_PROMPTS
+from ui_formatters import df_to_markdown_table, translate_dataframe_columns
 
 from prompt_generator import generate_search_prompts
 from analyzer import ask_ai
@@ -21,128 +32,6 @@ st.set_page_config(
     page_title="Dermaviduals Hong Kong AI Visibility Analyzer",
     layout="wide"
 )
-
-
-BRAND = "Dermaviduals"
-CATEGORY = "skincare products"
-MARKET = "Hong Kong"
-AUDIENCE = "skincare-conscious consumers in Hong Kong"
-REPORT_LANGUAGE = "English"
-ANSWER_LANGUAGE = "English"
-
-
-TRANSLATIONS = {
-    "title": "Dermaviduals Hong Kong AI Visibility Analyzer",
-    "subtitle": "AI search visibility analysis for professional skincare products in Hong Kong.",
-    "description": """
-This tool analyzes how visible Dermaviduals is in AI-generated skincare recommendations for the Hong Kong market.
-
-The prompts are fixed plus AI-generated, unbiased, and do not directly mention the target brand.
-""",
-    "run": "Run Hong Kong Skincare Visibility Analysis",
-    "reset": "Reset Analysis",
-    "running": "Running AI analysis... please wait...",
-    "running_prompt": "Running prompt",
-    "complete_status": "Analysis complete",
-    "complete": "Analysis completed.",
-    "auto_competitors": "Hong Kong Professional Competitors",
-    "snapshot": "1. Executive Snapshot",
-    "caption": "Organic Visibility is measured from unbiased prompts that do not mention Dermaviduals.",
-    "prompts": "2. Fixed + AI-Generated Search Prompts",
-    "benchmark": "3. Competitor Benchmark",
-    "prompt_level": "4. Prompt-Level Results",
-    "raw_answers": "5. Raw AI Answers",
-    "recommendations": "6. GEO Content Recommendations",
-    "action_plan": "AI Visibility Strategy Report",
-    "level_2": "Content Asset Generator",
-    "exports": "Export Reports",
-    "target_brand_metric": "Target Brand",
-    "avg_visibility": "Avg. Visibility",
-    "organic_visibility": "Organic Visibility",
-    "total_mentions": "Total Mentions",
-    "share_of_voice": "Share of Voice",
-    "visible_in": "Visible in",
-    "out_of": "out of",
-    "prompts_word": "prompts",
-    "summary_csv": "Download Summary CSV",
-    "detailed_csv": "Download Detailed CSV",
-    "raw_csv": "Download Raw Answers CSV",
-    "brand_label": "Brand",
-    "prompt_category_label": "Prompt Category",
-    "score_label": "Visibility Score",
-    "level_2_caption": "Generate SEO, FAQ, social, comparison-page, and local review assets to improve AI visibility.",
-    "generate_level_2": "Generate Content Pack",
-    "generating_level_2": "Generating content pack...",
-    "level_2_done": "Content pack generated.",
-    "seo_blog": "SEO Blog Post",
-    "review_strategy": "Google Maps Review Strategy",
-    "social_posts": "Social Posts",
-    "faq_content": "FAQ Content",
-    "comparison_outline": "Comparison Page Outline",
-}
-
-
-def translate_dataframe_columns(df):
-    return df.rename(columns={
-        "brand": "Brand",
-        "total_mentions": "Total Mentions",
-        "average_visibility_score": "Average Visibility Score",
-        "prompts_visible": "Prompts Visible",
-        "best_estimated_rank": "Best Estimated Rank",
-        "share_of_voice_percent": "Share of Voice %",
-        "analysis_timestamp": "Analysis Timestamp",
-        "prompt_category": "Prompt Category",
-        "prompt": "Prompt",
-        "mentions": "Mentions",
-        "first_position": "First Position",
-        "estimated_rank": "Estimated Rank",
-        "visibility_score": "Visibility Score",
-        "visibility_level": "Visibility Level",
-        "is_target_brand": "Is Target Brand",
-        "answer": "AI Answer",
-        "category": "Category",
-    })
-
-def df_to_markdown_table(df, max_rows=20):
-    """
-    Convert a dataframe into a simple markdown table without requiring extra packages.
-    """
-    if df is None or df.empty:
-        return "_No data available._"
-
-    df = df.head(max_rows).copy()
-
-    columns = list(df.columns)
-
-    header = "| " + " | ".join(columns) + " |"
-    separator = "| " + " | ".join(["---"] * len(columns)) + " |"
-
-    rows = []
-
-    for _, row in df.iterrows():
-        values = []
-        for col in columns:
-            value = row[col]
-            values.append(str(value))
-        rows.append("| " + " | ".join(values) + " |")
-
-    return "\n".join([header, separator] + rows)
-
-
-def get_competitors():
-    return [
-        "Biologique Recherche",
-        "ZO Skin Health",
-        "Environ",
-        "DMK",
-        "iS Clinical",
-        "PCA Skin",
-        "Skinbetter Science",
-        "Mesoestetic",
-        "Universkin",
-        "Cellcosmet"
-    ]
-
 
 def run_analysis():
     brand = BRAND
