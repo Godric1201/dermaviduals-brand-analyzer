@@ -10,22 +10,19 @@ from app_constants import (
     REPORT_LANGUAGE,
     TRANSLATIONS,
 )
-from analysis_pipeline import get_competitors
+from analysis_pipeline import get_competitors, run_visibility_analysis
 from prompts import FIXED_PROMPTS
 from ui_formatters import df_to_markdown_table, translate_dataframe_columns
 
-from prompt_generator import generate_search_prompts
 from analyzer import ask_ai
-from scoring import analyze_answer, summarize_results, calculate_share_of_voice
-from recommender import generate_recommendations
-from optimizer import generate_action_plan
 from content_generator import generate_level_2_content_pack
-from report_generator import create_executive_docx_report
-from utils import (
-    add_timestamp,
-    convert_df_to_csv,
-    create_raw_answer_dataframe
+from report_generator import (
+    build_competitor_leader_sentence,
+    create_executive_docx_report,
+    get_competitor_leaders,
+    get_visibility_status,
 )
+from utils import convert_df_to_csv
 
 
 st.set_page_config(
@@ -48,94 +45,50 @@ def run_analysis():
     st.write("**Competitors:**")
     st.write(", ".join(competitors))
 
-    ai_prompts = generate_search_prompts(
-        brand=brand,
-        competitors=competitors,
-        category=category,
-        market=market,
-        audience=audience,
-        output_language=language
-    )
-
-    prompts = FIXED_PROMPTS + ai_prompts
-
     with st.expander("AI Generated Prompts Debug"):
-        st.write(ai_prompts)
+        ai_prompts_placeholder = st.empty()
 
-    st.write(f"Total prompts: {len(prompts)}")
-
-    all_results = []
-    raw_answers = []
+    total_prompts_placeholder = st.empty()
 
     progress_bar = st.progress(0)
     status_text = st.empty()
 
+    def on_progress(index, total_prompts, prompt_category):
+        status_text.write(
+            f"{TRANSLATIONS['running_prompt']} {index + 1}/{total_prompts}: {prompt_category}"
+        )
+        progress_bar.progress((index + 1) / total_prompts)
+
     with st.spinner(TRANSLATIONS["running"]):
-        for index, item in enumerate(prompts):
-            prompt_category = item["category"]
-            prompt = item["prompt"]
+        result = run_visibility_analysis(
+            brand=brand,
+            category=category,
+            market=market,
+            audience=audience,
+            answer_language=language,
+            report_language=report_language,
+            fixed_prompts=FIXED_PROMPTS,
+            on_progress=on_progress,
+        )
 
-            status_text.write(
-                f"{TRANSLATIONS['running_prompt']} {index + 1}/{len(prompts)}: {prompt_category}"
-            )
+    progress_bar.progress(1.0)
+    status_text.write(TRANSLATIONS["complete_status"])
 
-            answer = ask_ai(prompt, language)
+    ai_prompts = result["ai_prompts"]
+    prompts = result["prompts"]
 
-            raw_answers.append({
-                "prompt_category": prompt_category,
-                "prompt": prompt,
-                "answer": answer
-            })
+    ai_prompts_placeholder.write(ai_prompts)
+    total_prompts_placeholder.write(f"Total prompts: {len(prompts)}")
 
-            rows = analyze_answer(
-                prompt_category=prompt_category,
-                prompt=prompt,
-                answer=answer,
-                brand=brand,
-                competitors=competitors
-            )
-
-            all_results.extend(rows)
-            progress_bar.progress((index + 1) / len(prompts))
-
-        progress_bar.progress(1.0)
-        status_text.write(TRANSLATIONS["complete_status"])
-
-    detailed_df, summary_df = summarize_results(all_results)
-    summary_df = calculate_share_of_voice(summary_df)
-
-    detailed_df = add_timestamp(detailed_df)
-    summary_df = add_timestamp(summary_df)
-
-    raw_answer_df = create_raw_answer_dataframe(raw_answers)
-
-    recommendations = generate_recommendations(
-        brand=brand,
-        category=category,
-        market=market,
-        audience=audience,
-        summary_table=summary_df.to_string(index=False),
-        detailed_table=detailed_df.head(40).to_string(index=False),
-        report_language=report_language
-    )
-
-    plan = generate_action_plan(
-        brand=brand,
-        detailed_df=detailed_df,
-        summary_df=summary_df,
-        raw_answers=raw_answers,
-        report_language=report_language
-    )
-
-    st.session_state["competitors"] = competitors
-    st.session_state["prompts"] = prompts
-    st.session_state["ai_prompts"] = ai_prompts
-    st.session_state["detailed_df"] = detailed_df
-    st.session_state["summary_df"] = summary_df
-    st.session_state["raw_answer_df"] = raw_answer_df
-    st.session_state["raw_answers"] = raw_answers
-    st.session_state["recommendations"] = recommendations
-    st.session_state["plan"] = plan
+    st.session_state["competitors"] = result["competitors"]
+    st.session_state["prompts"] = result["prompts"]
+    st.session_state["ai_prompts"] = result["ai_prompts"]
+    st.session_state["detailed_df"] = result["detailed_df"]
+    st.session_state["summary_df"] = result["summary_df"]
+    st.session_state["raw_answer_df"] = result["raw_answer_df"]
+    st.session_state["raw_answers"] = result["raw_answers"]
+    st.session_state["recommendations"] = result["recommendations"]
+    st.session_state["plan"] = result["plan"]
     st.session_state["analysis_done"] = True
 
 
@@ -564,6 +517,12 @@ def display_results():
         target_prompts_visible = 0
         target_sov = 0
 
+    target_visibility_status = get_visibility_status(
+        target_mentions,
+        target_avg_score,
+        target_sov
+    )
+
     top_competitors = summary_df[
         summary_df["brand"].str.lower() != BRAND.lower()
     ].sort_values(
@@ -571,11 +530,28 @@ def display_results():
         ascending=False
     ).head(3)
 
-    top_competitor_text = ", ".join(
-        [
-            f"{row['brand']} ({row['average_visibility_score']} avg. visibility)"
-            for _, row in top_competitors.iterrows()
-        ]
+    competitor_leaders = get_competitor_leaders(summary_df, BRAND)
+    top_competitor_text = build_competitor_leader_sentence(
+        competitor_leaders
+    )
+
+    if target_mentions == 0:
+        strategic_issue = (
+            f"The main strategic issue is that AI systems have not produced measurable mentions for {BRAND} "
+            f"in this benchmark, leaving the brand at {target_sov}% share of voice."
+        )
+    else:
+        strategic_issue = (
+            f"The main strategic issue is to improve from {target_mentions} mentions, "
+            f"{target_avg_score} average visibility, and {target_sov}% share of voice by strengthening association "
+            "with high-value professional skincare query territories such as sensitive skin, barrier repair, "
+            "post-treatment care, clinic-grade skincare, and Hong Kong professional skincare."
+        )
+
+    executive_summary_sentence = (
+        f"{BRAND} is {target_visibility_status} across the tested AI search prompts, "
+        f"with {target_mentions} total mentions, {target_avg_score} average visibility, "
+        f"{target_prompts_visible} prompts visible, and {target_sov}% share of voice."
     )
 
     executive_report = f"""
@@ -595,7 +571,7 @@ def display_results():
 
     ## 2. Executive Summary
 
-    {BRAND} currently shows low or missing visibility across the tested AI search prompts.
+    {executive_summary_sentence}
 
     Key metrics for {BRAND}:
 
@@ -610,7 +586,7 @@ def display_results():
 
     {top_competitor_text}
 
-    The main strategic issue is not only traditional SEO visibility. The larger issue is that AI systems do not yet strongly associate {BRAND} with high-value professional skincare query territories such as sensitive skin, barrier repair, post-treatment care, clinic-grade skincare, and Hong Kong professional skincare.
+    {strategic_issue}
 
     ---
 

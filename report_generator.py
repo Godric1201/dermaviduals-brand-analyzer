@@ -354,6 +354,135 @@ def get_target_metrics(summary_df, brand):
     }
 
 
+def get_visibility_status(total_mentions, avg_visibility, share_of_voice):
+    if total_mentions == 0:
+        return "currently not visible"
+
+    if avg_visibility >= 7 or share_of_voice >= 20:
+        return "showing strong visibility"
+
+    if avg_visibility >= 3 or share_of_voice >= 10:
+        return "showing moderate visibility"
+
+    return "showing low visibility"
+
+
+def get_visibility_state_noun(visibility_status):
+    if visibility_status == "currently not visible":
+        return "current non-visible state"
+
+    return f"current state of {visibility_status}"
+
+
+def get_ai_recall_status(visibility_status):
+    if visibility_status == "currently not visible":
+        return "currently not detectable"
+
+    return visibility_status
+
+
+def get_visibility_gap_sentences(brand, total_mentions, avg_visibility, share_of_voice):
+    if total_mentions == 0:
+        return {
+            "category_association": (
+                "AI systems currently associate the professional skincare category with better-established competitors."
+            ),
+            "semantic_association": (
+                "Semantic association with sensitive skin, barrier repair, clinic-grade skincare, and post-treatment care is not measurable in the tested answers."
+            ),
+            "third_party_signals": (
+                "No tested AI answers provided professional third-party recommendation signals for the brand."
+            ),
+            "comparison_footprint": (
+                "No visible comparison footprint was detected against higher-performing professional skincare brands."
+            ),
+            "owned_territory": (
+                "No clear AI-owned territory was detected in the Hong Kong professional skincare market."
+            ),
+        }
+
+    return {
+        "category_association": (
+            f"AI systems produced {total_mentions} mentions for {brand}, but competitor benchmarks show room to strengthen category association."
+        ),
+        "semantic_association": (
+            f"Semantic association should be expanded from the current {avg_visibility} average visibility score into sensitive skin, barrier repair, clinic-grade skincare, and post-treatment care."
+        ),
+        "third_party_signals": (
+            f"Professional third-party recommendation signals should be strengthened to improve from the current {share_of_voice}% share of voice."
+        ),
+        "comparison_footprint": (
+            f"Comparison footprint remains limited relative to higher-performing professional skincare brands at {avg_visibility} average visibility."
+        ),
+        "owned_territory": (
+            f"The benchmark shows {share_of_voice}% share of voice, so the next priority is to build a clearer AI-owned territory in the Hong Kong professional skincare market."
+        ),
+    }
+
+
+def get_competitor_leaders(summary_df, brand):
+    if summary_df is None or summary_df.empty:
+        return {}
+
+    competitors = summary_df[
+        summary_df["brand"].str.lower() != brand.lower()
+    ].copy()
+
+    if competitors.empty:
+        return {}
+
+    leaders = {}
+
+    metric_map = {
+        "highest_visibility": "average_visibility_score",
+        "highest_mentions": "total_mentions",
+        "highest_sov": "share_of_voice_percent",
+    }
+
+    for key, column in metric_map.items():
+        if column not in competitors.columns:
+            continue
+
+        row = competitors.sort_values(by=column, ascending=False).iloc[0]
+        leaders[key] = {
+            "brand": row.get("brand", ""),
+            "value": row.get(column, 0),
+        }
+
+    return leaders
+
+
+def build_competitor_leader_sentence(leaders):
+    if not leaders:
+        return "No competitor benchmark leaders were detected in this run."
+
+    highest_visibility = leaders.get("highest_visibility", {})
+    highest_mentions = leaders.get("highest_mentions", {})
+    highest_sov = leaders.get("highest_sov", {})
+
+    parts = []
+
+    if highest_visibility:
+        parts.append(
+            f"The highest average visibility brand is {highest_visibility['brand']} "
+            f"({highest_visibility['value']} avg. visibility)"
+        )
+
+    if highest_mentions:
+        parts.append(
+            f"The highest mention brand is {highest_mentions['brand']} "
+            f"({highest_mentions['value']} mentions)"
+        )
+
+    if highest_sov:
+        parts.append(
+            f"The highest share-of-voice brand is {highest_sov['brand']} "
+            f"({highest_sov['value']}% SOV)"
+        )
+
+    return ". ".join(parts) + "."
+
+
 def get_top_competitors(summary_df, brand, limit=3):
     if summary_df is None or summary_df.empty:
         return []
@@ -478,15 +607,17 @@ def create_strategy_priorities_df(brand, top_competitors):
     ])
 
 
-def create_roadmap_df(brand, top_competitors):
+def create_roadmap_df(brand, top_competitors, metrics):
     primary = top_competitors[0]["brand"] if top_competitors else "Top competitor"
     secondary = top_competitors[1]["brand"] if len(top_competitors) > 1 else primary
+    current_mentions = metrics["Total Mentions"]
+    current_sov = metrics["Share of Voice"]
 
     return pd.DataFrame([
         {
             "Phase": "30 Days",
             "Action": "Publish core content for sensitive skin, barrier repair, and post-treatment care.",
-            "Target Metric": "Move from 0 mentions to first AI-detectable brand mentions.",
+            "Target Metric": f"Increase from {current_mentions} current mentions to more AI-detectable brand mentions.",
             "Competitor Focus": primary
         },
         {
@@ -498,7 +629,7 @@ def create_roadmap_df(brand, top_competitors):
         {
             "Phase": "90 Days",
             "Action": "Build third-party professional mentions, reviews, and AI-citable clinic references.",
-            "Target Metric": "Increase share of voice from 0% toward measurable inclusion.",
+            "Target Metric": f"Increase share of voice from the current {current_sov} toward stronger measurable inclusion.",
             "Competitor Focus": secondary
         }
     ])
@@ -554,35 +685,31 @@ def add_report_overview(document, brand, market, category, audience, report_date
     add_styled_table(document, overview_df, max_rows=10, font_size=9.5)
 
 
-def add_executive_summary(document, brand, metrics, top_competitors):
+def add_executive_summary(document, brand, metrics, competitor_leaders):
     add_section_heading(document, "Executive Summary", "2")
 
-    top_competitor_sentence = ""
-    if top_competitors:
-        highest_visibility = top_competitors[0]
-
-        highest_mentions = max(
-            top_competitors,
-            key=lambda x: x.get("mentions", 0)
-        )
-
-        highest_sov = max(
-            top_competitors,
-            key=lambda x: x.get("sov", 0)
-        )
-
-        top_competitor_sentence = (
-            f"The highest average visibility competitor is {highest_visibility['brand']} "
-            f"({highest_visibility['avg_visibility']} avg. visibility). "
-            f"The highest mention competitor is {highest_mentions['brand']} "
-            f"({highest_mentions['mentions']} mentions), while the highest share-of-voice competitor is "
-            f"{highest_sov['brand']} ({highest_sov['sov']}% SOV)."
-        )
+    total_mentions = metrics["Total Mentions"]
+    avg_visibility = metrics["Avg. Visibility"]
+    prompts_visible = metrics["Prompts Visible"]
+    share_of_voice = float(str(metrics["Share of Voice"]).replace("%", "") or 0)
+    visibility_status = get_visibility_status(
+        total_mentions,
+        avg_visibility,
+        share_of_voice
+    )
+    ai_recall_status = get_ai_recall_status(visibility_status)
+    gap_sentences = get_visibility_gap_sentences(
+        brand,
+        total_mentions,
+        avg_visibility,
+        share_of_voice
+    )
+    top_competitor_sentence = build_competitor_leader_sentence(competitor_leaders)
 
     core_finding = (
-        f"{brand} is currently absent from AI-generated professional skincare recommendations in Hong Kong. "
-        f"The brand records {metrics['Total Mentions']} total mentions, an average visibility score of "
-        f"{metrics['Avg. Visibility']}, {metrics['Prompts Visible']} prompts visible, and "
+        f"{brand} is {visibility_status} in AI-generated professional skincare recommendations in Hong Kong. "
+        f"The brand records {total_mentions} total mentions, an average visibility score of "
+        f"{avg_visibility}, {prompts_visible} prompts visible, and "
         f"{metrics['Share of Voice']} share of voice. {top_competitor_sentence}"
     )
 
@@ -592,10 +719,10 @@ def add_executive_summary(document, brand, metrics, top_competitors):
     add_subheading(document, "Key Findings")
 
     findings = [
-        f"{brand} has no measurable AI recall in the tested prompt set.",
-        "AI systems currently associate the professional skincare category with better-established competitors.",
+        f"{brand} is {visibility_status} in the tested prompt set, with {total_mentions} total mentions and {metrics['Share of Voice']} share of voice.",
+        gap_sentences["category_association"],
         "The highest-value opportunity is to connect the brand with sensitive skin, barrier repair, post-treatment care, and clinic-grade skincare.",
-        "The immediate GEO objective is to create AI-citable evidence that can move the brand from zero visibility to measurable inclusion."
+        f"The immediate GEO objective is to create AI-citable evidence that can improve from the current {avg_visibility} average visibility score."
     ]
 
     for item in findings:
@@ -645,12 +772,27 @@ def add_top_winners(document, winners_df):
 
 def add_gap_diagnosis(document, brand, metrics, top_competitors):
     add_section_heading(document, "Visibility Gap Diagnosis", "6")
+    total_mentions = metrics["Total Mentions"]
+    avg_visibility = metrics["Avg. Visibility"]
+    share_of_voice = float(str(metrics["Share of Voice"]).replace("%", "") or 0)
+    visibility_status = get_visibility_status(
+        total_mentions,
+        avg_visibility,
+        share_of_voice
+    )
+    ai_recall_status = get_ai_recall_status(visibility_status)
+    gap_sentences = get_visibility_gap_sentences(
+        brand,
+        total_mentions,
+        avg_visibility,
+        share_of_voice
+    )
 
     add_callout_box(
         document,
         "Diagnosis",
-        f"{brand} is not currently part of the AI recommendation set. The brand has "
-        f"{metrics['Total Mentions']} mentions, {metrics['Avg. Visibility']} average visibility, "
+        f"{brand} is {visibility_status} in the AI recommendation set. The brand has "
+        f"{total_mentions} mentions, {avg_visibility} average visibility, "
         f"and {metrics['Share of Voice']} share of voice.",
         fill=LIGHT_YELLOW
     )
@@ -658,11 +800,11 @@ def add_gap_diagnosis(document, brand, metrics, top_competitors):
     add_subheading(document, "Key Barriers")
 
     barriers = [
-        "No measurable AI recall across the tested prompt set.",
-        "Weak semantic association with sensitive skin, barrier repair, clinic-grade skincare, and post-treatment care.",
-        "Limited evidence of professional third-party recommendation signals in AI-generated answers.",
-        "No visible comparison footprint against higher-performing professional skincare brands.",
-        "No clear AI-owned territory in the Hong Kong professional skincare market."
+        f"Measured AI recall is {ai_recall_status}, based on {total_mentions} mentions across the tested prompt set.",
+        gap_sentences["semantic_association"],
+        gap_sentences["third_party_signals"],
+        gap_sentences["comparison_footprint"],
+        gap_sentences["owned_territory"]
     ]
 
     for item in barriers:
@@ -695,7 +837,7 @@ def add_roadmap(document, roadmap_df):
     add_styled_table(document, roadmap_df, max_rows=10, font_size=8)
 
 
-def add_measurement_plan(document, brand):
+def add_measurement_plan(document, brand, metrics):
     add_section_heading(document, "Measurement Plan", "9")
 
     add_paragraph_text(
@@ -706,22 +848,22 @@ def add_measurement_plan(document, brand):
     measurement_df = pd.DataFrame([
         {
             "Metric": "Total Mentions",
-            "Current State": "0",
+            "Current State": str(metrics["Total Mentions"]),
             "Next Benchmark Target": "At least 5 detectable mentions"
         },
         {
             "Metric": "Average Visibility Score",
-            "Current State": "0.0",
+            "Current State": str(metrics["Avg. Visibility"]),
             "Next Benchmark Target": "Above 5.0"
         },
         {
             "Metric": "Prompts Visible",
-            "Current State": "0",
+            "Current State": str(metrics["Prompts Visible"]),
             "Next Benchmark Target": "Visible in at least 3 prompt categories"
         },
         {
             "Metric": "Share of Voice",
-            "Current State": "0%",
+            "Current State": metrics["Share of Voice"],
             "Next Benchmark Target": "At least 5%"
         }
     ])
@@ -729,15 +871,24 @@ def add_measurement_plan(document, brand):
     add_styled_table(document, measurement_df, max_rows=10, font_size=8)
 
 
-def add_recommended_next_step(document, brand):
+def add_recommended_next_step(document, brand, metrics):
     add_section_heading(document, "Recommended Next Step", "10")
+    total_mentions = metrics["Total Mentions"]
+    avg_visibility = metrics["Avg. Visibility"]
+    share_of_voice = float(str(metrics["Share of Voice"]).replace("%", "") or 0)
+    visibility_status = get_visibility_status(
+        total_mentions,
+        avg_visibility,
+        share_of_voice
+    )
+    visibility_state_noun = get_visibility_state_noun(visibility_status)
 
     add_callout_box(
         document,
         "Immediate Action",
         f"Build AI-citable content that connects {brand} with sensitive skin, barrier repair, post-treatment care, "
         f"professional skincare, and Hong Kong clinic-grade skincare. The next benchmark should track whether the brand "
-        f"moves from zero visibility toward measurable inclusion in AI-generated recommendation lists.",
+        f"improves from its {visibility_state_noun} toward stronger inclusion in AI-generated recommendation lists.",
         fill=LIGHT_GREEN
     )
 
@@ -786,21 +937,22 @@ def create_executive_docx_report(
 
     metrics = get_target_metrics(summary_df, brand)
     top_competitors = get_top_competitors(summary_df, brand, limit=3)
+    competitor_leaders = get_competitor_leaders(summary_df, brand)
     benchmark_df = build_benchmark_df(summary_df, brand)
     winners_df = build_winners_df(top_brands_df, max_rows=12)
     priorities_df = create_strategy_priorities_df(brand, top_competitors)
-    roadmap_df = create_roadmap_df(brand, top_competitors)
+    roadmap_df = create_roadmap_df(brand, top_competitors, metrics)
     add_cover_page(document, brand, market, report_date)
     add_report_overview(document, brand, market, category, audience, report_date)
-    add_executive_summary(document, brand, metrics, top_competitors)
+    add_executive_summary(document, brand, metrics, competitor_leaders)
     add_visual_benchmark(document, summary_df, brand)
     add_competitive_benchmark(document, benchmark_df)
     add_top_winners(document, winners_df)
     add_gap_diagnosis(document, brand, metrics, top_competitors)
     add_strategy_priorities(document, priorities_df)
     add_roadmap(document, roadmap_df)
-    add_measurement_plan(document, brand)
-    add_recommended_next_step(document, brand)
+    add_measurement_plan(document, brand, metrics)
+    add_recommended_next_step(document, brand, metrics)
     add_methodology_notes(document)
 
     buffer = BytesIO()
