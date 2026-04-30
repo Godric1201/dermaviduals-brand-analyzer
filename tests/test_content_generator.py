@@ -37,3 +37,82 @@ More FAQ content
     )
 
     assert result == "## 4. FAQ Content\nFAQ content\nMore FAQ content"
+
+
+def test_generate_level_2_content_pack_uses_generic_category_prompt(
+    monkeypatch,
+    content_generator_module
+):
+    captured = {}
+
+    fake_response = """
+## 1. SEO Blog Post
+Blog content
+## 2. Google Maps / Clinic Review Strategy
+Review content
+## 3. Social Posts
+Social content
+## 4. FAQ Content
+FAQ content
+## 5. Comparison Page Outline
+Comparison content
+## 6. AI Visibility Content Cluster
+Cluster content
+"""
+
+    def fake_ask_ai(prompt, language="English"):
+        captured["prompt"] = prompt
+        return fake_response
+
+    monkeypatch.setattr(content_generator_module, "ask_ai", fake_ask_ai)
+
+    result = content_generator_module.generate_level_2_content_pack(
+        brand="Espresso House",
+        category="cafes",
+        market="Berlin",
+        audience="remote workers",
+        competitors=["coffee fellows", "einstein kaffee"],
+        summary_table="summary",
+        detailed_table="details",
+    )
+
+    prompt = captured["prompt"]
+
+    expected_terms = [
+        "Espresso House",
+        "cafes",
+        "Berlin",
+        "remote workers",
+        "coffee fellows",
+        "einstein kaffee",
+    ]
+
+    for term in expected_terms:
+        assert term in prompt
+
+    blocked_terms = [
+        "professional skincare",
+        "clinic-grade",
+        "sensitive skin",
+        "barrier repair",
+        "post-treatment",
+        "corneotherapy",
+        "skin therapists",
+        "Hong Kong skincare",
+        "PCA Skin",
+        "iS Clinical",
+        "ZO Skin Health",
+        "Biologique Recherche",
+    ]
+
+    prompt_lower = prompt.lower()
+    for term in blocked_terms:
+        assert term.lower() not in prompt_lower
+
+    assert {
+        "seo_blog",
+        "review_strategy",
+        "social_posts",
+        "faq_content",
+        "comparison_outline",
+    }.issubset(result)

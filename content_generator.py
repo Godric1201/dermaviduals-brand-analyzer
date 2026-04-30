@@ -11,6 +11,16 @@ def generate_level_2_content_pack(
     detailed_table,
     report_language="English"
 ):
+    comparison_examples = [
+        f"- {brand} vs {competitor}"
+        for competitor in competitors[:4]
+    ]
+
+    if not comparison_examples:
+        comparison_examples = [
+            f"- {brand} vs leading {category} competitors"
+        ]
+
     prompt = f"""
 You are a senior GEO content strategist.
 
@@ -38,11 +48,11 @@ Detailed Prompt-Level Table:
 {detailed_table}
 
 Context:
-The goal is to make {brand} more likely to appear in AI-generated answers for professional skincare, clinic-grade skincare, sensitive skin, barrier repair, post-treatment care, corneotherapy, and Hong Kong skincare recommendations.
+The goal is to make {brand} more likely to appear in AI-generated answers for {category}, category authority, high-intent use cases, buyer questions, decision criteria, comparison queries, and {market} {category} recommendations.
 
 Competitor rule:
 - Prioritize the primary competitors listed above.
-- Do not make La Roche-Posay, CeraVe, Avène, EltaMD, Obagi, or SkinCeuticals the main comparison targets unless they are part of the primary competitor list.
+- Do not make brands or providers outside the primary competitor list the main comparison targets unless they appear in the visibility data.
 - Comparison content should be fair, factual, and not attack competitors.
 
 Create a content pack with the following sections.
@@ -63,33 +73,33 @@ Requirements:
 - H2 sections
 - Practical advice
 - Naturally position {brand}
-- Mention professional skincare, sensitive skin, barrier repair, corneotherapy, and Hong Kong market relevance
-- Do NOT make exaggerated medical claims
+- Mention category authority, high-intent use cases, buyer questions, decision criteria, comparison queries, and {market} market relevance
+- Do NOT make unsupported claims
 - Do NOT overpromote the brand
 - Make the article helpful and credible
 
 Suggested angle:
-"Best Professional Skincare Brands for Sensitive Skin and Barrier Repair in Hong Kong"
+"Best {category} for {audience} in {market}"
 
 ---
 
 ## 2. Google Maps / Clinic Review Strategy
 
-Create a review strategy for clinics, skin therapists, and professional partners.
+Create a review strategy for customers, partners, reviewers, and decision-makers.
 
 Include:
 - What types of authentic reviews to encourage
 - Review phrases that help AI associate {brand} with key concepts
 - 10 suggested review prompts
 - Concepts to mention:
-  - sensitive skin
-  - barrier repair
-  - post-treatment care
-  - professional skincare
-  - long-term skin improvement
-  - Hong Kong humidity
-  - skin therapist recommendation
-  - corneotherapy
+  - category authority
+  - high-intent use cases
+  - buyer questions
+  - decision criteria
+  - comparison queries
+  - customer experience
+  - {market} local relevance
+  - trust signals
 
 Important:
 Do NOT suggest fake reviews.
@@ -108,12 +118,12 @@ For each post:
 - Suggested CTA
 
 Focus on:
-- barrier repair
-- sensitive skin
-- corneotherapy
-- post-treatment recovery
-- professional skincare
-- Hong Kong climate
+- high-intent use cases
+- buyer questions
+- decision criteria
+- comparison queries
+- customer experience
+- {market} local context
 
 ---
 
@@ -139,11 +149,7 @@ Create comparison-page outlines that help {brand} enter AI recommendation lists.
 Use competitors from the primary competitor list where relevant.
 
 Include comparison ideas such as:
-- {brand} vs PCA Skin
-- {brand} vs iS Clinical
-- {brand} vs ZO Skin Health
-- {brand} vs Biologique Recherche
-- Corneotherapy skincare vs traditional clinic-grade skincare
+{chr(10).join(comparison_examples)}
 
 For each comparison page:
 - Page title
@@ -167,13 +173,13 @@ Include:
 - Review / testimonial themes
 
 The content cluster should help {brand} become associated with:
-- sensitive skin
-- barrier repair
-- corneotherapy
-- professional skincare
-- clinic-grade skincare
-- post-treatment care
-- Hong Kong skincare
+- category authority
+- high-intent use cases
+- buyer questions
+- decision criteria
+- comparison queries
+- trust signals
+- {market} {category}
 
 ---
 
@@ -181,7 +187,7 @@ Rules:
 - Write in {report_language}
 - Be specific and practical
 - Avoid generic SEO advice
-- Do not make unsupported medical claims
+- Do not make unsupported claims
 - Do not say competitors are bad
 - Focus on building AI-search visibility and brand association
 """
