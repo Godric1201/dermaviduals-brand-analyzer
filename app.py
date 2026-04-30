@@ -12,7 +12,11 @@ from app_constants import (
 )
 from analysis_pipeline import get_competitors, run_visibility_analysis
 from prompts import build_fixed_prompts
-from ui_formatters import df_to_markdown_table, translate_dataframe_columns
+from ui_formatters import (
+    df_to_markdown_table,
+    format_display_text,
+    translate_dataframe_columns,
+)
 
 from analyzer import ask_ai
 from content_generator import generate_level_2_content_pack
@@ -112,6 +116,10 @@ def run_analysis():
     st.session_state["category"] = category
     st.session_state["market"] = market
     st.session_state["audience"] = audience
+    st.session_state["display_brand"] = display_brand
+    st.session_state["display_category"] = display_category
+    st.session_state["display_market"] = display_market
+    st.session_state["display_audience"] = display_audience
     st.session_state["run_mode"] = run_mode
     st.session_state["prompt_limit"] = prompt_limit
     st.session_state["analysis_done"] = True
@@ -123,6 +131,10 @@ def display_results():
     category = st.session_state.get("category", CATEGORY)
     market = st.session_state.get("market", MARKET)
     audience = st.session_state.get("audience", AUDIENCE)
+    display_brand = st.session_state.get("display_brand", format_display_text(brand))
+    display_category = st.session_state.get("display_category", format_display_text(category))
+    display_market = st.session_state.get("display_market", format_display_text(market))
+    display_audience = st.session_state.get("display_audience", format_display_text(audience))
 
     competitors = st.session_state["competitors"]
     prompts = st.session_state["prompts"]
@@ -623,21 +635,21 @@ def display_results():
     )
 
     executive_report = f"""
-    # {brand} {market} AI Visibility Report
+    # {display_brand} {display_market} AI Visibility Report
 
     ## 1. Report Overview
 
-    **Target Brand:** {brand}  
-    **Market:** {market}  
-    **Category:** {category}  
-    **Audience:** {audience}  
+    **Target Brand:** {display_brand}  
+    **Market:** {display_market}  
+    **Category:** {display_category}  
+    **Audience:** {display_audience}  
     **Report Type:** AI Visibility / Generative Engine Optimization Audit  
     **Run Mode:** {run_mode}  
     **Deliverable Status:** {deliverable_status}  
 
     {"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}
 
-    This report evaluates how visible {brand} is in AI-generated skincare recommendations for the {market} professional skincare market.
+    This report evaluates how visible {display_brand} is in AI-generated skincare recommendations for the {display_market} professional skincare market.
 
     ---
 
@@ -645,7 +657,7 @@ def display_results():
 
     {executive_summary_sentence}
 
-    Key metrics for {brand}:
+    Key metrics for {display_brand}:
 
     | Metric | Value |
     |---|---:|
@@ -716,10 +728,10 @@ def display_results():
     """
 
     executive_docx = create_executive_docx_report(
-        brand=brand,
-        market=market,
-        category=category,
-        audience=audience,
+        brand=display_brand,
+        market=display_market,
+        category=display_category,
+        audience=display_audience,
         summary_df=summary_df,
         top_brands_df=top_brands,
         recommendations=recommendations,
@@ -798,13 +810,26 @@ competitors_text = st.sidebar.text_area(
     value="\n".join(get_competitors()),
     help="Enter one competitor per line."
 )
+display_brand = format_display_text(target_brand)
+display_category = format_display_text(target_category)
+display_market = format_display_text(target_market)
+display_audience = format_display_text(target_audience)
+
+parsed_competitors = parse_competitors(competitors_text)
+if parsed_competitors:
+    st.sidebar.caption(f"Parsed competitors: {len(parsed_competitors)}")
+    st.sidebar.write(parsed_competitors)
+else:
+    st.sidebar.caption("Using default competitors")
+    st.sidebar.write(get_competitors())
+
 st.sidebar.write("**Prompt Mode:** Fixed + AI Generated")
 
-st.title(f"{target_brand} {target_market} AI Visibility Analyzer")
-st.caption(f"AI search visibility analysis for {target_category} in {target_market}.")
+st.title(f"{display_brand} {display_market} AI Visibility Analyzer")
+st.caption(f"AI search visibility analysis for {display_category} in {display_market}.")
 st.markdown(
     f"""
-This tool analyzes how visible {target_brand} is in AI-generated {target_category} recommendations for the {target_market} market.
+This tool analyzes how visible {display_brand} is in AI-generated {display_category} recommendations for the {display_market} market.
 
 The prompts are fixed plus AI-generated, unbiased, and do not directly mention the target brand.
 """
@@ -826,7 +851,7 @@ if run_mode == "Quick Test Mode":
         step=1
     )
 
-run_button = st.sidebar.button(f"Run {target_brand} AI Visibility Analysis")
+run_button = st.sidebar.button(f"Run {display_brand} AI Visibility Analysis")
 reset_button = st.sidebar.button(t["reset"])
 
 if reset_button:

@@ -1,3 +1,12 @@
+def format_display_text(value):
+    value = " ".join(str(value).strip().split())
+
+    if value.islower():
+        return value.title()
+
+    return value
+
+
 def translate_dataframe_columns(df):
     return df.rename(columns={
         "brand": "Brand",
