@@ -121,8 +121,9 @@ def display_results():
     st.success(t["complete"])
 
     if is_quick_test_mode:
+        prompt_word = "prompt" if prompt_limit == 1 else "prompts"
         st.warning(
-            f"Quick Test Mode: this report used only {prompt_limit} prompts "
+            f"TEST VERSION ONLY - Quick Test Mode: this report used only {prompt_limit} {prompt_word} "
             "and is for development only. Not client-deliverable."
         )
 
@@ -280,10 +281,10 @@ def display_results():
     - Strategic implication for Dermaviduals:
     """
 
-        if "brand_win_explanation" not in st.session_state:
-            st.session_state["brand_win_explanation"] = ask_ai(explain_prompt)
+            if "brand_win_explanation" not in st.session_state:
+                st.session_state["brand_win_explanation"] = ask_ai(explain_prompt)
 
-        st.write(st.session_state["brand_win_explanation"])
+            st.write(st.session_state["brand_win_explanation"])
 
     # =========================
     # 7. How Dermaviduals Can Replace Winners
@@ -584,6 +585,8 @@ def display_results():
     **Report Type:** AI Visibility / Generative Engine Optimization Audit  
     **Run Mode:** {run_mode}  
     **Deliverable Status:** {deliverable_status}  
+
+    {"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}
 
     This report evaluates how visible {BRAND} is in AI-generated skincare recommendations for the Hong Kong professional skincare market.
 

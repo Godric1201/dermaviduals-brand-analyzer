@@ -2,6 +2,9 @@ from io import BytesIO
 from datetime import datetime
 
 import pandas as pd
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from docx import Document
@@ -709,6 +712,24 @@ def add_report_overview(
     add_styled_table(document, overview_df, max_rows=10, font_size=9.5)
 
 
+def add_quick_test_warning(document, run_mode, prompt_limit=None):
+    if run_mode != "Quick Test Mode":
+        return
+
+    prompt_word = "prompt" if prompt_limit == 1 else "prompts"
+
+    add_callout_box(
+        document,
+        "TEST VERSION ONLY",
+        (
+            "Quick Test Mode - Not Client Deliverable. "
+            f"This report used only {prompt_limit} {prompt_word} and is intended for development and QA only. "
+            "Do not use it as a full client-facing AI visibility report."
+        ),
+        fill=LIGHT_YELLOW
+    )
+
+
 def add_executive_summary(document, brand, metrics, competitor_leaders):
     add_section_heading(document, "Executive Summary", "2")
 
@@ -979,6 +1000,7 @@ def create_executive_docx_report(
         run_mode=run_mode,
         prompt_limit=prompt_limit
     )
+    add_quick_test_warning(document, run_mode, prompt_limit)
     add_executive_summary(document, brand, metrics, competitor_leaders)
     add_visual_benchmark(document, summary_df, brand)
     add_competitive_benchmark(document, benchmark_df)

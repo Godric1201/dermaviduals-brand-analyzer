@@ -1,3 +1,6 @@
+from io import BytesIO
+from zipfile import ZipFile
+
 import pandas as pd
 
 from report_generator import create_executive_docx_report
@@ -71,3 +74,9 @@ def test_create_executive_docx_report_supports_quick_test_mode_metadata():
     )
 
     assert_valid_docx_bytes(report_bytes)
+
+    with ZipFile(BytesIO(report_bytes)) as docx:
+        document_xml = docx.read("word/document.xml").decode("utf-8")
+
+    assert "TEST VERSION ONLY" in document_xml
+    assert "Not Client Deliverable" in document_xml
