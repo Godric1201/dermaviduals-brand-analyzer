@@ -3,7 +3,7 @@ import pandas as pd
 from report_generator import create_executive_docx_report
 
 
-def test_create_executive_docx_report_returns_docx_bytes():
+def create_fake_report_inputs():
     summary_df = pd.DataFrame([
         {
             "brand": "Dermaviduals",
@@ -29,18 +29,45 @@ def test_create_executive_docx_report_returns_docx_bytes():
         }
     ])
 
-    report_bytes = create_executive_docx_report(
-        brand="Dermaviduals",
-        category="skincare products",
-        market="Hong Kong",
-        audience="skincare-conscious consumers in Hong Kong",
-        summary_df=summary_df,
-        top_brands_df=top_winners_df,
-        recommendations="Test recommendations",
-        strategy_report="Test strategy report",
-        gap_analysis="Test gap analysis",
-    )
+    return summary_df, top_winners_df
+
+
+def create_test_report(**kwargs):
+    summary_df, top_winners_df = create_fake_report_inputs()
+
+    report_kwargs = {
+        "brand": "Dermaviduals",
+        "category": "skincare products",
+        "market": "Hong Kong",
+        "audience": "skincare-conscious consumers in Hong Kong",
+        "summary_df": summary_df,
+        "top_brands_df": top_winners_df,
+        "recommendations": "Test recommendations",
+        "strategy_report": "Test strategy report",
+        "gap_analysis": "Test gap analysis",
+    }
+    report_kwargs.update(kwargs)
+
+    return create_executive_docx_report(**report_kwargs)
+
+
+def assert_valid_docx_bytes(report_bytes):
 
     assert isinstance(report_bytes, bytes)
     assert len(report_bytes) > 0
     assert report_bytes.startswith(b"PK")
+
+
+def test_create_executive_docx_report_returns_docx_bytes():
+    report_bytes = create_test_report()
+
+    assert_valid_docx_bytes(report_bytes)
+
+
+def test_create_executive_docx_report_supports_quick_test_mode_metadata():
+    report_bytes = create_test_report(
+        run_mode="Quick Test Mode",
+        prompt_limit=1,
+    )
+
+    assert_valid_docx_bytes(report_bytes)

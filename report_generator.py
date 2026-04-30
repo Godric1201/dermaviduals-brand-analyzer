@@ -670,16 +670,40 @@ def add_cover_page(document, brand, market, report_date):
     document.add_page_break()
 
 
-def add_report_overview(document, brand, market, category, audience, report_date):
+def add_report_overview(
+    document,
+    brand,
+    market,
+    category,
+    audience,
+    report_date,
+    run_mode="Full Report Mode",
+    prompt_limit=None
+):
     add_section_heading(document, "Report Overview", "1")
 
-    overview_df = pd.DataFrame([
+    deliverable_status = "Client-deliverable full report"
+    if run_mode == "Quick Test Mode":
+        deliverable_status = (
+            "Development-only limited-prompt output. Not client-deliverable."
+        )
+
+    overview_rows = [
         {"Field": "Target Brand", "Value": brand},
         {"Field": "Market", "Value": market},
         {"Field": "Category", "Value": category},
         {"Field": "Audience", "Value": audience},
         {"Field": "Report Date", "Value": report_date},
-        {"Field": "Report Type", "Value": "AI Visibility / GEO Audit"}
+        {"Field": "Report Type", "Value": "AI Visibility / GEO Audit"},
+        {"Field": "Run Mode", "Value": run_mode},
+        {"Field": "Deliverable Status", "Value": deliverable_status},
+    ]
+
+    if run_mode == "Quick Test Mode":
+        overview_rows.append({"Field": "Prompt Limit", "Value": prompt_limit})
+
+    overview_df = pd.DataFrame([
+        row for row in overview_rows
     ])
 
     add_styled_table(document, overview_df, max_rows=10, font_size=9.5)
@@ -921,7 +945,9 @@ def create_executive_docx_report(
     top_brands_df,
     recommendations,
     strategy_report,
-    gap_analysis
+    gap_analysis,
+    run_mode="Full Report Mode",
+    prompt_limit=None
 ):
     document = Document()
 
@@ -943,7 +969,16 @@ def create_executive_docx_report(
     priorities_df = create_strategy_priorities_df(brand, top_competitors)
     roadmap_df = create_roadmap_df(brand, top_competitors, metrics)
     add_cover_page(document, brand, market, report_date)
-    add_report_overview(document, brand, market, category, audience, report_date)
+    add_report_overview(
+        document,
+        brand,
+        market,
+        category,
+        audience,
+        report_date,
+        run_mode=run_mode,
+        prompt_limit=prompt_limit
+    )
     add_executive_summary(document, brand, metrics, competitor_leaders)
     add_visual_benchmark(document, summary_df, brand)
     add_competitive_benchmark(document, benchmark_df)

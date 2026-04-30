@@ -90,6 +90,8 @@ def run_analysis():
     st.session_state["raw_answers"] = result["raw_answers"]
     st.session_state["recommendations"] = result["recommendations"]
     st.session_state["plan"] = result["plan"]
+    st.session_state["run_mode"] = run_mode
+    st.session_state["prompt_limit"] = prompt_limit
     st.session_state["analysis_done"] = True
 
 
@@ -106,8 +108,23 @@ def display_results():
     raw_answers = st.session_state["raw_answers"]
     recommendations = st.session_state["recommendations"]
     plan = st.session_state["plan"]
+    run_mode = st.session_state.get("run_mode", "Full Report Mode")
+    prompt_limit = st.session_state.get("prompt_limit")
+    is_quick_test_mode = run_mode == "Quick Test Mode"
+    deliverable_status = "Client-deliverable full report"
+
+    if is_quick_test_mode:
+        deliverable_status = (
+            "Development-only limited-prompt output. Not client-deliverable."
+        )
 
     st.success(t["complete"])
+
+    if is_quick_test_mode:
+        st.warning(
+            f"Quick Test Mode: this report used only {prompt_limit} prompts "
+            "and is for development only. Not client-deliverable."
+        )
 
     st.write("**Hong Kong Professional Competitors:**")
     st.write(", ".join(competitors))
@@ -565,6 +582,8 @@ def display_results():
     **Category:** {CATEGORY}  
     **Audience:** {AUDIENCE}  
     **Report Type:** AI Visibility / Generative Engine Optimization Audit  
+    **Run Mode:** {run_mode}  
+    **Deliverable Status:** {deliverable_status}  
 
     This report evaluates how visible {BRAND} is in AI-generated skincare recommendations for the Hong Kong professional skincare market.
 
@@ -653,7 +672,9 @@ def display_results():
         top_brands_df=top_brands,
         recommendations=recommendations,
         strategy_report=plan,
-        gap_analysis=st.session_state.get("gap_analysis", "")
+        gap_analysis=st.session_state.get("gap_analysis", ""),
+        run_mode=run_mode,
+        prompt_limit=prompt_limit
     )
 
 
