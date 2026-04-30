@@ -72,3 +72,36 @@ FIXED_PROMPTS = [
         "prompt": "What are the top professional skincare product brands for skin therapists and aesthetic clinics?"
     },
 ]
+
+
+def build_fixed_prompts(category, market, audience):
+    return [
+        {
+            "category": "Best Options",
+            "prompt": f"What are the best {category} for {audience} in {market}?"
+        },
+        {
+            "category": "Recommended Brands",
+            "prompt": f"Which {category} brands or providers are most commonly recommended for {audience} in {market}?"
+        },
+        {
+            "category": "Local Recommendations",
+            "prompt": f"What {category} options are most recommended in {market}?"
+        },
+        {
+            "category": "Comparison",
+            "prompt": f"How do leading {category} brands or providers compare for {audience} in {market}?"
+        },
+        {
+            "category": "Quality Signals",
+            "prompt": f"Which {category} options are known for quality, trust, and strong customer fit in {market}?"
+        },
+        {
+            "category": "Decision Criteria",
+            "prompt": f"What should {audience} consider when choosing {category} in {market}?"
+        },
+        {
+            "category": "Top Ranking",
+            "prompt": f"What are the top ranked {category} brands or providers for {audience}?"
+        },
+    ]
