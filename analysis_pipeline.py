@@ -30,6 +30,7 @@ def run_visibility_analysis(
     report_language,
     fixed_prompts,
     on_progress=None,
+    prompt_limit=None,
 ):
     competitors = get_competitors()
 
@@ -43,6 +44,8 @@ def run_visibility_analysis(
     )
 
     prompts = fixed_prompts + ai_prompts
+    if prompt_limit is not None:
+        prompts = prompts[:prompt_limit]
 
     all_results = []
     raw_answers = []

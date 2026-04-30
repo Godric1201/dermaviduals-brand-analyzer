@@ -69,6 +69,7 @@ def run_analysis():
             report_language=report_language,
             fixed_prompts=FIXED_PROMPTS,
             on_progress=on_progress,
+            prompt_limit=prompt_limit,
         )
 
     progress_bar.progress(1.0)
@@ -725,6 +726,22 @@ st.sidebar.write(f"**Market:** {MARKET}")
 st.sidebar.write(f"**Audience:** {AUDIENCE}")
 st.sidebar.write("**Prompt Mode:** Fixed + AI Generated")
 st.sidebar.write("**Competitors:** Predefined HK professional skincare set")
+
+run_mode = st.sidebar.radio(
+    "Run Mode",
+    ["Full Report Mode", "Quick Test Mode"],
+    index=0
+)
+
+prompt_limit = None
+if run_mode == "Quick Test Mode":
+    prompt_limit = st.sidebar.number_input(
+        "Prompt Limit",
+        min_value=1,
+        max_value=10,
+        value=3,
+        step=1
+    )
 
 run_button = st.sidebar.button(t["run"])
 reset_button = st.sidebar.button(t["reset"])
