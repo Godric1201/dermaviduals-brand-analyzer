@@ -26,7 +26,7 @@ from utils import convert_df_to_csv
 
 
 st.set_page_config(
-    page_title="Dermaviduals Hong Kong AI Visibility Analyzer",
+    page_title="AI Visibility Analyzer",
     layout="wide"
 )
 
@@ -52,14 +52,14 @@ def run_analysis():
         audience=audience
     )
 
-    st.info("Using configured professional skincare competitors...")
+    st.info("Using configured competitors...")
 
     default_competitors = get_competitors()
     competitors = parse_competitors(competitors_text)
     if not competitors:
         competitors = default_competitors
 
-    st.write("**Competitors:**")
+    st.write("**Configured Competitors:**")
     st.write(", ".join(competitors))
 
     with st.expander("AI Generated Prompts Debug"):
@@ -152,7 +152,7 @@ def display_results():
             "and is for development only. Not client-deliverable."
         )
 
-    st.write("**Hong Kong Professional Competitors:**")
+    st.write("**Configured Competitors:**")
     st.write(", ".join(competitors))
 
     with st.expander("AI Generated Prompts Debug"):
@@ -175,7 +175,9 @@ def display_results():
     ]
 
     st.subheader(t["snapshot"])
-    st.caption(t["caption"])
+    st.caption(
+        f"Organic Visibility is measured from unbiased prompts that do not mention {brand}."
+    )
 
     if not target_row.empty:
         target_score = target_row.iloc[0]["average_visibility_score"]
@@ -764,10 +766,6 @@ def display_results():
 
 t = TRANSLATIONS
 
-st.title(t["title"])
-st.caption(t["subtitle"])
-st.markdown(t["description"])
-
 st.sidebar.header("Analysis Setup")
 target_brand = st.sidebar.text_input("Target Brand", value=BRAND)
 target_category = st.sidebar.text_input("Category", value=CATEGORY)
@@ -779,6 +777,16 @@ competitors_text = st.sidebar.text_area(
     help="Enter one competitor per line."
 )
 st.sidebar.write("**Prompt Mode:** Fixed + AI Generated")
+
+st.title(f"{target_brand} {target_market} AI Visibility Analyzer")
+st.caption(f"AI search visibility analysis for {target_category} in {target_market}.")
+st.markdown(
+    f"""
+This tool analyzes how visible {target_brand} is in AI-generated {target_category} recommendations for the {target_market} market.
+
+The prompts are fixed plus AI-generated, unbiased, and do not directly mention the target brand.
+"""
+)
 
 run_mode = st.sidebar.radio(
     "Run Mode",
@@ -796,7 +804,7 @@ if run_mode == "Quick Test Mode":
         step=1
     )
 
-run_button = st.sidebar.button(t["run"])
+run_button = st.sidebar.button(f"Run {target_brand} AI Visibility Analysis")
 reset_button = st.sidebar.button(t["reset"])
 
 if reset_button:

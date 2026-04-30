@@ -649,7 +649,7 @@ def add_cover_page(document, brand, market, report_date):
     title = document.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    title_run = title.add_run(f"{brand} Hong Kong\nAI Visibility Report")
+    title_run = title.add_run(f"{brand} {market}\nAI Visibility Report")
     title_run.bold = True
     title_run.font.size = Pt(28)
     title_run.font.color.rgb = RGBColor(31, 78, 121)
