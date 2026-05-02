@@ -78,30 +78,42 @@ def build_fixed_prompts(category, market, audience):
     return [
         {
             "category": "Best Options",
-            "prompt": f"What are the best {category} for {audience} in {market}?"
-        },
-        {
-            "category": "Recommended Brands",
-            "prompt": f"Which {category} brands or providers are most commonly recommended for {audience} in {market}?"
+            "prompt": f"What are the best {category} options for {audience} in {market}?"
         },
         {
             "category": "Local Recommendations",
-            "prompt": f"What {category} options are most recommended in {market}?"
+            "prompt": f"Which {category} brands or providers are most recommended locally in {market}?"
         },
         {
-            "category": "Comparison",
+            "category": "Audience-Specific Recommendations",
+            "prompt": f"Which {category} options are best suited for {audience} in {market}?"
+        },
+        {
+            "category": "Use-Case Recommendations",
+            "prompt": f"What {category} options are recommended for common high-intent use cases among {audience}?"
+        },
+        {
+            "category": "Premium Options",
+            "prompt": f"Which premium or high-end {category} brands or providers are worth considering in {market}?"
+        },
+        {
+            "category": "Budget-Friendly Options",
+            "prompt": f"Which accessible or budget-friendly {category} options are worth considering in {market}?"
+        },
+        {
+            "category": "Comparison Queries",
             "prompt": f"How do leading {category} brands or providers compare for {audience} in {market}?"
         },
         {
-            "category": "Quality Signals",
-            "prompt": f"Which {category} options are known for quality, trust, and strong customer fit in {market}?"
+            "category": "Alternatives To Leading Competitors",
+            "prompt": f"What are good alternatives to leading {category} brands or providers in {market}?"
+        },
+        {
+            "category": "Trust And Review Signals",
+            "prompt": f"Which {category} options in {market} are known for strong reviews, trust signals, or customer confidence?"
         },
         {
             "category": "Decision Criteria",
-            "prompt": f"What should {audience} consider when choosing {category} in {market}?"
-        },
-        {
-            "category": "Top Ranking",
-            "prompt": f"What are the top ranked {category} brands or providers for {audience}?"
+            "prompt": f"What should {audience} consider when choosing between {category} options in {market}?"
         },
     ]
