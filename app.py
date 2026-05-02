@@ -206,8 +206,10 @@ def run_analysis():
 
     st.subheader("Generating AI Visibility Report")
 
-    with st.expander("AI Generated Prompts Debug"):
-        ai_prompts_placeholder = st.empty()
+    ai_prompts_placeholder = None
+    if show_prompt_debug:
+        with st.expander("AI Generated Prompts Debug", expanded=False):
+            ai_prompts_placeholder = st.empty()
 
     total_prompts_placeholder = st.empty()
 
@@ -240,7 +242,8 @@ def run_analysis():
     ai_prompts = result["ai_prompts"]
     prompts = result["prompts"]
 
-    ai_prompts_placeholder.write(ai_prompts)
+    if show_prompt_debug and ai_prompts_placeholder is not None:
+        ai_prompts_placeholder.write(ai_prompts)
     total_prompts_placeholder.write(f"Total prompts: {len(prompts)}")
 
     st.session_state["competitors"] = result["competitors"]
@@ -355,8 +358,9 @@ def display_results():
     st.write("**Configured Competitors:**")
     st.write(", ".join(competitors))
 
-    with st.expander("AI Generated Prompts Debug"):
-        st.write(ai_prompts)
+    if show_prompt_debug:
+        with st.expander("AI Generated Prompts Debug", expanded=False):
+            st.write(ai_prompts)
 
     st.write(f"Total prompts: {len(prompts)}")
 
@@ -1153,6 +1157,12 @@ if parsed_user_brand_strengths:
     st.sidebar.write(parsed_user_brand_strengths)
 
 st.sidebar.write("**Prompt Mode:** Fixed + AI Generated")
+
+with st.sidebar.expander("Advanced / Developer Options"):
+    show_prompt_debug = st.checkbox(
+        "Show prompt debug details",
+        value=False
+    )
 
 st.title(f"{display_brand} {display_market} AI Visibility Analyzer")
 st.caption(
