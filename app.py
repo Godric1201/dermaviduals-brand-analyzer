@@ -29,6 +29,7 @@ from benchmark_comparison import (
     load_snapshot_json,
 )
 from competitor_suggestions import suggest_competitors_with_ai
+from geo_roadmap import generate_geo_content_roadmap
 from prompts import build_fixed_prompts
 from ui_formatters import (
     build_export_filename,
@@ -199,6 +200,8 @@ def clear_analysis_results():
         "strategy_report",
         "brand_intelligence",
         "brand_intelligence_done",
+        "geo_content_roadmap",
+        "geo_content_roadmap_done",
     ]
 
     for key in analysis_state_keys:
@@ -238,7 +241,8 @@ def estimate_api_calls(
     fixed_prompt_count,
     ai_generated_prompt_estimate,
     prompt_limit,
-    run_mode
+    run_mode,
+    geo_content_roadmap_calls=1,
 ):
     estimated_total_prompts = (
         fixed_prompt_count + ai_generated_prompt_estimate
@@ -266,11 +270,13 @@ def estimate_api_calls(
         "ai_answer_generation_calls": ai_answer_generation_calls,
         "recommendation_calls": recommendation_calls,
         "strategy_report_calls": strategy_report_calls,
+        "geo_content_roadmap_calls": geo_content_roadmap_calls,
         "estimated_pipeline_calls": (
             prompt_generation_calls
             + ai_answer_generation_calls
             + recommendation_calls
             + strategy_report_calls
+            + geo_content_roadmap_calls
         ),
         "auto_result_narrative_calls_estimate": 3,
     }
@@ -375,6 +381,23 @@ def run_analysis():
         )
     st.session_state["brand_intelligence"] = brand_intelligence_result
     st.session_state["brand_intelligence_done"] = True
+
+    with st.spinner("Generating GEO Content Roadmap..."):
+        status_text.write("GEO Content Roadmap: Building execution plan")
+        geo_content_roadmap = generate_geo_content_roadmap(
+            brand=brand,
+            category=category,
+            market=market,
+            audience=audience,
+            competitors=competitors,
+            summary_df=result["summary_df"],
+            detailed_df=result["detailed_df"],
+            brand_intelligence=brand_intelligence_result,
+            query_intent_categories=get_prompt_categories(result["prompts"]),
+            report_language=report_language,
+        )
+    st.session_state["geo_content_roadmap"] = geo_content_roadmap
+    st.session_state["geo_content_roadmap_done"] = True
 
     st.session_state["analysis_context"] = build_analysis_context(
         brand=brand,
@@ -821,6 +844,13 @@ def display_results():
                 st.markdown(f"**Prompt:** {item['prompt']}")
                 st.write(item["answer"])
 
+    if st.session_state.get("geo_content_roadmap_done", False):
+        st.subheader("GEO Content Roadmap")
+        st.caption(
+            "Strategic execution plan. Not part of visibility scoring or share of voice."
+        )
+        st.markdown(st.session_state["geo_content_roadmap"])
+
     # =========================
     # 13. Level 3 Strategic Insight
     # =========================
@@ -1081,6 +1111,19 @@ def display_results():
     {brand_intelligence["positioning_gap_analysis"]}
     """
 
+    geo_content_roadmap_md = ""
+    if st.session_state.get("geo_content_roadmap_done", False):
+        geo_content_roadmap_md = f"""
+
+    ---
+
+    ## GEO Content Roadmap
+
+    > Strategic execution plan. Not part of visibility scoring or share of voice.
+
+    {st.session_state["geo_content_roadmap"]}
+    """
+
     executive_report = f"""
     # {display_brand} {display_market} AI Visibility Report
 
@@ -1179,6 +1222,7 @@ def display_results():
 
     {st.session_state.get("replacement_strategy", "_Replacement strategy was not generated in this run._")}
     {brand_intelligence_md}
+    {geo_content_roadmap_md}
     """
     executive_docx = create_executive_docx_report(
         brand=display_brand,
@@ -1614,6 +1658,10 @@ if st.session_state.get("pending_run_confirmation", False):
             f"{brand_intelligence_estimated_calls}"
         )
         st.write(
+            "**GEO Content Roadmap call:** "
+            f"{api_call_estimate['geo_content_roadmap_calls']}"
+        )
+        st.write(
             "**Additional narrative calls:** up to "
             f"{api_call_estimate['auto_result_narrative_calls_estimate']}"
         )
@@ -1639,6 +1687,10 @@ if st.session_state.get("pending_run_confirmation", False):
             st.write(
                 "**Strategy report call:** "
                 f"{api_call_estimate['strategy_report_calls']}"
+            )
+            st.write(
+                "**GEO Content Roadmap call:** "
+                f"{api_call_estimate['geo_content_roadmap_calls']}"
             )
             st.caption(
                 "Content Asset Generator calls are excluded until the user explicitly "
