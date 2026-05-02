@@ -81,6 +81,35 @@ def build_analysis_context(
     }
 
 
+def validate_run_inputs(brand, category, market, audience, competitors):
+    errors = []
+
+    if not normalize_context_text(brand):
+        errors.append("Target Brand is required.")
+    if not normalize_context_text(category):
+        errors.append("Category is required.")
+    if not normalize_context_text(market):
+        errors.append("Market is required.")
+    if not normalize_context_text(audience):
+        errors.append("Audience is required.")
+    if not normalize_competitors(competitors):
+        errors.append("At least one competitor is required.")
+
+    return errors
+
+
+def get_run_warnings(competitors, run_mode):
+    warnings = []
+
+    if (
+        run_mode == "Full Report Mode"
+        and len(normalize_competitors(competitors)) < 3
+    ):
+        warnings.append("Full Report Mode works best with at least 3 competitors.")
+
+    return warnings
+
+
 def run_analysis():
     brand = target_brand
     category = target_category
@@ -981,7 +1010,28 @@ current_analysis_context = build_analysis_context(
     prompt_limit=prompt_limit
 )
 
-run_button = st.sidebar.button(f"Run {display_brand} AI Visibility Analysis")
+validation_errors = validate_run_inputs(
+    brand=target_brand,
+    category=target_category,
+    market=target_market,
+    audience=target_audience,
+    competitors=current_competitors
+)
+validation_warnings = get_run_warnings(
+    competitors=current_competitors,
+    run_mode=run_mode
+)
+
+for error in validation_errors:
+    st.sidebar.error(error)
+
+for warning in validation_warnings:
+    st.sidebar.warning(warning)
+
+run_button = st.sidebar.button(
+    f"Run {display_brand} AI Visibility Analysis",
+    disabled=bool(validation_errors)
+)
 reset_button = st.sidebar.button(t["reset"])
 
 if reset_button:
@@ -1030,8 +1080,12 @@ Organic Visibility is measured from unbiased prompts that do not mention the tar
 """)
 
 if run_button:
-    st.session_state.clear()
-    run_analysis()
+    if validation_errors:
+        for error in validation_errors:
+            st.sidebar.error(error)
+    else:
+        st.session_state.clear()
+        run_analysis()
 
 if st.session_state.get("analysis_done", False):
     display_results()
