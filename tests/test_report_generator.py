@@ -35,6 +35,34 @@ def create_fake_report_inputs():
     return summary_df, top_winners_df
 
 
+def create_all_zero_report_inputs():
+    summary_df = pd.DataFrame([
+        {
+            "brand": "Espresso House",
+            "total_mentions": 0,
+            "average_visibility_score": 0,
+            "prompts_visible": 0,
+            "share_of_voice_percent": 0,
+        },
+        {
+            "brand": "Coffee Fellows",
+            "total_mentions": 0,
+            "average_visibility_score": 0,
+            "prompts_visible": 0,
+            "share_of_voice_percent": 0,
+        },
+        {
+            "brand": "Einstein Kaffee",
+            "total_mentions": 0,
+            "average_visibility_score": 0,
+            "prompts_visible": 0,
+            "share_of_voice_percent": 0,
+        },
+    ])
+
+    return summary_df, pd.DataFrame()
+
+
 def create_test_report(**kwargs):
     summary_df, top_winners_df = create_fake_report_inputs()
 
@@ -108,3 +136,34 @@ def test_create_executive_docx_report_uses_generic_category_wording():
 
     assert "cafes" in document_xml
     assert "Berlin" in document_xml
+
+
+def test_create_executive_docx_report_handles_all_zero_visibility_without_fake_leaders():
+    summary_df, top_winners_df = create_all_zero_report_inputs()
+
+    report_bytes = create_test_report(
+        brand="Espresso House",
+        category="cafes",
+        market="Berlin",
+        audience="remote workers",
+        summary_df=summary_df,
+        top_brands_df=top_winners_df,
+    )
+
+    assert_valid_docx_bytes(report_bytes)
+
+    with ZipFile(BytesIO(report_bytes)) as docx:
+        document_xml = docx.read("word/document.xml").decode("utf-8")
+
+    blocked_phrases = [
+        "creating a stronger AI recall signal",
+        "The highest mention brand is",
+        "The highest average visibility brand is",
+        "The highest share-of-voice brand is",
+    ]
+
+    for phrase in blocked_phrases:
+        assert phrase not in document_xml
+
+    assert "No benchmark competitor generated measurable" in document_xml
+    assert "does not identify a stronger competitor leader" in document_xml

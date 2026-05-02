@@ -453,7 +453,13 @@ def get_competitor_leaders(summary_df, brand):
         if column not in competitors.columns:
             continue
 
-        row = competitors.sort_values(by=column, ascending=False).iloc[0]
+        values = pd.to_numeric(competitors[column], errors="coerce").fillna(0)
+        max_value = values.max()
+
+        if max_value <= 0:
+            continue
+
+        row = competitors.loc[values.idxmax()]
         leaders[key] = {
             "brand": row.get("brand", ""),
             "value": row.get(column, 0),
@@ -464,7 +470,11 @@ def get_competitor_leaders(summary_df, brand):
 
 def build_competitor_leader_sentence(leaders):
     if not leaders:
-        return "No competitor benchmark leaders were detected in this run."
+        return (
+            "No benchmark competitor generated measurable visibility, mentions, "
+            "or share of voice in this run, so this benchmark does not identify "
+            "a stronger competitor leader."
+        )
 
     highest_visibility = leaders.get("highest_visibility", {})
     highest_mentions = leaders.get("highest_mentions", {})
@@ -491,6 +501,17 @@ def build_competitor_leader_sentence(leaders):
         )
 
     return ". ".join(parts) + "."
+
+
+def has_positive_competitor_signal(item):
+    signal_fields = ["mentions", "avg_visibility", "prompts_visible", "sov"]
+
+    for field in signal_fields:
+        value = pd.to_numeric(item.get(field, 0), errors="coerce")
+        if pd.notna(value) and value > 0:
+            return True
+
+    return False
 
 
 def get_top_competitors(summary_df, brand, limit=3):
@@ -869,11 +890,23 @@ def add_gap_diagnosis(document, brand, category, market, metrics, top_competitor
     if top_competitors:
         add_subheading(document, "Competitive Context")
 
-        for item in top_competitors:
+        positive_competitors = [
+            item for item in top_competitors
+            if has_positive_competitor_signal(item)
+        ]
+
+        if not positive_competitors:
             add_bullet(
                 document,
-                f"{item['brand']} has {item['mentions']} mentions and {item['sov']}% share of voice, creating a stronger AI recall signal than {brand}."
+                "No benchmark competitor generated measurable AI recall signal in this run. "
+                "Competitors should be treated as unproven in this dataset, not as stronger AI visibility leaders."
             )
+        else:
+            for item in positive_competitors:
+                add_bullet(
+                    document,
+                    f"{item['brand']} has {item['mentions']} mentions and {item['sov']}% share of voice, creating a stronger AI recall signal than {brand}."
+                )
 
 
 def add_strategy_priorities(document, priorities_df):
