@@ -153,6 +153,53 @@ def add_markdownish_text(document, text):
             add_paragraph_text(document, line)
 
 
+def split_markdown_table_row(line):
+    return [
+        cell.strip()
+        for cell in line.strip().strip("|").split("|")
+    ]
+
+
+def is_markdown_separator_row(cells):
+    if not cells:
+        return False
+
+    return all(
+        "-" in cell and not cell.replace("-", "").replace(":", "").strip()
+        for cell in cells
+    )
+
+
+def parse_markdown_table(text):
+    table_lines = [
+        line.strip()
+        for line in str(text).splitlines()
+        if line.strip().startswith("|") and line.strip().endswith("|")
+    ]
+
+    if len(table_lines) < 2:
+        return pd.DataFrame()
+
+    headers = split_markdown_table_row(table_lines[0])
+    rows = []
+
+    for line in table_lines[1:]:
+        cells = split_markdown_table_row(line)
+
+        if is_markdown_separator_row(cells):
+            continue
+
+        if len(cells) < len(headers):
+            cells.extend([""] * (len(headers) - len(cells)))
+
+        if len(cells) > len(headers):
+            cells = cells[:len(headers)]
+
+        rows.append(dict(zip(headers, cells)))
+
+    return pd.DataFrame(rows, columns=headers)
+
+
 def add_bullet(document, text):
     paragraph = document.add_paragraph(style="List Bullet")
     paragraph.paragraph_format.space_after = Pt(3)
@@ -1004,6 +1051,29 @@ def add_brand_intelligence(document, brand_intelligence, section_number):
     )
 
 
+def add_geo_content_roadmap(document, geo_content_roadmap, section_number):
+    if not geo_content_roadmap:
+        return
+
+    add_section_heading(
+        document,
+        "GEO Content Roadmap",
+        str(section_number)
+    )
+    add_callout_box(
+        document,
+        "Strategic Execution Plan",
+        "Strategic execution plan. Not part of visibility scoring or share of voice.",
+        fill=LIGHT_GREEN
+    )
+
+    roadmap_df = parse_markdown_table(geo_content_roadmap)
+    if not roadmap_df.empty:
+        add_styled_table(document, roadmap_df, max_rows=10, font_size=6.4)
+    else:
+        add_markdownish_text(document, geo_content_roadmap)
+
+
 def add_roadmap(document, roadmap_df, section_number="8"):
     add_section_heading(document, "30 / 60 / 90 Day Roadmap", section_number)
 
@@ -1139,7 +1209,8 @@ def create_executive_docx_report(
     run_mode="Full Report Mode",
     prompt_limit=None,
     brand_intelligence=None,
-    prompt_categories=None
+    prompt_categories=None,
+    geo_content_roadmap=None
 ):
     document = Document()
 
@@ -1192,32 +1263,32 @@ def create_executive_docx_report(
     add_gap_diagnosis(document, brand, category, market, metrics, top_competitors)
     add_strategy_priorities(document, priorities_df)
 
+    next_section_number = 8
     if brand_intelligence:
-        add_brand_intelligence(document, brand_intelligence, 8)
-        roadmap_section = "9"
-        measurement_section = "10"
-        next_step_section = "11"
-        methodology_section = "12"
-    else:
-        roadmap_section = "8"
-        measurement_section = "9"
-        next_step_section = "10"
-        methodology_section = "11"
+        add_brand_intelligence(document, brand_intelligence, next_section_number)
+        next_section_number += 1
 
-    add_roadmap(document, roadmap_df, roadmap_section)
-    add_measurement_plan(document, brand, metrics, measurement_section)
+    if geo_content_roadmap:
+        add_geo_content_roadmap(document, geo_content_roadmap, next_section_number)
+        next_section_number += 1
+
+    add_roadmap(document, roadmap_df, str(next_section_number))
+    next_section_number += 1
+    add_measurement_plan(document, brand, metrics, str(next_section_number))
+    next_section_number += 1
     add_recommended_next_step(
         document,
         brand,
         category,
         market,
         metrics,
-        next_step_section
+        str(next_section_number)
     )
+    next_section_number += 1
     add_methodology_notes(
         document,
         category,
-        methodology_section,
+        str(next_section_number),
         prompt_categories=prompt_categories
     )
 

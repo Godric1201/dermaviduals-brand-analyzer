@@ -4,7 +4,7 @@ from zipfile import ZipFile
 
 import pandas as pd
 
-from report_generator import create_executive_docx_report
+from report_generator import create_executive_docx_report, parse_markdown_table
 
 
 def create_fake_report_inputs():
@@ -123,6 +123,7 @@ def test_create_executive_docx_report_returns_docx_bytes():
     document_xml = read_document_xml(report_bytes)
 
     assert "Brand Intelligence" not in document_xml
+    assert "GEO Content Roadmap" not in document_xml
     assert "Query intent coverage" not in document_xml
 
 
@@ -291,3 +292,66 @@ def test_create_executive_docx_report_includes_query_intent_coverage_when_provid
 
     for term in expected_terms:
         assert term in document_xml
+
+
+def test_parse_markdown_table_returns_dataframe():
+    roadmap = """
+| Priority | Query Intent | Content Asset |
+|---|---|---|
+| 1 | Best Options | Comparison page |
+"""
+
+    df = parse_markdown_table(roadmap)
+
+    assert df.to_dict(orient="records") == [
+        {
+            "Priority": "1",
+            "Query Intent": "Best Options",
+            "Content Asset": "Comparison page",
+        }
+    ]
+
+
+def test_create_executive_docx_report_includes_geo_content_roadmap_when_provided():
+    geo_content_roadmap = """
+| Priority | Query Intent | Content Asset | Target Association | Competitor / Market Signal | Evidence Needed | Expected Metric Impact | Suggested Timing |
+|---|---|---|---|---|---|---|---|
+| 1 | Best Options | Comparison page | Category authority | Competitor review strength | Third-party reviews | Improve query intent visibility and prompts visible | 30 Days |
+"""
+    report_bytes = create_test_report(
+        brand_intelligence={
+            "recommendation_drivers": "Test recommendation drivers",
+            "target_brand_understanding": "Test target brand understanding",
+            "positioning_gap_analysis": "Test positioning gap analysis",
+        },
+        geo_content_roadmap=geo_content_roadmap,
+    )
+
+    assert_valid_docx_bytes(report_bytes)
+
+    document_xml = read_document_xml(report_bytes)
+    document_text = read_document_text(report_bytes)
+
+    expected_terms = [
+        "GEO Content Roadmap",
+        "Strategic execution plan",
+        "Query Intent",
+        "Content Asset",
+        "Evidence Needed",
+        "Expected Metric Impact",
+        "Suggested Timing",
+        "Best Options",
+        "Comparison page",
+        "30 Days",
+    ]
+
+    for term in expected_terms:
+        assert term in document_xml
+
+    assert "| Priority |" not in document_text
+
+    assert (
+        document_text.find("Brand Intelligence")
+        < document_text.find("GEO Content Roadmap")
+        < document_text.find("30 / 60 / 90 Day Roadmap")
+    )

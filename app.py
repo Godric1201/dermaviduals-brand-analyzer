@@ -1241,7 +1241,12 @@ def display_results():
         run_mode=run_mode,
         prompt_limit=prompt_limit,
         brand_intelligence=snapshot_brand_intelligence,
-        prompt_categories=prompt_categories
+        prompt_categories=prompt_categories,
+        geo_content_roadmap=(
+            st.session_state.get("geo_content_roadmap")
+            if st.session_state.get("geo_content_roadmap_done", False)
+            else None
+        )
     )
 
     benchmark_snapshot_json = serialize_benchmark_snapshot(current_snapshot)
