@@ -17,6 +17,7 @@ from brand_intelligence_prompts import (
     build_target_diagnostic_prompts,
     parse_user_brand_strengths,
 )
+from competitor_suggestions import suggest_competitors_with_ai
 from prompts import build_fixed_prompts
 from ui_formatters import (
     build_export_filename,
@@ -50,6 +51,66 @@ def parse_competitors(text):
         for line in text.splitlines()
         if line.strip()
     ]
+
+
+def build_competitor_suggestions_context(brand, category, market, audience):
+    return {
+        "brand": normalize_context_text(brand),
+        "category": normalize_context_text(category),
+        "market": normalize_context_text(market),
+        "audience": normalize_context_text(audience),
+    }
+
+
+def get_competitor_suggestion_checkbox_key(index):
+    return f"competitor_suggestion_selected_{index}"
+
+
+def clear_competitor_suggestion_selections():
+    for key in list(st.session_state):
+        if key.startswith("competitor_suggestion_selected_"):
+            st.session_state.pop(key, None)
+
+
+def clear_competitor_suggestions():
+    st.session_state.pop("competitor_suggestions", None)
+    st.session_state.pop("competitor_suggestions_context", None)
+    clear_competitor_suggestion_selections()
+
+
+def add_selected_competitor_suggestions():
+    suggestions = st.session_state.get("competitor_suggestions", [])
+    existing_competitors = parse_competitors(
+        st.session_state.get("competitors_input", "")
+    )
+    existing_keys = {
+        competitor.lower()
+        for competitor in existing_competitors
+    }
+    added_keys = set()
+    additions = []
+
+    for index, suggestion in enumerate(suggestions):
+        selected = st.session_state.get(
+            get_competitor_suggestion_checkbox_key(index),
+            False
+        )
+        key = suggestion.lower()
+
+        if selected and key not in existing_keys and key not in added_keys:
+            additions.append(suggestion)
+            added_keys.add(key)
+
+    if additions:
+        st.session_state["competitors_input"] = "\n".join(
+            existing_competitors + additions
+        )
+
+    st.session_state["competitor_suggestions"] = [
+        suggestion for suggestion in suggestions
+        if suggestion.lower() not in added_keys
+    ]
+    clear_competitor_suggestion_selections()
 
 
 def normalize_context_text(value):
@@ -1138,6 +1199,69 @@ competitors_text = st.sidebar.text_area(
     help="Enter one competitor per line.",
     key="competitors_input"
 )
+parsed_competitors = parse_competitors(competitors_text)
+configured_competitors = parsed_competitors if parsed_competitors else get_competitors()
+st.sidebar.caption(f"Configured competitors: {len(configured_competitors)}")
+
+competitor_suggestions_context = build_competitor_suggestions_context(
+    target_brand,
+    target_category,
+    target_market,
+    target_audience,
+)
+stored_suggestions_context = st.session_state.get(
+    "competitor_suggestions_context"
+)
+
+if (
+    stored_suggestions_context
+    and stored_suggestions_context != competitor_suggestions_context
+):
+    clear_competitor_suggestions()
+
+required_competitor_context_exists = all(
+    competitor_suggestions_context.values()
+)
+
+st.sidebar.markdown("**Competitor Discovery**")
+find_competitors = st.sidebar.button(
+    "Find AI-suggested competitors",
+    disabled=not required_competitor_context_exists
+)
+
+if find_competitors:
+    with st.spinner("Finding relevant competitors..."):
+        suggestions = suggest_competitors_with_ai(
+            brand=target_brand,
+            category=target_category,
+            market=target_market,
+            audience=target_audience,
+            existing_competitors=parsed_competitors,
+            max_suggestions=8,
+            answer_language=ANSWER_LANGUAGE,
+        )
+
+    st.session_state["competitor_suggestions"] = suggestions
+    st.session_state["competitor_suggestions_context"] = (
+        competitor_suggestions_context
+    )
+    clear_competitor_suggestion_selections()
+
+suggestions = st.session_state.get("competitor_suggestions", [])
+if suggestions:
+    for index, suggestion in enumerate(suggestions):
+        st.sidebar.checkbox(
+            suggestion,
+            key=get_competitor_suggestion_checkbox_key(index)
+        )
+
+    st.sidebar.button(
+        "Add selected competitors",
+        on_click=add_selected_competitor_suggestions
+    )
+elif find_competitors:
+    st.sidebar.info("No new competitor suggestions found.")
+
 brand_strengths_text = st.sidebar.text_area(
     "Brand Strengths / Positioning Notes",
     help=(
@@ -1150,10 +1274,6 @@ display_brand = format_display_text(target_brand)
 display_category = format_display_text(target_category)
 display_market = format_display_text(target_market)
 display_audience = format_display_text(target_audience)
-
-parsed_competitors = parse_competitors(competitors_text)
-configured_competitors = parsed_competitors if parsed_competitors else get_competitors()
-st.sidebar.caption(f"Configured competitors: {len(configured_competitors)}")
 
 parsed_user_brand_strengths = parse_user_brand_strengths(brand_strengths_text)
 if parsed_user_brand_strengths:
