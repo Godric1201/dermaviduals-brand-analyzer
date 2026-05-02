@@ -14,6 +14,7 @@ from app_constants import (
 from analysis_pipeline import get_competitors, run_visibility_analysis
 from prompts import build_fixed_prompts
 from ui_formatters import (
+    build_export_filename,
     df_to_markdown_table,
     format_display_text,
     format_brand_names_for_display,
@@ -881,7 +882,13 @@ def display_results():
         st.download_button(
             label=t["summary_csv"],
             data=convert_df_to_csv(summary_df),
-            file_name="dermaviduals_hk_summary_visibility_report.csv",
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "summary",
+                "csv",
+                run_mode
+            ),
             mime="text/csv",
             key="summary_download",
             on_click="ignore",
@@ -891,7 +898,13 @@ def display_results():
         st.download_button(
             label=t["detailed_csv"],
             data=convert_df_to_csv(detailed_df),
-            file_name="dermaviduals_hk_detailed_prompt_report.csv",
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "detailed_results",
+                "csv",
+                run_mode
+            ),
             mime="text/csv",
             key="detailed_download",
             on_click="ignore",
@@ -901,7 +914,13 @@ def display_results():
         st.download_button(
             label=t["raw_csv"],
             data=convert_df_to_csv(raw_answer_df),
-            file_name="dermaviduals_hk_raw_ai_answers.csv",
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "raw_answers",
+                "csv",
+                run_mode
+            ),
             mime="text/csv",
             key="raw_download",
             on_click="ignore",
@@ -911,7 +930,13 @@ def display_results():
         st.download_button(
             label="Download Executive Report MD",
             data=executive_report.encode("utf-8-sig"),
-            file_name="dermaviduals_hk_executive_report.md",
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "executive_report",
+                "md",
+                run_mode
+            ),
             mime="text/markdown",
             key="executive_report_download",
             on_click="ignore",
@@ -921,7 +946,13 @@ def display_results():
         st.download_button(
             label="Download Client Report DOCX",
             data=executive_docx,
-            file_name="dermaviduals_hk_client_report.docx",
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "ai_visibility_report",
+                "docx",
+                run_mode
+            ),
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             key="client_report_docx_download",
             on_click="ignore",

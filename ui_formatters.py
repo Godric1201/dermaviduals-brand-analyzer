@@ -1,3 +1,6 @@
+import re
+
+
 def format_display_text(value):
     value = " ".join(str(value).strip().split())
 
@@ -28,6 +31,37 @@ def format_brand_names_for_display(df):
     display_df["brand"] = display_df["brand"].apply(format_display_text)
 
     return display_df
+
+
+def slugify_filename_part(value):
+    value = str(value).strip().lower()
+    value = re.sub(r'[<>:"/\\|?*]+', "_", value)
+    value = re.sub(r"[^a-z0-9]+", "_", value)
+    value = re.sub(r"_+", "_", value).strip("_")
+
+    return value or "export"
+
+
+def build_export_filename(
+    brand,
+    market,
+    export_type,
+    extension,
+    run_mode="Full Report Mode"
+):
+    parts = [
+        slugify_filename_part(brand),
+        slugify_filename_part(market),
+    ]
+
+    if run_mode == "Quick Test Mode":
+        parts.append("quick_test")
+
+    parts.append(slugify_filename_part(export_type))
+
+    extension = slugify_filename_part(str(extension).lstrip("."))
+
+    return f"{'_'.join(parts)}.{extension}"
 
 
 def translate_dataframe_columns(df):

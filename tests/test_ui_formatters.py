@@ -1,9 +1,11 @@
 import pandas as pd
 
 from ui_formatters import (
+    build_export_filename,
     format_brand_names_for_display,
     format_display_text,
     replace_target_brand_for_display,
+    slugify_filename_part,
 )
 
 
@@ -101,3 +103,53 @@ def test_format_brand_names_for_display_handles_missing_brand_column():
 
     assert result.equals(df)
     assert result is not df
+
+
+def test_build_export_filename_uses_brand_market_and_export_type():
+    filename = build_export_filename(
+        "Espresso House",
+        "Berlin",
+        "summary",
+        "csv",
+    )
+
+    assert filename == "espresso_house_berlin_summary.csv"
+
+
+def test_build_export_filename_marks_quick_test_mode():
+    filename = build_export_filename(
+        "Espresso House",
+        "Berlin",
+        "summary",
+        "csv",
+        run_mode="Quick Test Mode",
+    )
+
+    assert filename == "espresso_house_berlin_quick_test_summary.csv"
+
+
+def test_build_export_filename_does_not_mark_full_report_mode():
+    filename = build_export_filename(
+        "Espresso House",
+        "Berlin",
+        "summary",
+        "csv",
+        run_mode="Full Report Mode",
+    )
+
+    assert "quick_test" not in filename
+
+
+def test_slugify_filename_part_handles_unsafe_chars():
+    assert slugify_filename_part('Espresso/House: "Berlin"*') == "espresso_house_berlin"
+
+
+def test_build_export_filename_does_not_correct_typos():
+    filename = build_export_filename(
+        "starbuks",
+        "berlin",
+        "summary",
+        "csv",
+    )
+
+    assert filename == "starbuks_berlin_summary.csv"
