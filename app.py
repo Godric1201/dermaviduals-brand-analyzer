@@ -1054,13 +1054,6 @@ def display_results():
         target_sov
     )
 
-    top_competitors = summary_df[
-        summary_df["brand"].str.lower() != brand.lower()
-    ].sort_values(
-        by="average_visibility_score",
-        ascending=False
-    ).head(3)
-
     competitor_leaders = get_competitor_leaders(summary_df, brand)
     top_competitor_text = build_competitor_leader_sentence(
         competitor_leaders
@@ -1075,8 +1068,8 @@ def display_results():
         strategic_issue = (
             f"The main strategic issue is to improve from {target_mentions} mentions, "
             f"{target_avg_score} average visibility, and {target_sov}% share of voice by strengthening association "
-            "with high-value professional skincare query territories such as sensitive skin, barrier repair, "
-            "post-treatment care, clinic-grade skincare, and Hong Kong professional skincare."
+            f"with high-intent use cases, comparison queries, local intent, decision-stage searches, "
+            f"and market-specific category questions for {display_category} in {display_market}."
         )
 
     executive_summary_sentence = (
