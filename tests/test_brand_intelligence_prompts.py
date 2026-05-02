@@ -1,0 +1,105 @@
+from brand_intelligence_prompts import (
+    build_target_diagnostic_prompts,
+    parse_user_brand_strengths,
+)
+
+
+def test_build_target_diagnostic_prompts_returns_expected_shape():
+    prompts = build_target_diagnostic_prompts(
+        brand="Espresso House",
+        category="cafes",
+        market="Berlin",
+        audience="remote workers",
+    )
+
+    assert len(prompts) == 6
+
+    expected_categories = [
+        "Brand Knowledge",
+        "Category Association",
+        "Strengths And Weaknesses",
+        "Recommendation Likelihood",
+        "Competitive Comparison",
+        "Evidence And Trust Signals",
+    ]
+
+    assert [item["category"] for item in prompts] == expected_categories
+
+    for item in prompts:
+        assert set(item) == {"category", "prompt"}
+        assert item["category"]
+        assert item["prompt"]
+
+
+def test_build_target_diagnostic_prompts_include_context_and_validation_wording():
+    prompts = build_target_diagnostic_prompts(
+        brand="Espresso House",
+        category="cafes",
+        market="Berlin",
+        audience="remote workers",
+    )
+
+    for item in prompts:
+        prompt = item["prompt"]
+
+        assert "diagnostic" in prompt.lower()
+        assert "AI-inferred; validate before using as client-facing fact." in prompt
+        assert "Espresso House" in prompt
+        assert "cafes" in prompt
+        assert "Berlin" in prompt
+        assert "remote workers" in prompt
+
+
+def test_build_target_diagnostic_prompts_avoid_visibility_metric_wording():
+    prompts = build_target_diagnostic_prompts(
+        brand="Espresso House",
+        category="cafes",
+        market="Berlin",
+        audience="remote workers",
+    )
+
+    prompt_text = " ".join(item["prompt"] for item in prompts).lower()
+
+    blocked_terms = [
+        "sov",
+        "share of voice",
+        "visibility score",
+    ]
+
+    for term in blocked_terms:
+        assert term not in prompt_text
+
+
+def test_build_target_diagnostic_prompts_can_include_competitors_and_user_strengths():
+    prompts = build_target_diagnostic_prompts(
+        brand="Espresso House",
+        category="cafes",
+        market="Berlin",
+        audience="remote workers",
+        competitors=["coffee fellows", "einstein kaffee"],
+        user_brand_strengths=["quiet work tables", "central locations"],
+    )
+
+    prompt_text = " ".join(item["prompt"] for item in prompts)
+
+    assert "coffee fellows" in prompt_text
+    assert "einstein kaffee" in prompt_text
+    assert "quiet work tables" in prompt_text
+    assert "central locations" in prompt_text
+
+
+def test_parse_user_brand_strengths_keeps_one_item_per_line_without_rewriting():
+    strengths = parse_user_brand_strengths(
+        """
+          quiet work tables
+
+        Starbuks typo stays
+        iS Clinical casing
+        """
+    )
+
+    assert strengths == [
+        "quiet work tables",
+        "Starbuks typo stays",
+        "iS Clinical casing",
+    ]
