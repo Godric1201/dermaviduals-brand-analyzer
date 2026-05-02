@@ -46,6 +46,41 @@ def parse_competitors(text):
     ]
 
 
+def normalize_context_text(value):
+    return " ".join(str(value).strip().split())
+
+
+def normalize_competitors(competitors):
+    return [
+        normalized
+        for normalized in [
+            normalize_context_text(competitor)
+            for competitor in competitors
+        ]
+        if normalized
+    ]
+
+
+def build_analysis_context(
+    brand,
+    category,
+    market,
+    audience,
+    competitors,
+    run_mode,
+    prompt_limit
+):
+    return {
+        "brand": normalize_context_text(brand),
+        "category": normalize_context_text(category),
+        "market": normalize_context_text(market),
+        "audience": normalize_context_text(audience),
+        "competitors": normalize_competitors(competitors),
+        "run_mode": run_mode,
+        "prompt_limit": prompt_limit,
+    }
+
+
 def run_analysis():
     brand = target_brand
     category = target_category
@@ -125,6 +160,15 @@ def run_analysis():
     st.session_state["display_audience"] = display_audience
     st.session_state["run_mode"] = run_mode
     st.session_state["prompt_limit"] = prompt_limit
+    st.session_state["analysis_context"] = build_analysis_context(
+        brand=brand,
+        category=category,
+        market=market,
+        audience=audience,
+        competitors=competitors,
+        run_mode=run_mode,
+        prompt_limit=prompt_limit
+    )
     st.session_state["analysis_done"] = True
 
 
@@ -169,6 +213,13 @@ def display_results():
         )
 
     st.success(t["complete"])
+
+    stored_context = st.session_state.get("analysis_context")
+    if stored_context and stored_context != current_analysis_context:
+        st.warning(
+            "Sidebar inputs have changed since this analysis was generated. "
+            "Run the analysis again to refresh results."
+        )
 
     if is_quick_test_mode:
         prompt_word = "prompt" if prompt_limit == 1 else "prompts"
@@ -918,6 +969,17 @@ if run_mode == "Quick Test Mode":
         value=3,
         step=1
     )
+
+current_competitors = parsed_competitors if parsed_competitors else get_competitors()
+current_analysis_context = build_analysis_context(
+    brand=target_brand,
+    category=target_category,
+    market=target_market,
+    audience=target_audience,
+    competitors=current_competitors,
+    run_mode=run_mode,
+    prompt_limit=prompt_limit
+)
 
 run_button = st.sidebar.button(f"Run {display_brand} AI Visibility Analysis")
 reset_button = st.sidebar.button(t["reset"])
