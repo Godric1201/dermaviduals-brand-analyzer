@@ -135,6 +135,48 @@ def get_run_warnings(competitors, run_mode):
     return warnings
 
 
+def estimate_api_calls(
+    fixed_prompt_count,
+    ai_generated_prompt_estimate,
+    prompt_limit,
+    run_mode
+):
+    estimated_total_prompts = (
+        fixed_prompt_count + ai_generated_prompt_estimate
+    )
+
+    if run_mode == "Quick Test Mode" and prompt_limit is not None:
+        effective_prompt_count = min(
+            estimated_total_prompts,
+            int(prompt_limit)
+        )
+    else:
+        effective_prompt_count = estimated_total_prompts
+
+    prompt_generation_calls = 1
+    ai_answer_generation_calls = effective_prompt_count
+    recommendation_calls = 1
+    strategy_report_calls = 1
+
+    return {
+        "fixed_prompt_count": fixed_prompt_count,
+        "ai_generated_prompt_estimate": ai_generated_prompt_estimate,
+        "estimated_total_prompts": estimated_total_prompts,
+        "effective_prompt_count": effective_prompt_count,
+        "prompt_generation_calls": prompt_generation_calls,
+        "ai_answer_generation_calls": ai_answer_generation_calls,
+        "recommendation_calls": recommendation_calls,
+        "strategy_report_calls": strategy_report_calls,
+        "estimated_pipeline_calls": (
+            prompt_generation_calls
+            + ai_answer_generation_calls
+            + recommendation_calls
+            + strategy_report_calls
+        ),
+        "auto_result_narrative_calls_estimate": 3,
+    }
+
+
 def run_analysis():
     brand = target_brand
     category = target_category
@@ -1076,6 +1118,17 @@ validation_warnings = get_run_warnings(
     competitors=current_competitors,
     run_mode=run_mode
 )
+fixed_prompt_count = len(build_fixed_prompts(
+    category=target_category,
+    market=target_market,
+    audience=target_audience
+))
+api_call_estimate = estimate_api_calls(
+    fixed_prompt_count=fixed_prompt_count,
+    ai_generated_prompt_estimate=10,
+    prompt_limit=prompt_limit,
+    run_mode=run_mode
+)
 
 for error in validation_errors:
     st.sidebar.error(error)
@@ -1158,6 +1211,45 @@ if st.session_state.get("pending_run_confirmation", False):
     ]
     st.write(f"**Competitors:** {len(display_competitors)}")
     st.write(display_competitors)
+
+    st.subheader("Estimated API Calls")
+    st.write(f"**Fixed prompts:** {api_call_estimate['fixed_prompt_count']}")
+    st.write(
+        "**AI-generated prompts estimate:** "
+        f"{api_call_estimate['ai_generated_prompt_estimate']}"
+    )
+    st.write(
+        "**Effective prompts after limit:** "
+        f"{api_call_estimate['effective_prompt_count']}"
+    )
+    st.write(
+        "**AI answer generation calls:** "
+        f"{api_call_estimate['ai_answer_generation_calls']}"
+    )
+    st.write(
+        "**Prompt generation call:** "
+        f"{api_call_estimate['prompt_generation_calls']}"
+    )
+    st.write(
+        "**Recommendation call:** "
+        f"{api_call_estimate['recommendation_calls']}"
+    )
+    st.write(
+        "**Strategy report call:** "
+        f"{api_call_estimate['strategy_report_calls']}"
+    )
+    st.write(
+        "**Estimated initial pipeline calls:** "
+        f"{api_call_estimate['estimated_pipeline_calls']}"
+    )
+    st.write(
+        "**Additional result-page narrative calls:** up to "
+        f"{api_call_estimate['auto_result_narrative_calls_estimate']}"
+    )
+    st.caption(
+        "Content Asset Generator calls are excluded until the user explicitly "
+        "generates a content pack."
+    )
 
     col_confirm, col_cancel = st.columns(2)
 
