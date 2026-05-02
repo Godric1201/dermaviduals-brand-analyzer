@@ -1150,12 +1150,6 @@ display_market = format_display_text(target_market)
 display_audience = format_display_text(target_audience)
 
 parsed_competitors = parse_competitors(competitors_text)
-if parsed_competitors:
-    st.sidebar.caption(f"Parsed competitors: {len(parsed_competitors)}")
-    st.sidebar.write(parsed_competitors)
-else:
-    st.sidebar.caption("Using default competitors")
-    st.sidebar.write(get_competitors())
 
 parsed_user_brand_strengths = parse_user_brand_strengths(brand_strengths_text)
 if parsed_user_brand_strengths:
@@ -1299,85 +1293,88 @@ if review_button:
     st.session_state["pending_run_confirmation"] = True
 
 if st.session_state.get("pending_run_confirmation", False):
-    st.warning(
-        "Only click Confirm & Run if this context is correct. "
-        "This may call the OpenAI API."
-    )
-    st.subheader("Review Analysis Context")
-    st.write(f"**Target Brand:** {display_brand}")
-    st.write(f"**Category:** {display_category}")
-    st.write(f"**Market:** {display_market}")
-    st.write(f"**Audience:** {display_audience}")
-    st.write(f"**Run Mode:** {run_mode}")
-    st.write("**Brand Intelligence diagnostics:** Included")
+    confirmation_panel = st.empty()
 
-    if run_mode == "Quick Test Mode":
-        st.write(f"**Prompt Limit:** {prompt_limit}")
+    with confirmation_panel.container():
+        st.warning(
+            "Only click Confirm & Run if this context is correct. "
+            "This may call the OpenAI API."
+        )
+        st.subheader("Review Analysis Context")
+        st.write(f"**Target Brand:** {display_brand}")
+        st.write(f"**Category:** {display_category}")
+        st.write(f"**Market:** {display_market}")
+        st.write(f"**Audience:** {display_audience}")
+        st.write(f"**Run Mode:** {run_mode}")
+        st.write("**Brand Intelligence diagnostics:** Included")
 
-    if parsed_user_brand_strengths:
-        st.write("**Brand Strengths / Positioning Notes:**")
-        st.write(parsed_user_brand_strengths)
+        if run_mode == "Quick Test Mode":
+            st.write(f"**Prompt Limit:** {prompt_limit}")
 
-    display_competitors = [
-        format_display_text(competitor)
-        for competitor in current_competitors
-    ]
-    st.write(f"**Competitors:** {len(display_competitors)}")
-    st.write(display_competitors)
+        if parsed_user_brand_strengths:
+            st.write("**Brand Strengths / Positioning Notes:**")
+            st.write(parsed_user_brand_strengths)
 
-    st.subheader("Estimated API Calls")
-    st.write(f"**Fixed prompts:** {api_call_estimate['fixed_prompt_count']}")
-    st.write(
-        "**AI-generated prompts estimate:** "
-        f"{api_call_estimate['ai_generated_prompt_estimate']}"
-    )
-    st.write(
-        "**Effective prompts to run:** "
-        f"{api_call_estimate['effective_prompt_count']}"
-    )
-    st.write(
-        "**AI answer generation calls:** "
-        f"{api_call_estimate['ai_answer_generation_calls']}"
-    )
-    st.write(
-        "**Prompt generation call:** "
-        f"{api_call_estimate['prompt_generation_calls']}"
-    )
-    st.write(
-        "**Recommendation call:** "
-        f"{api_call_estimate['recommendation_calls']}"
-    )
-    st.write(
-        "**Strategy report call:** "
-        f"{api_call_estimate['strategy_report_calls']}"
-    )
-    st.write(
-        "**Estimated initial pipeline calls:** "
-        f"{api_call_estimate['estimated_pipeline_calls']}"
-    )
-    st.write(
-        "**Additional result-page narrative calls:** up to "
-        f"{api_call_estimate['auto_result_narrative_calls_estimate']}"
-    )
-    st.caption(
-        "Content Asset Generator calls are excluded until the user explicitly "
-        "generates a content pack."
-    )
-    st.write(
-        "**Brand Intelligence estimated calls:** "
-        f"{brand_intelligence_estimated_calls}"
-    )
-    st.caption(
-        "Target-branded diagnostic calls are excluded from visibility scoring."
-    )
+        display_competitors = [
+            format_display_text(competitor)
+            for competitor in current_competitors
+        ]
+        st.write(f"**Competitors:** {len(display_competitors)}")
+        st.write(display_competitors)
 
-    col_confirm, col_cancel = st.columns(2)
+        st.subheader("Estimated API Calls")
+        st.write(f"**Fixed prompts:** {api_call_estimate['fixed_prompt_count']}")
+        st.write(
+            "**AI-generated prompts estimate:** "
+            f"{api_call_estimate['ai_generated_prompt_estimate']}"
+        )
+        st.write(
+            "**Effective prompts to run:** "
+            f"{api_call_estimate['effective_prompt_count']}"
+        )
+        st.write(
+            "**AI answer generation calls:** "
+            f"{api_call_estimate['ai_answer_generation_calls']}"
+        )
+        st.write(
+            "**Prompt generation call:** "
+            f"{api_call_estimate['prompt_generation_calls']}"
+        )
+        st.write(
+            "**Recommendation call:** "
+            f"{api_call_estimate['recommendation_calls']}"
+        )
+        st.write(
+            "**Strategy report call:** "
+            f"{api_call_estimate['strategy_report_calls']}"
+        )
+        st.write(
+            "**Estimated initial pipeline calls:** "
+            f"{api_call_estimate['estimated_pipeline_calls']}"
+        )
+        st.write(
+            "**Additional result-page narrative calls:** up to "
+            f"{api_call_estimate['auto_result_narrative_calls_estimate']}"
+        )
+        st.caption(
+            "Content Asset Generator calls are excluded until the user explicitly "
+            "generates a content pack."
+        )
+        st.write(
+            "**Brand Intelligence estimated calls:** "
+            f"{brand_intelligence_estimated_calls}"
+        )
+        st.caption(
+            "Target-branded diagnostic calls are excluded from visibility scoring."
+        )
 
-    with col_confirm:
-        confirm_run = st.button("Confirm & Run")
+        col_confirm, col_cancel = st.columns(2)
 
-    with col_cancel:
-        cancel_run = st.button("Cancel")
+        with col_confirm:
+            confirm_run = st.button("Confirm & Run")
+
+        with col_cancel:
+            cancel_run = st.button("Cancel")
 
     if confirm_run:
         if validation_errors:
@@ -1385,8 +1382,13 @@ if st.session_state.get("pending_run_confirmation", False):
                 st.error(error)
         else:
             st.session_state["pending_run_confirmation"] = False
-            clear_analysis_results()
-            run_analysis()
+            confirmation_panel.empty()
+            st.session_state["analysis_running"] = True
+            try:
+                clear_analysis_results()
+                run_analysis()
+            finally:
+                st.session_state["analysis_running"] = False
 
     if cancel_run:
         st.session_state["pending_run_confirmation"] = False
