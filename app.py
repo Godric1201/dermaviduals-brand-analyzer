@@ -23,6 +23,10 @@ from benchmark_snapshot import (
     build_benchmark_snapshot,
     serialize_benchmark_snapshot,
 )
+from benchmark_comparison import (
+    compare_target_brand_metrics,
+    load_snapshot_json,
+)
 from competitor_suggestions import suggest_competitors_with_ai
 from prompts import build_fixed_prompts
 from ui_formatters import (
@@ -858,8 +862,86 @@ def display_results():
         with st.expander(t["comparison_outline"]):
             st.write(content_pack["comparison_outline"])
 
+    snapshot_brand_intelligence = None
+    if st.session_state.get("brand_intelligence_done", False):
+        snapshot_brand_intelligence = st.session_state.get("brand_intelligence")
+
+    current_snapshot = build_benchmark_snapshot(
+        brand=display_brand,
+        market=display_market,
+        category=display_category,
+        audience=display_audience,
+        report_date=date.today().isoformat(),
+        run_mode=run_mode,
+        prompt_limit=prompt_limit,
+        prompt_count=len(prompts),
+        competitors=competitors,
+        query_intent_categories=prompt_categories,
+        summary_df=summary_df,
+        detailed_df=detailed_df,
+        brand_intelligence=snapshot_brand_intelligence,
+        include_raw_answers=False,
+        raw_answer_df=raw_answer_df,
+    )
+
     # =========================
-    # 15. Export Reports
+    # 15. Benchmark Progress
+    # =========================
+    st.subheader("Benchmark Progress")
+    st.caption(
+        "Upload a previous Benchmark Snapshot JSON to compare target-brand visibility progress."
+    )
+
+    previous_snapshot_file = st.file_uploader(
+        "Upload Previous Benchmark Snapshot JSON",
+        type=["json"],
+        key="previous_benchmark_snapshot_upload",
+    )
+
+    if previous_snapshot_file is not None:
+        try:
+            previous_snapshot = load_snapshot_json(previous_snapshot_file)
+            comparison = compare_target_brand_metrics(
+                previous_snapshot,
+                current_snapshot,
+            )
+
+            previous_metadata = previous_snapshot.get("metadata", {}) or {}
+            current_metadata = current_snapshot.get("metadata", {}) or {}
+            context_rows = [
+                {
+                    "Context": "Report Date",
+                    "Previous": previous_metadata.get("report_date", "Unknown"),
+                    "Current": current_metadata.get("report_date", "Unknown"),
+                },
+                {
+                    "Context": "Run Mode",
+                    "Previous": previous_metadata.get("run_mode", "Unknown"),
+                    "Current": current_metadata.get("run_mode", "Unknown"),
+                },
+                {
+                    "Context": "Prompt Count",
+                    "Previous": previous_metadata.get("prompt_count", 0),
+                    "Current": current_metadata.get("prompt_count", 0),
+                },
+            ]
+
+            for warning in comparison["warnings"]:
+                st.warning(warning)
+
+            st.write("**Snapshot Context**")
+            st.dataframe(pd.DataFrame(context_rows), use_container_width=True)
+
+            st.write("**Target Brand Progress**")
+            st.dataframe(
+                pd.DataFrame(comparison["metrics"]),
+                use_container_width=True,
+            )
+        except ValueError as exc:
+            st.error(str(exc))
+
+    # =========================
+    # 16. Export Reports
     # =========================
     st.subheader(t["exports"])
 
@@ -1082,10 +1164,6 @@ def display_results():
     {st.session_state.get("replacement_strategy", "_Replacement strategy was not generated in this run._")}
     {brand_intelligence_md}
     """
-    docx_brand_intelligence = None
-    if st.session_state.get("brand_intelligence_done", False):
-        docx_brand_intelligence = st.session_state.get("brand_intelligence")
-
     executive_docx = create_executive_docx_report(
         brand=display_brand,
         market=display_market,
@@ -1102,28 +1180,11 @@ def display_results():
         gap_analysis=st.session_state.get("gap_analysis", ""),
         run_mode=run_mode,
         prompt_limit=prompt_limit,
-        brand_intelligence=docx_brand_intelligence,
+        brand_intelligence=snapshot_brand_intelligence,
         prompt_categories=prompt_categories
     )
 
-    benchmark_snapshot = build_benchmark_snapshot(
-        brand=display_brand,
-        market=display_market,
-        category=display_category,
-        audience=display_audience,
-        report_date=date.today().isoformat(),
-        run_mode=run_mode,
-        prompt_limit=prompt_limit,
-        prompt_count=len(prompts),
-        competitors=competitors,
-        query_intent_categories=prompt_categories,
-        summary_df=summary_df,
-        detailed_df=detailed_df,
-        brand_intelligence=docx_brand_intelligence,
-        include_raw_answers=False,
-        raw_answer_df=raw_answer_df,
-    )
-    benchmark_snapshot_json = serialize_benchmark_snapshot(benchmark_snapshot)
+    benchmark_snapshot_json = serialize_benchmark_snapshot(current_snapshot)
 
     col1, col2, col3, col4, col5, col6 = st.columns(6)
 
