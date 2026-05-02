@@ -977,6 +977,9 @@ def display_results():
     {st.session_state.get("replacement_strategy", "_Replacement strategy was not generated in this run._")}
     {brand_intelligence_md}
     """
+    docx_brand_intelligence = None
+    if st.session_state.get("brand_intelligence_done", False):
+        docx_brand_intelligence = st.session_state.get("brand_intelligence")
 
     executive_docx = create_executive_docx_report(
         brand=display_brand,
@@ -993,7 +996,8 @@ def display_results():
         strategy_report=plan,
         gap_analysis=st.session_state.get("gap_analysis", ""),
         run_mode=run_mode,
-        prompt_limit=prompt_limit
+        prompt_limit=prompt_limit,
+        brand_intelligence=docx_brand_intelligence
     )
 
 
