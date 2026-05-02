@@ -1,6 +1,7 @@
 import pandas as pd
 
 import analysis_pipeline
+from app_constants import DEFAULT_COMPETITORS
 
 
 def patch_pipeline_dependencies(monkeypatch, captured_prompt_kwargs=None):
@@ -63,6 +64,17 @@ def patch_pipeline_dependencies(monkeypatch, captured_prompt_kwargs=None):
         "generate_action_plan",
         lambda **kwargs: "Test action plan",
     )
+
+
+def test_get_competitors_uses_default_competitors_copy():
+    competitors = analysis_pipeline.get_competitors()
+
+    assert competitors == list(DEFAULT_COMPETITORS)
+    assert competitors is not DEFAULT_COMPETITORS
+
+    competitors.append("Temporary Competitor")
+
+    assert "Temporary Competitor" not in DEFAULT_COMPETITORS
 
 
 def run_test_analysis(prompt_limit, on_progress=None, competitors=None):

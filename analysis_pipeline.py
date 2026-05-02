@@ -1,4 +1,5 @@
 from analyzer import ask_ai
+from app_constants import DEFAULT_COMPETITORS
 from optimizer import generate_action_plan
 from prompt_generator import generate_search_prompts
 from recommender import generate_recommendations
@@ -7,18 +8,7 @@ from utils import add_timestamp, create_raw_answer_dataframe
 
 
 def get_competitors():
-    return [
-        "Biologique Recherche",
-        "ZO Skin Health",
-        "Environ",
-        "DMK",
-        "iS Clinical",
-        "PCA Skin",
-        "Skinbetter Science",
-        "Mesoestetic",
-        "Universkin",
-        "Cellcosmet"
-    ]
+    return list(DEFAULT_COMPETITORS)
 
 
 def run_visibility_analysis(
