@@ -199,15 +199,12 @@ def run_analysis():
         audience=audience
     )
 
-    st.info("Using configured competitors...")
-
     default_competitors = get_competitors()
     competitors = parse_competitors(competitors_text)
     if not competitors:
         competitors = default_competitors
 
-    st.write("**Configured Competitors:**")
-    st.write(", ".join(competitors))
+    st.subheader("Generating AI Visibility Report")
 
     with st.expander("AI Generated Prompts Debug"):
         ai_prompts_placeholder = st.empty()
@@ -701,10 +698,7 @@ def display_results():
         brand_intelligence = st.session_state["brand_intelligence"]
 
         st.subheader("Brand Intelligence & Positioning Audit")
-        st.info(
-            "Diagnostic sidecar output. Not included in visibility score or share of voice. "
-            "AI-inferred findings require validation."
-        )
+        st.info("Diagnostic insight. Not part of visibility scoring.")
 
         with st.expander("Recommendation Drivers", expanded=False):
             st.write(brand_intelligence["recommendation_drivers"])
@@ -1150,26 +1144,23 @@ display_market = format_display_text(target_market)
 display_audience = format_display_text(target_audience)
 
 parsed_competitors = parse_competitors(competitors_text)
+configured_competitors = parsed_competitors if parsed_competitors else get_competitors()
+st.sidebar.caption(f"Configured competitors: {len(configured_competitors)}")
 
 parsed_user_brand_strengths = parse_user_brand_strengths(brand_strengths_text)
 if parsed_user_brand_strengths:
     st.sidebar.caption(f"Brand strengths / notes: {len(parsed_user_brand_strengths)}")
     st.sidebar.write(parsed_user_brand_strengths)
 
-st.sidebar.caption(
-    "Brand Intelligence diagnostics are included in every run and excluded "
-    "from visibility scoring and share of voice."
-)
-
 st.sidebar.write("**Prompt Mode:** Fixed + AI Generated")
 
 st.title(f"{display_brand} {display_market} AI Visibility Analyzer")
-st.caption(f"AI search visibility analysis for {display_category} in {display_market}.")
+st.caption(
+    f"AI visibility, competitor recall, and positioning gap analysis for {display_category}."
+)
 st.markdown(
     f"""
-This tool analyzes how visible {display_brand} is in AI-generated {display_category} recommendations for the {display_market} market.
-
-The prompts are fixed plus AI-generated, unbiased, and do not directly mention the target brand.
+Benchmark how AI systems recall {display_brand}, compare competitor visibility, and surface positioning opportunities in {display_market}.
 """
 )
 
@@ -1189,7 +1180,7 @@ if run_mode == "Quick Test Mode":
         step=1
     )
 
-current_competitors = parsed_competitors if parsed_competitors else get_competitors()
+current_competitors = configured_competitors
 current_analysis_context = build_analysis_context(
     brand=target_brand,
     category=target_category,
@@ -1251,7 +1242,7 @@ if reset_button:
 st.sidebar.divider()
 
 st.sidebar.markdown("""
-### What this prototype measures
+### What This Analysis Measures
 
 - Brand mentions
 - First appearance position
@@ -1265,7 +1256,7 @@ st.sidebar.markdown("""
 """)
 
 st.sidebar.markdown("""
-### Report Structure
+### Report Sections
 
 1. Executive Snapshot  
 2. Prompt Matrix  
@@ -1280,13 +1271,13 @@ st.sidebar.markdown("""
 
 with st.expander("How the scoring works"):
     st.markdown("""
-The visibility score is based on three signals:
+Visibility scoring uses three signals from AI answers:
 
-1. **Mentions**
-2. **First appearance position**
-3. **Estimated rank**
+1. Brand mentions
+2. First appearance position
+3. Estimated rank
 
-Organic Visibility is measured from unbiased prompts that do not mention the target brand.
+Visibility and share of voice are calculated from discovery prompts only.
 """)
 
 if review_button:
@@ -1296,17 +1287,14 @@ if st.session_state.get("pending_run_confirmation", False):
     confirmation_panel = st.empty()
 
     with confirmation_panel.container():
-        st.warning(
-            "Only click Confirm & Run if this context is correct. "
-            "This may call the OpenAI API."
-        )
-        st.subheader("Review Analysis Context")
+        st.info("Confirm this setup before generating the report. This may call the OpenAI API.")
+        st.subheader("Review Analysis Setup")
         st.write(f"**Target Brand:** {display_brand}")
         st.write(f"**Category:** {display_category}")
         st.write(f"**Market:** {display_market}")
         st.write(f"**Audience:** {display_audience}")
         st.write(f"**Run Mode:** {run_mode}")
-        st.write("**Brand Intelligence diagnostics:** Included")
+        st.write("**Brand Intelligence:** Included")
 
         if run_mode == "Quick Test Mode":
             st.write(f"**Prompt Limit:** {prompt_limit}")
@@ -1322,51 +1310,50 @@ if st.session_state.get("pending_run_confirmation", False):
         st.write(f"**Competitors:** {len(display_competitors)}")
         st.write(display_competitors)
 
-        st.subheader("Estimated API Calls")
-        st.write(f"**Fixed prompts:** {api_call_estimate['fixed_prompt_count']}")
-        st.write(
-            "**AI-generated prompts estimate:** "
-            f"{api_call_estimate['ai_generated_prompt_estimate']}"
-        )
+        st.markdown("**Estimated Run Size**")
         st.write(
             "**Effective prompts to run:** "
             f"{api_call_estimate['effective_prompt_count']}"
         )
         st.write(
-            "**AI answer generation calls:** "
-            f"{api_call_estimate['ai_answer_generation_calls']}"
-        )
-        st.write(
-            "**Prompt generation call:** "
-            f"{api_call_estimate['prompt_generation_calls']}"
-        )
-        st.write(
-            "**Recommendation call:** "
-            f"{api_call_estimate['recommendation_calls']}"
-        )
-        st.write(
-            "**Strategy report call:** "
-            f"{api_call_estimate['strategy_report_calls']}"
-        )
-        st.write(
-            "**Estimated initial pipeline calls:** "
+            "**Estimated initial API calls:** "
             f"{api_call_estimate['estimated_pipeline_calls']}"
         )
         st.write(
-            "**Additional result-page narrative calls:** up to "
-            f"{api_call_estimate['auto_result_narrative_calls_estimate']}"
-        )
-        st.caption(
-            "Content Asset Generator calls are excluded until the user explicitly "
-            "generates a content pack."
-        )
-        st.write(
-            "**Brand Intelligence estimated calls:** "
+            "**Brand Intelligence calls:** "
             f"{brand_intelligence_estimated_calls}"
         )
-        st.caption(
-            "Target-branded diagnostic calls are excluded from visibility scoring."
+        st.write(
+            "**Additional narrative calls:** up to "
+            f"{api_call_estimate['auto_result_narrative_calls_estimate']}"
         )
+
+        with st.expander("View API call breakdown"):
+            st.write(f"**Fixed prompts:** {api_call_estimate['fixed_prompt_count']}")
+            st.write(
+                "**AI-generated prompts estimate:** "
+                f"{api_call_estimate['ai_generated_prompt_estimate']}"
+            )
+            st.write(
+                "**AI answer generation calls:** "
+                f"{api_call_estimate['ai_answer_generation_calls']}"
+            )
+            st.write(
+                "**Prompt generation call:** "
+                f"{api_call_estimate['prompt_generation_calls']}"
+            )
+            st.write(
+                "**Recommendation call:** "
+                f"{api_call_estimate['recommendation_calls']}"
+            )
+            st.write(
+                "**Strategy report call:** "
+                f"{api_call_estimate['strategy_report_calls']}"
+            )
+            st.caption(
+                "Content Asset Generator calls are excluded until the user explicitly "
+                "generates a content pack."
+            )
 
         col_confirm, col_cancel = st.columns(2)
 
