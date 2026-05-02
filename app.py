@@ -788,7 +788,11 @@ def display_results():
         brand_intelligence = st.session_state["brand_intelligence"]
 
         st.subheader("Brand Intelligence & Positioning Audit")
-        st.info("Diagnostic insight. Not part of visibility scoring.")
+        st.info(
+            "Diagnostic insight. Not part of visibility scoring. "
+            "Tracked competitors are included in visibility scoring and share of voice. "
+            "Other brands mentioned here may be AI-discovered market signals and are not included in scoring unless added as tracked competitors."
+        )
 
         with st.expander("Recommendation Drivers", expanded=False):
             st.write(brand_intelligence["recommendation_drivers"])
@@ -958,7 +962,7 @@ def display_results():
 
     ## Appendix: Brand Intelligence & Positioning Audit
 
-    > Diagnostic insight. Not part of visibility scoring.
+    > Diagnostic insight. Not part of visibility scoring. Tracked competitors are included in visibility scoring and share of voice. Other brands mentioned here may be AI-discovered market signals and are not included in scoring unless added as tracked competitors.
 
     ### Recommendation Drivers
 
