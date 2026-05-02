@@ -1139,7 +1139,7 @@ def display_results():
 
     {"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}
 
-    This report evaluates how visible {display_brand} is in AI-generated skincare recommendations for the {display_market} professional skincare market.
+    This report evaluates how visible {display_brand} is in AI-generated {display_category} recommendations for {display_audience} in {display_market}.
 
     ### Query Intent Coverage
 
