@@ -85,7 +85,7 @@ The prompts are fixed plus AI-generated, unbiased, and do not directly mention t
     "generating_level_2": "Generating content pack...",
     "level_2_done": "Content pack generated.",
     "seo_blog": "SEO Blog Post",
-    "review_strategy": "Google Maps Review Strategy",
+    "review_strategy": "Local Review / Trust Signal Strategy",
     "social_posts": "Social Posts",
     "faq_content": "FAQ Content",
     "comparison_outline": "Comparison Page Outline",
