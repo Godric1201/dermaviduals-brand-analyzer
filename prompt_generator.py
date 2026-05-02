@@ -1,5 +1,6 @@
-from analyzer import ask_ai
 import ast
+
+from analyzer import ask_ai
 
 
 def extract_python_list(text):
@@ -36,22 +37,54 @@ def is_valid_prompt(q):
     required_terms = [
         "brand",
         "brands",
-        "product brands",
-        "skincare brands",
-        "clinic-grade skincare",
-        "professional skincare",
+        "provider",
+        "providers",
+        "option",
+        "options",
+        "service",
+        "services",
+        "product",
+        "products",
+        "tool",
+        "tools",
+        "platform",
+        "platforms",
+        "solution",
+        "solutions",
+        "vendor",
+        "vendors",
+        "company",
+        "companies",
+        "best",
+        "top",
+        "recommended",
+        "recommendation",
+        "recommendations",
+        "compare",
+        "comparison",
+        "alternative",
+        "alternatives",
+        "local",
+        "reviews",
+        "review",
+        "trust",
+        "premium",
+        "budget",
+        "decision criteria",
+        "consider",
+        "choosing",
     ]
 
     blocked_terms = [
-        "where to find",
-        "which clinic",
-        "clinic near me",
         "book",
         "appointment",
         "price of treatment",
-        "facial treatment center",
-        "beauty salon near",
-        "doctor near",
+        "where to buy",
+        "coupon",
+        "discount code",
+        "how should i",
+        "how do i",
+        "tutorial",
     ]
 
     if not any(term in q_lower for term in required_terms):
@@ -69,21 +102,41 @@ def categorize_prompt(q):
     if "compare" in q_lower or "versus" in q_lower or "vs" in q_lower:
         return "AI Generated - Comparison"
 
+    if "alternative" in q_lower or "alternatives" in q_lower:
+        return "AI Generated - Alternatives"
+
+    if "local" in q_lower or "nearby" in q_lower or " in " in q_lower:
+        return "AI Generated - Local Recommendations"
+
+    if "review" in q_lower or "reviews" in q_lower or "trust" in q_lower:
+        return "AI Generated - Trust Signals"
+
+    if "premium" in q_lower or "high-end" in q_lower:
+        return "AI Generated - Premium Options"
+
+    if "budget" in q_lower or "affordable" in q_lower or "accessible" in q_lower:
+        return "AI Generated - Budget-Friendly Options"
+
+    if "decision criteria" in q_lower or "consider" in q_lower or "choosing" in q_lower:
+        return "AI Generated - Decision Criteria"
+
     if "best" in q_lower or "top" in q_lower or "recommended" in q_lower:
         return "AI Generated - Brand Recommendation"
 
-    if (
-        "sensitive" in q_lower
-        or "barrier" in q_lower
-        or "acne" in q_lower
-        or "pigmentation" in q_lower
-        or "dry skin" in q_lower
-        or "post-treatment" in q_lower
-        or "anti-aging" in q_lower
-    ):
-        return "AI Generated - Problem Solution"
+    if "use case" in q_lower or "use cases" in q_lower:
+        return "AI Generated - Use-Case Recommendations"
 
-    return "AI Generated - Professional Skincare"
+    return "AI Generated - Category Discovery"
+
+
+def contains_blocked_brand(query, brand, competitors):
+    q_lower = query.lower()
+    blocked_names = [brand] + list(competitors or [])
+
+    return any(
+        name and str(name).lower() in q_lower
+        for name in blocked_names
+    )
 
 
 def generate_search_prompts(
@@ -95,37 +148,51 @@ def generate_search_prompts(
     output_language="English"
 ):
     prompt = f"""
-You are an AI search behavior expert specializing in professional skincare, clinic-grade skincare, and generative search visibility.
+You are an AI search behavior expert specializing in generative search visibility and category recommendation behavior.
 
-Generate 12 realistic AI search queries that users in {market} might ask when looking for professional skincare product BRAND recommendations.
+Generate 12 realistic AI search queries that users in {market} might ask when looking for {category} recommendations.
 
 Context:
-- Target category: professional skincare product brands
+- Target category: {category}
 - Market: {market}
 - Audience: {audience}
-- Channel focus: dermatology clinics, aesthetic clinics, professional skin therapists, beauty professionals
-- Brand type: professional / clinic-grade / consultation-based skincare, not mass-market drugstore skincare
 
 Important:
 - Do NOT mention any specific brand names
 - Do NOT mention {brand}
 - Do NOT mention these competitors directly: {", ".join(competitors)}
 - Every query must be unbiased
-- Every query must be likely to make an AI answer with specific skincare brand names
+- Every query must be likely to make an AI answer with specific brands, providers, products, services, tools, platforms, or solutions in the category
+- Use {category}, {market}, and {audience} naturally
 
 Generate a balanced Prompt Matrix:
 
-1. Brand Recommendation Queries
-- Ask for the best or recommended professional skincare brands
-- Must include words like "brands", "skincare brands", or "product brands"
+1. Best Options / Top Recommendations
+- Ask for the best, top, or recommended {category} options
 
-2. Problem-Solution Queries
-- Ask for professional skincare brands for specific skin needs:
-  sensitive skin, barrier repair, acne-prone skin, pigmentation, dry skin, post-treatment care, anti-aging
+2. Local Recommendations
+- Ask which {category} options are recommended locally in {market}
 
-3. Comparison Queries
-- Ask to compare professional skincare brands or clinic-grade skincare brands
-- Do not name any brand
+3. Audience-Specific Recommendations
+- Ask which options are best suited for {audience}
+
+4. High-Intent Use Cases
+- Ask which {category} options fit common high-intent use cases for {audience}
+
+5. Premium / Budget Options
+- Include premium, high-end, accessible, or budget-friendly recommendation contexts
+
+6. Comparison Queries
+- Ask how leading {category} options compare without naming any brand
+
+7. Alternatives To Leading Competitors
+- Ask for alternatives to leading {category} brands or providers without naming any brand
+
+8. Trust Signals And Reviews
+- Ask which options are known for strong reviews, trust signals, credibility, or customer confidence
+
+9. Decision Criteria
+- Ask what {audience} should consider when choosing between {category} options in {market}
 
 Strict Rules:
 - Return ONLY a Python list of strings
@@ -133,18 +200,18 @@ Strict Rules:
 - No explanation
 - No numbering outside the list
 - Each query must be one sentence
-- Avoid general advice questions such as "how to care for skin"
-- Avoid service/location/booking questions such as "where to find clinics", "which clinic", "book treatment"
-- Avoid asking about treatments, procedures, doctors, or salon services
-- Focus only on skincare product brands
+- Avoid broad general advice questions that do not ask for category options, brands, providers, products, services, tools, platforms, or solutions
+- Avoid booking, appointment, coupon, discount, or transactional shopping questions
+- Avoid regulated-category advice unless the category itself explicitly requires it
+- Keep every query category-neutral, market-aware, and suitable for benchmark visibility scoring
 
 Good examples:
 [
-"What professional skincare brands are recommended for sensitive skin in Hong Kong?",
-"Which clinic-grade skincare product brands are best for skin barrier repair?",
-"Compare professional skincare brands for post-treatment care after aesthetic procedures.",
-"What skincare brands do skin therapists recommend for acne-prone skin?",
-"Which professional skincare brands are suitable for pigmentation and uneven skin tone?"
+"What are the best {category} options for {audience} in {market}?",
+"Which {category} brands or providers are most recommended locally in {market}?",
+"How do leading {category} options compare for {audience}?",
+"What are good alternatives to leading {category} providers in {market}?",
+"What should {audience} consider when choosing between {category} options in {market}?"
 ]
 """
 
@@ -152,15 +219,19 @@ Good examples:
 
     queries = extract_python_list(result)
 
-    if not queries:
-        print("⚠️ AI prompt generation failed")
-        print("RAW:", result)
-
     filtered = []
 
     for q in queries:
-        if isinstance(q, str) and q.strip() and is_valid_prompt(q):
-            filtered.append(q.strip())
+        if not isinstance(q, str):
+            continue
+
+        query = q.strip()
+        if (
+            query
+            and is_valid_prompt(query)
+            and not contains_blocked_brand(query, brand, competitors)
+        ):
+            filtered.append(query)
 
     seen = set()
     unique_filtered = []
