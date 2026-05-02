@@ -138,6 +138,21 @@ def add_paragraph_text(document, text, size=10.5, bold=False, color=None):
     return paragraph
 
 
+def add_markdownish_text(document, text):
+    for line in str(text).splitlines():
+        line = line.strip()
+
+        if not line:
+            continue
+
+        if line.startswith("#### "):
+            add_subheading(document, line.removeprefix("#### ").strip())
+        elif line.startswith("### "):
+            add_subheading(document, line.removeprefix("### ").strip())
+        else:
+            add_paragraph_text(document, line)
+
+
 def add_bullet(document, text):
     paragraph = document.add_paragraph(style="List Bullet")
     paragraph.paragraph_format.space_after = Pt(3)
@@ -514,6 +529,13 @@ def has_positive_competitor_signal(item):
     return False
 
 
+def get_positive_competitors(top_competitors):
+    return [
+        item for item in top_competitors
+        if has_positive_competitor_signal(item)
+    ]
+
+
 def get_top_competitors(summary_df, brand, limit=3):
     if summary_df is None or summary_df.empty:
         return []
@@ -596,8 +618,18 @@ def build_winners_df(top_brands_df, max_rows=12):
 
 
 def create_strategy_priorities_df(brand, category, market, audience, top_competitors):
-    primary = top_competitors[0]["brand"] if top_competitors else "Top competitor"
-    secondary = top_competitors[1]["brand"] if len(top_competitors) > 1 else primary
+    positive_competitors = get_positive_competitors(top_competitors)
+
+    if positive_competitors:
+        primary = positive_competitors[0]["brand"]
+        secondary = (
+            positive_competitors[1]["brand"]
+            if len(positive_competitors) > 1
+            else primary
+        )
+    else:
+        primary = "No measurable competitor leader"
+        secondary = "Tracked competitors not measurably visible"
 
     return pd.DataFrame([
         {
@@ -639,8 +671,23 @@ def create_strategy_priorities_df(brand, category, market, audience, top_competi
 
 
 def create_roadmap_df(brand, category, top_competitors, metrics):
-    primary = top_competitors[0]["brand"] if top_competitors else "Top competitor"
-    secondary = top_competitors[1]["brand"] if len(top_competitors) > 1 else primary
+    positive_competitors = get_positive_competitors(top_competitors)
+
+    if positive_competitors:
+        primary = positive_competitors[0]["brand"]
+        secondary = (
+            positive_competitors[1]["brand"]
+            if len(positive_competitors) > 1
+            else primary
+        )
+        tertiary = secondary
+        second_phase_focus = primary
+    else:
+        primary = "Category baseline"
+        secondary = "Market visibility baseline"
+        tertiary = "Tracked competitor set"
+        second_phase_focus = secondary
+
     current_mentions = metrics["Total Mentions"]
     current_sov = metrics["Share of Voice"]
 
@@ -655,13 +702,13 @@ def create_roadmap_df(brand, category, top_competitors, metrics):
             "Phase": "60 Days",
             "Action": "Launch comparison pages and category authority explainers.",
             "Target Metric": "Improve average visibility score and prompts visible.",
-            "Competitor Focus": primary
+            "Competitor Focus": second_phase_focus
         },
         {
             "Phase": "90 Days",
             "Action": "Build third-party mentions, reviews, and AI-citable references.",
             "Target Metric": f"Increase share of voice from the current {current_sov} toward stronger measurable inclusion.",
-            "Competitor Focus": secondary
+            "Competitor Focus": tertiary
         }
     ])
 
@@ -920,14 +967,49 @@ def add_strategy_priorities(document, priorities_df):
     add_styled_table(document, priorities_df, max_rows=10, font_size=7.3)
 
 
-def add_roadmap(document, roadmap_df):
-    add_section_heading(document, "30 / 60 / 90 Day Roadmap", "8")
+def add_brand_intelligence(document, brand_intelligence, section_number):
+    if not brand_intelligence:
+        return
+
+    add_section_heading(
+        document,
+        "Brand Intelligence & Positioning Audit",
+        str(section_number)
+    )
+    add_callout_box(
+        document,
+        "Diagnostic Insight",
+        "Diagnostic insight. Not part of visibility scoring.",
+        fill=LIGHT_BLUE
+    )
+
+    add_subheading(document, "Recommendation Drivers")
+    add_markdownish_text(
+        document,
+        brand_intelligence.get("recommendation_drivers", "")
+    )
+
+    add_subheading(document, "AI-Inferred Target Brand Understanding")
+    add_markdownish_text(
+        document,
+        brand_intelligence.get("target_brand_understanding", "")
+    )
+
+    add_subheading(document, "Positioning Gap Analysis")
+    add_markdownish_text(
+        document,
+        brand_intelligence.get("positioning_gap_analysis", "")
+    )
+
+
+def add_roadmap(document, roadmap_df, section_number="8"):
+    add_section_heading(document, "30 / 60 / 90 Day Roadmap", section_number)
 
     add_styled_table(document, roadmap_df, max_rows=10, font_size=8)
 
 
-def add_measurement_plan(document, brand, metrics):
-    add_section_heading(document, "Measurement Plan", "9")
+def add_measurement_plan(document, brand, metrics, section_number="9"):
+    add_section_heading(document, "Measurement Plan", section_number)
 
     add_paragraph_text(
         document,
@@ -960,8 +1042,15 @@ def add_measurement_plan(document, brand, metrics):
     add_styled_table(document, measurement_df, max_rows=10, font_size=8)
 
 
-def add_recommended_next_step(document, brand, category, market, metrics):
-    add_section_heading(document, "Recommended Next Step", "10")
+def add_recommended_next_step(
+    document,
+    brand,
+    category,
+    market,
+    metrics,
+    section_number="10"
+):
+    add_section_heading(document, "Recommended Next Step", section_number)
     total_mentions = metrics["Total Mentions"]
     avg_visibility = metrics["Avg. Visibility"]
     share_of_voice = float(str(metrics["Share of Voice"]).replace("%", "") or 0)
@@ -981,8 +1070,8 @@ def add_recommended_next_step(document, brand, category, market, metrics):
         fill=LIGHT_GREEN
     )
 
-def add_methodology_notes(document, category):
-    add_section_heading(document, "Methodology Notes", "11")
+def add_methodology_notes(document, category, section_number="11"):
+    add_section_heading(document, "Methodology Notes", section_number)
 
     notes = [
     f"The benchmark is based on fixed and AI-generated prompts designed to simulate {category} recommendation queries.",
@@ -1012,7 +1101,8 @@ def create_executive_docx_report(
     strategy_report,
     gap_analysis,
     run_mode="Full Report Mode",
-    prompt_limit=None
+    prompt_limit=None,
+    brand_intelligence=None
 ):
     document = Document()
 
@@ -1064,10 +1154,30 @@ def create_executive_docx_report(
     add_top_winners(document, winners_df)
     add_gap_diagnosis(document, brand, category, market, metrics, top_competitors)
     add_strategy_priorities(document, priorities_df)
-    add_roadmap(document, roadmap_df)
-    add_measurement_plan(document, brand, metrics)
-    add_recommended_next_step(document, brand, category, market, metrics)
-    add_methodology_notes(document, category)
+
+    if brand_intelligence:
+        add_brand_intelligence(document, brand_intelligence, 8)
+        roadmap_section = "9"
+        measurement_section = "10"
+        next_step_section = "11"
+        methodology_section = "12"
+    else:
+        roadmap_section = "8"
+        measurement_section = "9"
+        next_step_section = "10"
+        methodology_section = "11"
+
+    add_roadmap(document, roadmap_df, roadmap_section)
+    add_measurement_plan(document, brand, metrics, measurement_section)
+    add_recommended_next_step(
+        document,
+        brand,
+        category,
+        market,
+        metrics,
+        next_step_section
+    )
+    add_methodology_notes(document, category, methodology_section)
 
     buffer = BytesIO()
     document.save(buffer)

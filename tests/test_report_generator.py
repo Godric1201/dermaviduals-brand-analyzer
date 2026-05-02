@@ -1,4 +1,5 @@
 from io import BytesIO
+from xml.etree import ElementTree as ET
 from zipfile import ZipFile
 
 import pandas as pd
@@ -89,10 +90,39 @@ def assert_valid_docx_bytes(report_bytes):
     assert report_bytes.startswith(b"PK")
 
 
+def read_document_xml(report_bytes):
+    with ZipFile(BytesIO(report_bytes)) as docx:
+        return docx.read("word/document.xml").decode("utf-8")
+
+
+def read_document_text(report_bytes):
+    document_xml = read_document_xml(report_bytes)
+    root = ET.fromstring(document_xml)
+
+    return "\n".join(
+        node.text
+        for node in root.iter()
+        if node.tag.endswith("}t") and node.text
+    )
+
+
+def section_text_between(text, start, end):
+    start_index = text.find(start)
+    end_index = text.find(end, start_index)
+
+    assert start_index != -1
+    assert end_index != -1
+
+    return text[start_index:end_index]
+
+
 def test_create_executive_docx_report_returns_docx_bytes():
     report_bytes = create_test_report()
 
     assert_valid_docx_bytes(report_bytes)
+    document_xml = read_document_xml(report_bytes)
+
+    assert "Brand Intelligence" not in document_xml
 
 
 def test_create_executive_docx_report_supports_quick_test_mode_metadata():
@@ -103,8 +133,7 @@ def test_create_executive_docx_report_supports_quick_test_mode_metadata():
 
     assert_valid_docx_bytes(report_bytes)
 
-    with ZipFile(BytesIO(report_bytes)) as docx:
-        document_xml = docx.read("word/document.xml").decode("utf-8")
+    document_xml = read_document_xml(report_bytes)
 
     assert "TEST VERSION ONLY" in document_xml
     assert "Not Client Deliverable" in document_xml
@@ -119,8 +148,7 @@ def test_create_executive_docx_report_uses_generic_category_wording():
 
     assert_valid_docx_bytes(report_bytes)
 
-    with ZipFile(BytesIO(report_bytes)) as docx:
-        document_xml = docx.read("word/document.xml").decode("utf-8")
+    document_xml = read_document_xml(report_bytes)
 
     blocked_terms = [
         "professional skincare",
@@ -152,8 +180,7 @@ def test_create_executive_docx_report_handles_all_zero_visibility_without_fake_l
 
     assert_valid_docx_bytes(report_bytes)
 
-    with ZipFile(BytesIO(report_bytes)) as docx:
-        document_xml = docx.read("word/document.xml").decode("utf-8")
+    document_xml = read_document_xml(report_bytes)
 
     blocked_phrases = [
         "creating a stronger AI recall signal",
@@ -167,3 +194,74 @@ def test_create_executive_docx_report_handles_all_zero_visibility_without_fake_l
 
     assert "No benchmark competitor generated measurable" in document_xml
     assert "does not identify a stronger competitor leader" in document_xml
+
+    document_text = read_document_text(report_bytes)
+    priorities_text = section_text_between(
+        document_text,
+        "Strategic Priorities",
+        "30 / 60 / 90 Day Roadmap",
+    )
+    roadmap_text = section_text_between(
+        document_text,
+        "30 / 60 / 90 Day Roadmap",
+        "Measurement Plan",
+    )
+
+    assert "Coffee Fellows" not in priorities_text
+    assert "Einstein Kaffee" not in priorities_text
+    assert "Coffee Fellows" not in roadmap_text
+    assert "Einstein Kaffee" not in roadmap_text
+
+    assert "No measurable competitor leader" in priorities_text
+    assert "Tracked competitors not measurably visible" in priorities_text
+    assert "Category baseline" in roadmap_text
+    assert "Market visibility baseline" in roadmap_text
+    assert "Tracked competitor set" in roadmap_text
+
+
+def test_create_executive_docx_report_includes_brand_intelligence_when_provided():
+    report_bytes = create_test_report(
+        brand_intelligence={
+            "recommendation_drivers": (
+                "### Recurring Recommendation Drivers\n"
+                "Test recommendation drivers"
+            ),
+            "target_brand_understanding": (
+                "#### AI-Inferred Strengths\n"
+                "Test target brand understanding\n"
+                "#### Weak Associations\n"
+                "Test weak associations"
+            ),
+            "positioning_gap_analysis": "Test positioning gap analysis",
+        }
+    )
+
+    assert_valid_docx_bytes(report_bytes)
+
+    document_xml = read_document_xml(report_bytes)
+
+    expected_terms = [
+        "Brand Intelligence",
+        "Recommendation Drivers",
+        "AI-Inferred Target Brand Understanding",
+        "Positioning Gap Analysis",
+        "Diagnostic insight",
+        "Not part of visibility scoring",
+        "Recurring Recommendation Drivers",
+        "AI-Inferred Strengths",
+        "Weak Associations",
+        "Test recommendation drivers",
+        "Test target brand understanding",
+        "Test positioning gap analysis",
+    ]
+
+    for term in expected_terms:
+        assert term in document_xml
+
+    blocked_terms = [
+        "### Recurring Recommendation Drivers",
+        "#### Weak Associations",
+    ]
+
+    for term in blocked_terms:
+        assert term not in document_xml
