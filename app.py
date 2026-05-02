@@ -75,7 +75,6 @@ def build_analysis_context(
     competitors,
     run_mode,
     prompt_limit,
-    include_brand_intelligence=False,
     user_brand_strengths=None,
 ):
     return {
@@ -86,7 +85,6 @@ def build_analysis_context(
         "competitors": normalize_competitors(competitors),
         "run_mode": run_mode,
         "prompt_limit": prompt_limit,
-        "include_brand_intelligence": include_brand_intelligence,
         "user_brand_strengths": normalize_competitors(user_brand_strengths or []),
     }
 
@@ -268,28 +266,25 @@ def run_analysis():
     st.session_state["run_mode"] = run_mode
     st.session_state["prompt_limit"] = prompt_limit
 
-    if include_brand_intelligence:
-        with st.spinner("Running Brand Intelligence diagnostics..."):
-            brand_intelligence_result = run_brand_intelligence_analysis(
-                brand=brand,
-                category=category,
-                market=market,
-                audience=audience,
-                competitors=competitors,
-                raw_answers=result["raw_answers"],
-                summary_df=result["summary_df"],
-                detailed_df=result["detailed_df"],
-                user_brand_strengths=parsed_user_brand_strengths,
-                answer_language=language,
-                report_language=report_language,
-                on_progress=lambda step: status_text.write(
-                    f"Brand Intelligence: {step.replace('_', ' ').title()}"
-                ),
-            )
-        st.session_state["brand_intelligence"] = brand_intelligence_result
-        st.session_state["brand_intelligence_done"] = True
-    else:
-        st.session_state["brand_intelligence_done"] = False
+    with st.spinner("Running Brand Intelligence diagnostics..."):
+        brand_intelligence_result = run_brand_intelligence_analysis(
+            brand=brand,
+            category=category,
+            market=market,
+            audience=audience,
+            competitors=competitors,
+            raw_answers=result["raw_answers"],
+            summary_df=result["summary_df"],
+            detailed_df=result["detailed_df"],
+            user_brand_strengths=parsed_user_brand_strengths,
+            answer_language=language,
+            report_language=report_language,
+            on_progress=lambda step: status_text.write(
+                f"Brand Intelligence: {step.replace('_', ' ').title()}"
+            ),
+        )
+    st.session_state["brand_intelligence"] = brand_intelligence_result
+    st.session_state["brand_intelligence_done"] = True
 
     st.session_state["analysis_context"] = build_analysis_context(
         brand=brand,
@@ -299,7 +294,6 @@ def run_analysis():
         competitors=competitors,
         run_mode=run_mode,
         prompt_limit=prompt_limit,
-        include_brand_intelligence=include_brand_intelligence,
         user_brand_strengths=parsed_user_brand_strengths,
     )
     st.session_state["analysis_done"] = True
@@ -868,6 +862,29 @@ def display_results():
         f"with {target_mentions} total mentions, {target_avg_score} average visibility, "
         f"{target_prompts_visible} prompts visible, and {target_sov}% share of voice."
     )
+    brand_intelligence_md = ""
+    if st.session_state.get("brand_intelligence_done", False):
+        brand_intelligence = st.session_state["brand_intelligence"]
+        brand_intelligence_md = f"""
+
+    ---
+
+    ## Appendix: Brand Intelligence & Positioning Audit
+
+    > Diagnostic sidecar output. Not included in visibility score or share of voice. AI-inferred findings require validation.
+
+    ### Recommendation Drivers
+
+    {brand_intelligence["recommendation_drivers"]}
+
+    ### AI-Inferred Target Brand Understanding
+
+    {brand_intelligence["target_brand_understanding"]}
+
+    ### Positioning Gap Analysis
+
+    {brand_intelligence["positioning_gap_analysis"]}
+    """
 
     executive_report = f"""
     # {display_brand} {display_market} AI Visibility Report
@@ -960,6 +977,7 @@ def display_results():
     ## 10. Appendix: Replacement Strategy
 
     {st.session_state.get("replacement_strategy", "_Replacement strategy was not generated in this run._")}
+    {brand_intelligence_md}
     """
 
     executive_docx = create_executive_docx_report(
@@ -1144,13 +1162,9 @@ if parsed_user_brand_strengths:
     st.sidebar.caption(f"Brand strengths / notes: {len(parsed_user_brand_strengths)}")
     st.sidebar.write(parsed_user_brand_strengths)
 
-include_brand_intelligence = st.sidebar.checkbox(
-    "Include Brand Intelligence Layer",
-    value=False,
-    help=(
-        "Runs target-branded diagnostic prompts. These are excluded from "
-        "visibility scoring and share of voice."
-    )
+st.sidebar.caption(
+    "Brand Intelligence diagnostics are included in every run and excluded "
+    "from visibility scoring and share of voice."
 )
 
 st.sidebar.write("**Prompt Mode:** Fixed + AI Generated")
@@ -1190,7 +1204,6 @@ current_analysis_context = build_analysis_context(
     competitors=current_competitors,
     run_mode=run_mode,
     prompt_limit=prompt_limit,
-    include_brand_intelligence=include_brand_intelligence,
     user_brand_strengths=parsed_user_brand_strengths,
 )
 
@@ -1216,16 +1229,14 @@ api_call_estimate = estimate_api_calls(
     prompt_limit=prompt_limit,
     run_mode=run_mode
 )
-brand_intelligence_estimated_calls = 0
-if include_brand_intelligence:
-    brand_intelligence_estimated_calls = len(build_target_diagnostic_prompts(
-        brand=target_brand,
-        category=target_category,
-        market=target_market,
-        audience=target_audience,
-        competitors=current_competitors,
-        user_brand_strengths=parsed_user_brand_strengths,
-    )) + 3
+brand_intelligence_estimated_calls = len(build_target_diagnostic_prompts(
+    brand=target_brand,
+    category=target_category,
+    market=target_market,
+    audience=target_audience,
+    competitors=current_competitors,
+    user_brand_strengths=parsed_user_brand_strengths,
+)) + 3
 
 for error in validation_errors:
     st.sidebar.error(error)
@@ -1298,10 +1309,7 @@ if st.session_state.get("pending_run_confirmation", False):
     st.write(f"**Market:** {display_market}")
     st.write(f"**Audience:** {display_audience}")
     st.write(f"**Run Mode:** {run_mode}")
-    st.write(
-        "**Brand Intelligence Layer:** "
-        f"{'Included' if include_brand_intelligence else 'Not included'}"
-    )
+    st.write("**Brand Intelligence diagnostics:** Included")
 
     if run_mode == "Quick Test Mode":
         st.write(f"**Prompt Limit:** {prompt_limit}")
@@ -1355,14 +1363,13 @@ if st.session_state.get("pending_run_confirmation", False):
         "Content Asset Generator calls are excluded until the user explicitly "
         "generates a content pack."
     )
-    if include_brand_intelligence:
-        st.write(
-            "**Brand Intelligence estimated calls:** "
-            f"{brand_intelligence_estimated_calls}"
-        )
-        st.caption(
-            "Target-branded diagnostic calls are excluded from visibility scoring."
-        )
+    st.write(
+        "**Brand Intelligence estimated calls:** "
+        f"{brand_intelligence_estimated_calls}"
+    )
+    st.caption(
+        "Target-branded diagnostic calls are excluded from visibility scoring."
+    )
 
     col_confirm, col_cancel = st.columns(2)
 
