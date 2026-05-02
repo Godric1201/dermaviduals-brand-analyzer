@@ -857,15 +857,15 @@ def display_results():
         f"{target_prompts_visible} prompts visible, and {target_sov}% share of voice."
     )
     brand_intelligence_md = ""
-    if st.session_state.get("brand_intelligence_done", False):
-        brand_intelligence = st.session_state["brand_intelligence"]
+    brand_intelligence = st.session_state.get("brand_intelligence")
+    if st.session_state.get("brand_intelligence_done", False) and brand_intelligence:
         brand_intelligence_md = f"""
 
     ---
 
     ## Appendix: Brand Intelligence & Positioning Audit
 
-    > Diagnostic sidecar output. Not included in visibility score or share of voice. AI-inferred findings require validation.
+    > Diagnostic insight. Not part of visibility scoring.
 
     ### Recommendation Drivers
 
