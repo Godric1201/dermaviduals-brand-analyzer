@@ -56,6 +56,29 @@ st.set_page_config(
     layout="wide"
 )
 
+ANALYSIS_OUTPUT_KEYS = [
+    "competitors",
+    "prompts",
+    "ai_prompts",
+    "detailed_df",
+    "summary_df",
+    "raw_answer_df",
+    "raw_answers",
+    "recommendations",
+    "plan",
+    "analysis_done",
+    "analysis_context",
+    "brand_win_explanation",
+    "replacement_strategy",
+    "gap_analysis",
+    "content_pack",
+    "strategy_report",
+    "brand_intelligence",
+    "brand_intelligence_done",
+    "geo_content_roadmap",
+    "geo_content_roadmap_done",
+]
+
 
 def parse_competitors(text):
     return [
@@ -181,30 +204,7 @@ def build_analysis_context(
 
 
 def clear_analysis_results():
-    analysis_state_keys = [
-        "competitors",
-        "prompts",
-        "ai_prompts",
-        "detailed_df",
-        "summary_df",
-        "raw_answer_df",
-        "raw_answers",
-        "recommendations",
-        "plan",
-        "analysis_done",
-        "analysis_context",
-        "brand_win_explanation",
-        "replacement_strategy",
-        "gap_analysis",
-        "content_pack",
-        "strategy_report",
-        "brand_intelligence",
-        "brand_intelligence_done",
-        "geo_content_roadmap",
-        "geo_content_roadmap_done",
-    ]
-
-    for key in analysis_state_keys:
+    for key in ANALYSIS_OUTPUT_KEYS:
         st.session_state.pop(key, None)
 
 
