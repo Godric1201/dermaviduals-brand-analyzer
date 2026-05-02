@@ -69,3 +69,18 @@ def test_generate_geo_content_roadmap_builds_consulting_prompt(
     assert "Evidence Needed" in prompt
     assert "Expected Metric Impact" in prompt
     assert "not part of visibility scoring" in prompt
+    assert "30 Days" in prompt
+    assert "60 Days" in prompt
+    assert "90 Days" in prompt
+    assert "Next Benchmark Cycle" in prompt
+    assert "No calendar quarters" in prompt
+    assert "specific years" in prompt
+    assert "total mentions" in prompt
+    assert "average visibility score" in prompt
+    assert "prompts visible" in prompt
+    assert "share of voice" in prompt
+    assert "query intent visibility" in prompt
+    assert "target-brand association" in prompt
+    assert "Quick Test Mode" in prompt
+    assert "directional" in prompt
+    assert "Do not make unsupported performance promises" in prompt

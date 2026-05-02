@@ -97,10 +97,14 @@ Rules:
 - Use concise consulting-ready wording.
 - Include 5 to 8 roadmap rows.
 - Tie each row to a query intent or strategic opportunity.
-- Content Asset should name a concrete asset, page, PR angle, review initiative, comparison page, FAQ, or evidence-building item.
+- Content Asset should name a concrete, execution-oriented asset, page, PR angle, review initiative, comparison page, FAQ, or evidence-building item.
 - Evidence Needed should describe proof points, trust signals, reviews, third-party references, expert input, or AI-citable sources.
-- Expected Metric Impact should reference visibility, mentions, prompts visible, share of voice, query intent coverage, or target-brand association.
+- Expected Metric Impact must reference one or more benchmark metrics: total mentions, average visibility score, prompts visible, share of voice, query intent visibility, or target-brand association.
+- Suggested Timing must use only these values: 30 Days, 60 Days, 90 Days, or Next Benchmark Cycle.
+- No calendar quarters, past dates, or specific years. Do not use timing such as Q2 2024, Q3 2024, 2025, or 2026.
+- If query intent coverage is limited, such as a Quick Test Mode run or a small number of query intent categories, make the roadmap directional and avoid implying broad market coverage beyond what was tested.
 - Do not invent unsupported facts.
+- Do not make unsupported performance promises.
 - Do not create or modify scores.
 - Do not include narrative before or after the table.
 """.strip()
