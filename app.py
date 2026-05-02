@@ -1,3 +1,5 @@
+from datetime import date
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -16,6 +18,10 @@ from brand_intelligence import run_brand_intelligence_analysis
 from brand_intelligence_prompts import (
     build_target_diagnostic_prompts,
     parse_user_brand_strengths,
+)
+from benchmark_snapshot import (
+    build_benchmark_snapshot,
+    serialize_benchmark_snapshot,
 )
 from competitor_suggestions import suggest_competitors_with_ai
 from prompts import build_fixed_prompts
@@ -1100,8 +1106,26 @@ def display_results():
         prompt_categories=prompt_categories
     )
 
+    benchmark_snapshot = build_benchmark_snapshot(
+        brand=display_brand,
+        market=display_market,
+        category=display_category,
+        audience=display_audience,
+        report_date=date.today().isoformat(),
+        run_mode=run_mode,
+        prompt_limit=prompt_limit,
+        prompt_count=len(prompts),
+        competitors=competitors,
+        query_intent_categories=prompt_categories,
+        summary_df=summary_df,
+        detailed_df=detailed_df,
+        brand_intelligence=docx_brand_intelligence,
+        include_raw_answers=False,
+        raw_answer_df=raw_answer_df,
+    )
+    benchmark_snapshot_json = serialize_benchmark_snapshot(benchmark_snapshot)
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
 
     with col1:
         st.download_button(
@@ -1180,6 +1204,22 @@ def display_results():
             ),
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             key="client_report_docx_download",
+            on_click="ignore",
+        )
+
+    with col6:
+        st.download_button(
+            label="Download Benchmark Snapshot JSON",
+            data=benchmark_snapshot_json.encode("utf-8"),
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "benchmark_snapshot",
+                "json",
+                run_mode
+            ),
+            mime="application/json",
+            key="benchmark_snapshot_download",
             on_click="ignore",
         )
 
