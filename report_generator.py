@@ -1070,7 +1070,30 @@ def add_recommended_next_step(
         fill=LIGHT_GREEN
     )
 
-def add_methodology_notes(document, category, section_number="11"):
+def normalize_prompt_categories(prompt_categories):
+    if not prompt_categories:
+        return []
+
+    categories = []
+    seen = set()
+
+    for item in prompt_categories:
+        category = str(item).strip()
+        key = category.lower()
+
+        if category and key not in seen:
+            categories.append(category)
+            seen.add(key)
+
+    return categories
+
+
+def add_methodology_notes(
+    document,
+    category,
+    section_number="11",
+    prompt_categories=None
+):
     add_section_heading(document, "Methodology Notes", section_number)
 
     notes = [
@@ -1084,6 +1107,17 @@ def add_methodology_notes(document, category, section_number="11"):
 
     for note in notes:
         add_bullet(document, note)
+
+    prompt_categories = normalize_prompt_categories(prompt_categories)
+    if prompt_categories:
+        add_paragraph_text(
+            document,
+            "Query intent coverage included:",
+            bold=True
+        )
+
+        for prompt_category in prompt_categories:
+            add_bullet(document, prompt_category)
 
 
 # =========================================================
@@ -1102,7 +1136,8 @@ def create_executive_docx_report(
     gap_analysis,
     run_mode="Full Report Mode",
     prompt_limit=None,
-    brand_intelligence=None
+    brand_intelligence=None,
+    prompt_categories=None
 ):
     document = Document()
 
@@ -1177,7 +1212,12 @@ def create_executive_docx_report(
         metrics,
         next_step_section
     )
-    add_methodology_notes(document, category, methodology_section)
+    add_methodology_notes(
+        document,
+        category,
+        methodology_section,
+        prompt_categories=prompt_categories
+    )
 
     buffer = BytesIO()
     document.save(buffer)

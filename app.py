@@ -53,6 +53,24 @@ def parse_competitors(text):
     ]
 
 
+def get_prompt_categories(prompts):
+    categories = []
+    seen = set()
+
+    for item in prompts:
+        if not isinstance(item, dict):
+            continue
+
+        category = normalize_context_text(item.get("category", ""))
+        key = category.lower()
+
+        if category and key not in seen:
+            categories.append(category)
+            seen.add(key)
+
+    return categories
+
+
 def build_competitor_suggestions_context(brand, category, market, audience):
     return {
         "brand": normalize_context_text(brand),
@@ -392,6 +410,7 @@ def display_results():
     )
     run_mode = st.session_state.get("run_mode", "Full Report Mode")
     prompt_limit = st.session_state.get("prompt_limit")
+    prompt_categories = get_prompt_categories(prompts)
     is_quick_test_mode = run_mode == "Quick Test Mode"
     deliverable_status = "Client-deliverable full report"
 
@@ -424,6 +443,12 @@ def display_results():
             st.write(ai_prompts)
 
     st.write(f"Total prompts: {len(prompts)}")
+
+    st.subheader("Query Intent Coverage")
+    st.caption(
+        "This benchmark covers multiple AI recommendation contexts, not only generic best-brand queries."
+    )
+    st.write(prompt_categories)
 
     # =========================
     # 1. Executive Snapshot
@@ -921,6 +946,9 @@ def display_results():
         f"with {target_mentions} total mentions, {target_avg_score} average visibility, "
         f"{target_prompts_visible} prompts visible, and {target_sov}% share of voice."
     )
+    query_intent_md = "\n".join(
+        f"- {item}" for item in prompt_categories
+    ) or "_No query intent categories available._"
     brand_intelligence_md = ""
     brand_intelligence = st.session_state.get("brand_intelligence")
     if st.session_state.get("brand_intelligence_done", False) and brand_intelligence:
@@ -961,6 +989,12 @@ def display_results():
     {"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}
 
     This report evaluates how visible {display_brand} is in AI-generated skincare recommendations for the {display_market} professional skincare market.
+
+    ### Query Intent Coverage
+
+    This benchmark covers the following AI recommendation contexts:
+
+    {query_intent_md}
 
     ---
 
@@ -1058,7 +1092,8 @@ def display_results():
         gap_analysis=st.session_state.get("gap_analysis", ""),
         run_mode=run_mode,
         prompt_limit=prompt_limit,
-        brand_intelligence=docx_brand_intelligence
+        brand_intelligence=docx_brand_intelligence,
+        prompt_categories=prompt_categories
     )
 
 

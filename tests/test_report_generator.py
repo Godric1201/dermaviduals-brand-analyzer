@@ -123,6 +123,7 @@ def test_create_executive_docx_report_returns_docx_bytes():
     document_xml = read_document_xml(report_bytes)
 
     assert "Brand Intelligence" not in document_xml
+    assert "Query intent coverage" not in document_xml
 
 
 def test_create_executive_docx_report_supports_quick_test_mode_metadata():
@@ -265,3 +266,25 @@ def test_create_executive_docx_report_includes_brand_intelligence_when_provided(
 
     for term in blocked_terms:
         assert term not in document_xml
+
+
+def test_create_executive_docx_report_includes_query_intent_coverage_when_provided():
+    report_bytes = create_test_report(
+        prompt_categories=[
+            "Best Options",
+            "Local Recommendations",
+        ]
+    )
+
+    assert_valid_docx_bytes(report_bytes)
+
+    document_xml = read_document_xml(report_bytes)
+
+    expected_terms = [
+        "Query intent coverage",
+        "Best Options",
+        "Local Recommendations",
+    ]
+
+    for term in expected_terms:
+        assert term in document_xml
