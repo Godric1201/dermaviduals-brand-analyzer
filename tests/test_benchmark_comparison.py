@@ -3,6 +3,7 @@ import io
 import pytest
 
 from benchmark_comparison import (
+    compare_query_intent_visibility,
     compare_target_brand_metrics,
     find_brand_summary_record,
     load_snapshot_json,
@@ -10,7 +11,7 @@ from benchmark_comparison import (
 )
 
 
-def make_snapshot(brand="Espresso House", summary_records=None):
+def make_snapshot(brand="Espresso House", summary_records=None, detailed_records=None):
     return {
         "metadata": {
             "brand": brand,
@@ -27,6 +28,7 @@ def make_snapshot(brand="Espresso House", summary_records=None):
                 "share_of_voice_percent": 20,
             }
         ],
+        "detailed_records": detailed_records if detailed_records is not None else [],
     }
 
 
@@ -34,6 +36,13 @@ def metrics_by_name(comparison):
     return {
         row["Metric"]: row
         for row in comparison["metrics"]
+    }
+
+
+def query_intents_by_name(rows):
+    return {
+        row["Query Intent"]: row
+        for row in rows
     }
 
 
@@ -131,3 +140,75 @@ def test_compare_target_brand_metrics_warns_on_brand_mismatch():
         "Previous snapshot target brand does not match the current analysis context."
         in comparison["warnings"]
     )
+
+
+def test_compare_query_intent_visibility_computes_visibility_deltas():
+    previous_snapshot = make_snapshot(detailed_records=[
+        {
+            "brand": "Espresso House",
+            "prompt_category": "Best Options",
+            "visibility_score": 0,
+            "mentions": 0,
+        },
+    ])
+    current_snapshot = make_snapshot(detailed_records=[
+        {
+            "brand": "espresso house",
+            "prompt_category": "Best Options",
+            "visibility_score": 30,
+            "mentions": 1,
+        },
+    ])
+
+    rows = compare_query_intent_visibility(previous_snapshot, current_snapshot)
+    by_intent = query_intents_by_name(rows)
+
+    assert by_intent["Best Options"]["Previous Avg Visibility"] == 0
+    assert by_intent["Best Options"]["Current Avg Visibility"] == 30
+    assert by_intent["Best Options"]["Change"] == 30
+    assert by_intent["Best Options"]["Mentions Change"] == 1
+    assert by_intent["Best Options"]["Visible Count Change"] == 1
+
+
+def test_compare_query_intent_visibility_handles_current_only_category():
+    previous_snapshot = make_snapshot()
+    current_snapshot = make_snapshot(detailed_records=[
+        {
+            "brand": "Espresso House",
+            "prompt_category": "Local Recommendations",
+            "visibility_score": 15,
+            "mentions": 1,
+        },
+    ])
+
+    rows = compare_query_intent_visibility(previous_snapshot, current_snapshot)
+    by_intent = query_intents_by_name(rows)
+
+    assert by_intent["Local Recommendations"]["Previous Avg Visibility"] == 0
+    assert by_intent["Local Recommendations"]["Current Avg Visibility"] == 15
+
+
+def test_compare_query_intent_visibility_handles_previous_only_category():
+    previous_snapshot = make_snapshot(detailed_records=[
+        {
+            "brand": "Espresso House",
+            "prompt_category": "Trust And Review Signals",
+            "visibility_score": 20,
+            "mentions": 1,
+        },
+    ])
+    current_snapshot = make_snapshot()
+
+    rows = compare_query_intent_visibility(previous_snapshot, current_snapshot)
+    by_intent = query_intents_by_name(rows)
+
+    assert by_intent["Trust And Review Signals"]["Previous Avg Visibility"] == 20
+    assert by_intent["Trust And Review Signals"]["Current Avg Visibility"] == 0
+    assert by_intent["Trust And Review Signals"]["Change"] == -20
+
+
+def test_compare_query_intent_visibility_handles_missing_detailed_records():
+    previous_snapshot = make_snapshot()
+    current_snapshot = make_snapshot()
+
+    assert compare_query_intent_visibility(previous_snapshot, current_snapshot) == []

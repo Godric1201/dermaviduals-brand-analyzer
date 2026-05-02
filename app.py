@@ -24,6 +24,7 @@ from benchmark_snapshot import (
     serialize_benchmark_snapshot,
 )
 from benchmark_comparison import (
+    compare_query_intent_visibility,
     compare_target_brand_metrics,
     load_snapshot_json,
 )
@@ -937,6 +938,21 @@ def display_results():
                 pd.DataFrame(comparison["metrics"]),
                 use_container_width=True,
             )
+
+            query_intent_progress = compare_query_intent_visibility(
+                previous_snapshot,
+                current_snapshot,
+            )
+            st.write("**Query Intent Progress**")
+            if query_intent_progress:
+                st.dataframe(
+                    pd.DataFrame(query_intent_progress),
+                    use_container_width=True,
+                )
+            else:
+                st.info(
+                    "No query intent-level comparison data available in the uploaded snapshot."
+                )
         except ValueError as exc:
             st.error(str(exc))
 
