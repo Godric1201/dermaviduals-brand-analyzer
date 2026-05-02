@@ -1,6 +1,15 @@
 from analyzer import ask_ai
 
 
+SEO_BLOG_HEADING = "## 1. SEO Blog Post"
+REVIEW_STRATEGY_HEADING = "## 2. Local Review / Trust Signal Strategy"
+LEGACY_REVIEW_STRATEGY_HEADING = "## 2. Google Maps / Clinic Review Strategy"
+SOCIAL_POSTS_HEADING = "## 3. Social Posts"
+FAQ_CONTENT_HEADING = "## 4. FAQ Content"
+COMPARISON_PAGE_HEADING = "## 5. Comparison Page Outline"
+AI_VISIBILITY_CLUSTER_HEADING = "## 6. AI Visibility Content Cluster"
+
+
 def generate_level_2_content_pack(
     brand,
     category,
@@ -83,7 +92,7 @@ Suggested angle:
 
 ---
 
-## 2. Google Maps / Clinic Review Strategy
+## 2. Local Review / Trust Signal Strategy
 
 Create a review strategy for customers, partners, reviewers, and decision-makers.
 
@@ -195,12 +204,45 @@ Rules:
     result = ask_ai(prompt, report_language)
 
     return {
-        "seo_blog": extract_section(result, "## 1. SEO Blog Post", "## 2. Google Maps / Clinic Review Strategy"),
-        "review_strategy": extract_section(result, "## 2. Google Maps / Clinic Review Strategy", "## 3. Social Posts"),
-        "social_posts": extract_section(result, "## 3. Social Posts", "## 4. FAQ Content"),
-        "faq_content": extract_section(result, "## 4. FAQ Content", "## 5. Comparison Page Outline"),
-        "comparison_outline": extract_section(result, "## 5. Comparison Page Outline", "## 6. AI Visibility Content Cluster"),
+        "seo_blog": extract_section_with_fallback(
+            result,
+            [SEO_BLOG_HEADING],
+            [REVIEW_STRATEGY_HEADING, LEGACY_REVIEW_STRATEGY_HEADING]
+        ),
+        "review_strategy": extract_section_with_fallback(
+            result,
+            [REVIEW_STRATEGY_HEADING, LEGACY_REVIEW_STRATEGY_HEADING],
+            [SOCIAL_POSTS_HEADING]
+        ),
+        "social_posts": extract_section(result, SOCIAL_POSTS_HEADING, FAQ_CONTENT_HEADING),
+        "faq_content": extract_section(result, FAQ_CONTENT_HEADING, COMPARISON_PAGE_HEADING),
+        "comparison_outline": extract_section(result, COMPARISON_PAGE_HEADING, AI_VISIBILITY_CLUSTER_HEADING),
     }
+
+
+def extract_section_with_fallback(text, start_markers, end_markers=None):
+    if not text:
+        return ""
+
+    for start_marker in start_markers:
+        start = text.find(start_marker)
+
+        if start == -1:
+            continue
+
+        if end_markers:
+            end_positions = [
+                text.find(end_marker, start + len(start_marker))
+                for end_marker in end_markers
+            ]
+            end_positions = [position for position in end_positions if position != -1]
+
+            if end_positions:
+                return text[start:min(end_positions)].strip()
+
+        return text[start:].strip()
+
+    return text
 
 
 def extract_section(text, start_marker, end_marker=None):

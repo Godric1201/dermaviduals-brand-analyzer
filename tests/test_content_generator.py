@@ -48,7 +48,7 @@ def test_generate_level_2_content_pack_uses_generic_category_prompt(
     fake_response = """
 ## 1. SEO Blog Post
 Blog content
-## 2. Google Maps / Clinic Review Strategy
+## 2. Local Review / Trust Signal Strategy
 Review content
 ## 3. Social Posts
 Social content
@@ -77,6 +77,10 @@ Cluster content
     )
 
     prompt = captured["prompt"]
+
+    assert "## 2. Local Review / Trust Signal Strategy" in prompt
+    assert "Google Maps / Clinic Review Strategy" not in prompt
+    assert "Clinic Review" not in prompt
 
     expected_terms = [
         "Espresso House",
@@ -116,3 +120,43 @@ Cluster content
         "faq_content",
         "comparison_outline",
     }.issubset(result)
+
+
+def test_generate_level_2_content_pack_supports_legacy_review_heading(
+    monkeypatch,
+    content_generator_module
+):
+    fake_response = """
+## 1. SEO Blog Post
+Blog content
+## 2. Google Maps / Clinic Review Strategy
+Legacy review content
+## 3. Social Posts
+Social content
+## 4. FAQ Content
+FAQ content
+## 5. Comparison Page Outline
+Comparison content
+## 6. AI Visibility Content Cluster
+Cluster content
+"""
+
+    def fake_ask_ai(prompt, language="English"):
+        return fake_response
+
+    monkeypatch.setattr(content_generator_module, "ask_ai", fake_ask_ai)
+
+    result = content_generator_module.generate_level_2_content_pack(
+        brand="Espresso House",
+        category="cafes",
+        market="Berlin",
+        audience="remote workers",
+        competitors=["coffee fellows", "einstein kaffee"],
+        summary_table="summary",
+        detailed_table="details",
+    )
+
+    assert result["seo_blog"] == "## 1. SEO Blog Post\nBlog content"
+    assert result["review_strategy"] == (
+        "## 2. Google Maps / Clinic Review Strategy\nLegacy review content"
+    )
