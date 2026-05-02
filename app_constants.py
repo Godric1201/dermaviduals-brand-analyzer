@@ -5,6 +5,41 @@ AUDIENCE = "skincare-conscious consumers in Hong Kong"
 REPORT_LANGUAGE = "English"
 ANSWER_LANGUAGE = "English"
 
+DEFAULT_COMPETITORS = [
+    "Biologique Recherche",
+    "ZO Skin Health",
+    "Environ",
+    "DMK",
+    "iS Clinical",
+    "PCA Skin",
+    "Skinbetter Science",
+    "Mesoestetic",
+    "Universkin",
+    "Cellcosmet"
+]
+
+
+CLIENT_PRESETS = {
+    "Dermaviduals HK": {
+        "brand": "Dermaviduals",
+        "category": "professional skincare products",
+        "market": "Hong Kong",
+        "audience": "skincare-conscious consumers in Hong Kong",
+        "competitors": DEFAULT_COMPETITORS,
+    },
+    "Espresso House Berlin": {
+        "brand": "Espresso House",
+        "category": "cafes",
+        "market": "Berlin",
+        "audience": "remote workers",
+        "competitors": [
+            "Coffee Fellows",
+            "Einstein Kaffee",
+            "Starbucks"
+        ],
+    },
+}
+
 
 TRANSLATIONS = {
     "title": "Dermaviduals Hong Kong AI Visibility Analyzer",

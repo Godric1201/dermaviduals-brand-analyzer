@@ -6,6 +6,7 @@ from app_constants import (
     AUDIENCE,
     BRAND,
     CATEGORY,
+    CLIENT_PRESETS,
     MARKET,
     REPORT_LANGUAGE,
     TRANSLATIONS,
@@ -829,14 +830,53 @@ def display_results():
 t = TRANSLATIONS
 
 st.sidebar.header("Analysis Setup")
-target_brand = st.sidebar.text_input("Target Brand", value=BRAND)
-target_category = st.sidebar.text_input("Category", value=CATEGORY)
-target_market = st.sidebar.text_input("Market", value=MARKET)
-target_audience = st.sidebar.text_area("Audience", value=AUDIENCE)
+
+preset_options = ["Custom"] + list(CLIENT_PRESETS)
+selected_preset = st.sidebar.selectbox(
+    "Client Preset",
+    preset_options,
+    index=0
+)
+
+load_preset = st.sidebar.button("Load Preset")
+
+if load_preset:
+    if selected_preset == "Custom":
+        st.sidebar.info("Select a preset to load.")
+    else:
+        preset = CLIENT_PRESETS[selected_preset]
+        st.session_state["target_brand_input"] = preset["brand"]
+        st.session_state["target_category_input"] = preset["category"]
+        st.session_state["target_market_input"] = preset["market"]
+        st.session_state["target_audience_input"] = preset["audience"]
+        st.session_state["competitors_input"] = "\n".join(preset["competitors"])
+        st.rerun()
+
+target_brand = st.sidebar.text_input(
+    "Target Brand",
+    value=BRAND,
+    key="target_brand_input"
+)
+target_category = st.sidebar.text_input(
+    "Category",
+    value=CATEGORY,
+    key="target_category_input"
+)
+target_market = st.sidebar.text_input(
+    "Market",
+    value=MARKET,
+    key="target_market_input"
+)
+target_audience = st.sidebar.text_area(
+    "Audience",
+    value=AUDIENCE,
+    key="target_audience_input"
+)
 competitors_text = st.sidebar.text_area(
     "Competitors",
     value="\n".join(get_competitors()),
-    help="Enter one competitor per line."
+    help="Enter one competitor per line.",
+    key="competitors_input"
 )
 display_brand = format_display_text(target_brand)
 display_category = format_display_text(target_category)
