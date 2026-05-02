@@ -1219,7 +1219,7 @@ if st.session_state.get("pending_run_confirmation", False):
         f"{api_call_estimate['ai_generated_prompt_estimate']}"
     )
     st.write(
-        "**Effective prompts after limit:** "
+        "**Effective prompts to run:** "
         f"{api_call_estimate['effective_prompt_count']}"
     )
     st.write(
