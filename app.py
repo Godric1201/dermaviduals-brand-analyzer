@@ -81,6 +81,30 @@ def build_analysis_context(
     }
 
 
+def clear_analysis_results():
+    analysis_state_keys = [
+        "competitors",
+        "prompts",
+        "ai_prompts",
+        "detailed_df",
+        "summary_df",
+        "raw_answer_df",
+        "raw_answers",
+        "recommendations",
+        "plan",
+        "analysis_done",
+        "analysis_context",
+        "brand_win_explanation",
+        "replacement_strategy",
+        "gap_analysis",
+        "content_pack",
+        "strategy_report",
+    ]
+
+    for key in analysis_state_keys:
+        st.session_state.pop(key, None)
+
+
 def validate_run_inputs(brand, category, market, audience, competitors):
     errors = []
 
@@ -1028,8 +1052,8 @@ for error in validation_errors:
 for warning in validation_warnings:
     st.sidebar.warning(warning)
 
-run_button = st.sidebar.button(
-    f"Run {display_brand} AI Visibility Analysis",
+review_button = st.sidebar.button(
+    "Review & Run Analysis",
     disabled=bool(validation_errors)
 )
 reset_button = st.sidebar.button(t["reset"])
@@ -1079,13 +1103,51 @@ The visibility score is based on three signals:
 Organic Visibility is measured from unbiased prompts that do not mention the target brand.
 """)
 
-if run_button:
-    if validation_errors:
-        for error in validation_errors:
-            st.sidebar.error(error)
-    else:
-        st.session_state.clear()
-        run_analysis()
+if review_button:
+    st.session_state["pending_run_confirmation"] = True
+
+if st.session_state.get("pending_run_confirmation", False):
+    st.warning(
+        "Only click Confirm & Run if this context is correct. "
+        "This may call the OpenAI API."
+    )
+    st.subheader("Review Analysis Context")
+    st.write(f"**Target Brand:** {display_brand}")
+    st.write(f"**Category:** {display_category}")
+    st.write(f"**Market:** {display_market}")
+    st.write(f"**Audience:** {display_audience}")
+    st.write(f"**Run Mode:** {run_mode}")
+
+    if run_mode == "Quick Test Mode":
+        st.write(f"**Prompt Limit:** {prompt_limit}")
+
+    display_competitors = [
+        format_display_text(competitor)
+        for competitor in current_competitors
+    ]
+    st.write(f"**Competitors:** {len(display_competitors)}")
+    st.write(display_competitors)
+
+    col_confirm, col_cancel = st.columns(2)
+
+    with col_confirm:
+        confirm_run = st.button("Confirm & Run")
+
+    with col_cancel:
+        cancel_run = st.button("Cancel")
+
+    if confirm_run:
+        if validation_errors:
+            for error in validation_errors:
+                st.error(error)
+        else:
+            st.session_state["pending_run_confirmation"] = False
+            clear_analysis_results()
+            run_analysis()
+
+    if cancel_run:
+        st.session_state["pending_run_confirmation"] = False
+        st.rerun()
 
 if st.session_state.get("analysis_done", False):
     display_results()
