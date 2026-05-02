@@ -42,22 +42,22 @@ CLIENT_PRESETS = {
 
 
 TRANSLATIONS = {
-    "title": "Dermaviduals Hong Kong AI Visibility Analyzer",
-    "subtitle": "AI search visibility analysis for professional skincare products in Hong Kong.",
+    "title": "AI Visibility + Positioning Strategy Audit",
+    "subtitle": "AI visibility, competitor recall, and positioning gap analysis for configurable client contexts.",
     "description": """
-This tool analyzes how visible Dermaviduals is in AI-generated skincare recommendations for the Hong Kong market.
+This tool analyzes how visible a target brand is in AI-generated category recommendations for a selected market and audience.
 
 The prompts are fixed plus AI-generated, unbiased, and do not directly mention the target brand.
 """,
-    "run": "Run Hong Kong Skincare Visibility Analysis",
+    "run": "Run AI Visibility Analysis",
     "reset": "Reset Analysis",
     "running": "Running AI analysis... please wait...",
     "running_prompt": "Running prompt",
     "complete_status": "Analysis complete",
     "complete": "Analysis completed.",
-    "auto_competitors": "Hong Kong Professional Competitors",
+    "auto_competitors": "Tracked Competitors",
     "snapshot": "1. Executive Snapshot",
-    "caption": "Organic Visibility is measured from unbiased prompts that do not mention Dermaviduals.",
+    "caption": "Organic Visibility is measured from unbiased prompts that do not mention the target brand.",
     "prompts": "2. Fixed + AI-Generated Search Prompts",
     "benchmark": "3. Competitor Benchmark",
     "prompt_level": "4. Prompt-Level Results",
