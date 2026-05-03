@@ -375,3 +375,46 @@ def test_create_executive_docx_report_includes_geo_content_roadmap_when_provided
         < document_text.find("Methodology Notes")
         < document_text.find("Appendix: Brand Intelligence & Positioning Audit")
     )
+
+
+def test_create_executive_docx_report_sanitizes_narrative_text_before_rendering():
+    report_bytes = create_test_report(
+        category="skincare products",
+        brand_intelligence={
+            "recommendation_drivers": (
+                "AI-Discovered Brands Not Included in Scoring\n"
+                "- Market Research\n"
+                "- **Influencer Engagement**: Collaborate with local influencers to amplify brand credibility.\n"
+                "Strong clinical backing."
+            ),
+            "target_brand_understanding": "clinical evidence",
+            "positioning_gap_analysis": "Top Competitor-Owned Associations (Source: AI-discovered market signal)s)",
+        },
+        geo_content_roadmap=(
+            "| Priority | Query Intent | Content Asset | Target Association | Competitor / Market Signal | Evidence Needed | Expected Metric Impact | Suggested Timing |\n"
+            "|---|---|---|---|---|---|---|---|\n"
+            "| 1 | Trust | Pollution Defense: How Dermaviduals Protects Your Skin | The Science Behind Dermaviduals for Skin Health | | Comparison table data showcasing ingredient efficacy | Intended benchmark influence: target-brand association | 30 Days |"
+        ),
+    )
+
+    document_text = read_document_text(report_bytes)
+    document_text_lower = document_text.lower()
+
+    blocked_terms = [
+        "market research",
+        "influencer engagement",
+        "clinical backing",
+        "clinical evidence",
+        "medical-grade efficacy",
+        "ingredient efficacy",
+        "protects your skin",
+        "the science behind dermaviduals for skin health",
+        "(source: ai-discovered market signal)s)",
+    ]
+
+    for term in blocked_terms:
+        assert term not in document_text_lower
+
+    assert "No additional non-tracked brands were identified." in document_text
+    assert "Dermaviduals Ingredient Guide for Pollution-Exposed Skin" in document_text
+    assert "Professional Trust Signals" in document_text

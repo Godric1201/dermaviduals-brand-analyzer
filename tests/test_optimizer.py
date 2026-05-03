@@ -116,8 +116,8 @@ def test_sanitize_conservative_targets_rewrites_quick_test_aggressive_targets():
 
     assert "share of voice above 10%" not in sanitized.lower()
     assert "at least 5 mentions" not in sanitized.lower()
-    assert sanitized.count("begin generating measurable share of voice in a full benchmark") == 2
-    assert "begin generating detectable mentions in a full benchmark" in sanitized
+    assert sanitized.count("begin generating measurable share of voice in a future full benchmark") == 2
+    assert "begin generating detectable mentions in a future full benchmark" in sanitized
 
 
 def test_sanitize_conservative_targets_does_not_over_sanitize_supported_full_report():
@@ -134,3 +134,24 @@ def test_sanitize_conservative_targets_does_not_over_sanitize_supported_full_rep
     )
 
     assert sanitized == text
+
+
+def test_sanitize_conservative_targets_fixes_awkward_share_of_voice_phrase():
+    text = (
+        "Aim for a begin generating measurable share of voice in a full benchmark in targeted categories. "
+        "Expected AI visibility effect: Aim for a begin generating measurable share of voice in a full benchmark in targeted categories."
+    )
+
+    sanitized = optimizer.sanitize_conservative_targets(
+        text,
+        run_mode="Quick Test Mode",
+        target_brand_metrics={
+            "total_mentions": 0,
+            "prompts_visible": 0,
+            "share_of_voice_percent": 0,
+        },
+    )
+
+    assert "Aim for a begin generating" not in sanitized
+    assert "Begin generating measurable share of voice in a future full benchmark." in sanitized
+    assert "Expected AI visibility effect: Begin generating measurable share of voice in a future full benchmark." in sanitized

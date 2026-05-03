@@ -1,6 +1,7 @@
 import json
 
 import pandas as pd
+from output_quality import OutputQualityContext, sanitize_snapshot_payload
 
 
 def _json_safe_value(value):
@@ -90,7 +91,17 @@ def build_benchmark_snapshot(
     if include_raw_answers:
         snapshot["raw_answer_records"] = dataframe_to_records(raw_answer_df)
 
-    return snapshot
+    return sanitize_snapshot_payload(
+        snapshot,
+        OutputQualityContext(
+            category=category,
+            run_mode=run_mode,
+            brand=brand,
+            market=market,
+            audience=audience,
+            tracked_competitors=list(competitors or []),
+        ),
+    )
 
 
 def serialize_benchmark_snapshot(snapshot):

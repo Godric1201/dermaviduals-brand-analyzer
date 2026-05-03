@@ -13,6 +13,12 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from output_quality import (
+    OutputQualityContext,
+    sanitize_brand_intelligence_text,
+    sanitize_geo_roadmap_text,
+    sanitize_narrative_appendix_text,
+)
 
 
 # =========================================================
@@ -1234,6 +1240,48 @@ def create_executive_docx_report(
     report_date = datetime.now().strftime("%Y-%m-%d")
 
     metrics = get_target_metrics(summary_df, brand)
+    tracked_competitors = []
+    if summary_df is not None and "brand" in summary_df.columns:
+        tracked_competitors = [
+            str(item)
+            for item in summary_df["brand"].dropna().tolist()
+            if str(item).strip().lower() != str(brand).strip().lower()
+        ]
+    quality_context = OutputQualityContext(
+        category=category,
+        run_mode=run_mode,
+        brand=brand,
+        market=market,
+        audience=audience,
+        tracked_competitors=tracked_competitors,
+        target_brand_metrics={
+            "total_mentions": metrics["Total Mentions"],
+            "prompts_visible": metrics["Prompts Visible"],
+            "share_of_voice_percent": float(str(metrics["Share of Voice"]).replace("%", "") or 0),
+        },
+    )
+    if brand_intelligence:
+        brand_intelligence = {
+            key: (
+                sanitize_brand_intelligence_text(value, quality_context)
+                if isinstance(value, str)
+                else value
+            )
+            for key, value in brand_intelligence.items()
+        }
+    if geo_content_roadmap:
+        geo_content_roadmap = sanitize_geo_roadmap_text(
+            geo_content_roadmap,
+            quality_context,
+        )
+    strategy_report = sanitize_narrative_appendix_text(
+        strategy_report,
+        quality_context,
+    )
+    gap_analysis = sanitize_narrative_appendix_text(
+        gap_analysis,
+        quality_context,
+    )
     top_competitors = get_top_competitors(summary_df, brand, limit=3)
     competitor_leaders = get_competitor_leaders(summary_df, brand)
     benchmark_df = build_benchmark_df(summary_df, brand)

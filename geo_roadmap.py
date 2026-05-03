@@ -1,6 +1,11 @@
 import re
 
 from analyzer import ask_ai
+from output_quality import (
+    OutputQualityContext,
+    sanitize_claim_safety_text,
+    sanitize_geo_roadmap_text as oq_sanitize_geo_roadmap_text,
+)
 
 
 ROADMAP_COLUMNS = [
@@ -94,6 +99,54 @@ def sanitize_claim_safety(text, category):
 
     replacements = [
         (
+            r"Medical-Grade Efficacy",
+            "Evidence-Supported Product Positioning",
+        ),
+        (
+            r"The Efficacy of Dermaviduals Against Hong Kong's Environmental Stressors",
+            "Dermaviduals Ingredient Guide for Hong Kong Environmental Stressors",
+        ),
+        (
+            r"Efficacy Against Environmental Stressors",
+            "Evidence-Supported Environmental Stressor Positioning",
+        ),
+        (
+            r"Professional and Clinical Endorsement",
+            "Professional Trust Signals",
+        ),
+        (
+            r"Comparative analysis data on product effectiveness",
+            "Comparison table data and claims support documentation",
+        ),
+        (
+            r"Ingredient documentation supporting product efficacy",
+            "Ingredient documentation and claims support materials",
+        ),
+        (
+            r"Comparison table data showcasing ingredient efficacy",
+            "Comparison table data showcasing ingredient documentation and claims support",
+        ),
+        (
+            r"Strong clinical backing",
+            "Strong evidence-supported positioning",
+        ),
+        (
+            r"clinical backing",
+            "evidence-supported positioning",
+        ),
+        (
+            r"clinically backed",
+            "evidence-supported",
+        ),
+        (
+            r"medical-grade efficacy",
+            "evidence-supported product positioning",
+        ),
+        (
+            r"ingredient efficacy",
+            "ingredient documentation and claims support",
+        ),
+        (
             r"published studies demonstrating product effectiveness",
             "substantiated evidence or consumer study documentation",
         ),
@@ -127,7 +180,21 @@ def sanitize_claim_safety(text, category):
     for pattern, replacement in replacements:
         sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
 
+    sanitized = re.sub(
+        r"product efficacy specific to the Hong Kong demographic",
+        "product claims specific to the Hong Kong market, where substantiated and compliant",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
+
     return sanitized
+
+
+def sanitize_claim_safety(text, category):
+    return sanitize_claim_safety_text(
+        text,
+        OutputQualityContext(category=category),
+    )
 
 
 def is_generic_content_asset(asset):
@@ -253,10 +320,12 @@ def sanitize_geo_roadmap_markdown(
                 competitor_signal,
             )
 
+        parts[2] = sanitize_claim_safety(parts[2], category)
         parts[4] = _normalize_competitor_signal_cell(
             competitor_signal,
             tracked_competitors,
         )
+        parts[3] = sanitize_claim_safety(parts[3], category)
         parts[5] = sanitize_claim_safety(evidence_needed, category)
         parts[6] = sanitize_claim_safety(expected_metric_impact, category)
 
@@ -380,11 +449,21 @@ def generate_geo_content_roadmap(
 
     roadmap_md = ask_ai(prompt, report_language)
 
-    return sanitize_geo_roadmap_markdown(
+    sanitized_roadmap = sanitize_geo_roadmap_markdown(
         roadmap_md,
         brand=brand,
         market=market,
         category=category,
         audience=audience,
         tracked_competitors=competitors,
+    )
+    return oq_sanitize_geo_roadmap_text(
+        sanitized_roadmap,
+        OutputQualityContext(
+            brand=brand,
+            market=market,
+            audience=audience,
+            category=category,
+            tracked_competitors=list(competitors or []),
+        ),
     )

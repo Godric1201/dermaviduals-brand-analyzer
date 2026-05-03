@@ -5,6 +5,11 @@ from brand_intelligence_prompts import (
     build_target_diagnostic_prompts,
     parse_user_brand_strengths,
 )
+from output_quality import (
+    OutputQualityContext,
+    sanitize_brand_intelligence_text as oq_sanitize_brand_intelligence_text,
+    sanitize_claim_safety_text,
+)
 
 
 VALIDATION_NOTE = (
@@ -27,6 +32,14 @@ TRACKED_COMPETITOR_HEADING_PATTERN = re.compile(
     r"^\s*(?:#+\s*)?(?:[-*]\s*)?Tracked Competitors Included in Scoring\s*:?\s*$",
     re.IGNORECASE,
 )
+AI_DISCOVERED_BRANDS_HEADING_PATTERN = re.compile(
+    r"^\s*(?:#+\s*)?(?:[-*]\s*)?AI-Discovered Brands Not Included in Scoring\s*:?\s*$",
+    re.IGNORECASE,
+)
+MARKET_TRENDS_HEADING_PATTERN = re.compile(
+    r"^\s*(?:#+\s*)?(?:[-*]\s*)?Market Trends / Demand Signals\s*:?\s*$",
+    re.IGNORECASE,
+)
 HEALTH_ADJACENT_TERMS = (
     "skin",
     "skincare",
@@ -38,6 +51,25 @@ HEALTH_ADJACENT_TERMS = (
     "derma",
     "cosmetic",
 )
+COMPETITOR_ADVANTAGE_COLUMNS = [
+    "Advantage Signal",
+    "Evidence Source",
+    "Example Brands",
+    "Source Type",
+]
+NON_BRAND_MARKET_SIGNAL_PATTERNS = [
+    r"market research",
+    r"distribution strategy",
+    r"marketing campaigns?",
+    r"local claims support documentation",
+    r"conduct studies",
+    r"explore partnerships",
+    r"launch targeted campaigns?",
+    r"consider conducting",
+    r"demand for",
+    r"interest in",
+    r"increased focus",
+]
 
 
 def _normalize_user_brand_strengths(user_brand_strengths):
@@ -187,6 +219,121 @@ def classify_line_source(
     return None
 
 
+def classify_source_type_from_example_brands(
+    example_brands,
+    tracked_competitors,
+    fallback_text="",
+):
+    fallback_lower = str(fallback_text or "").lower()
+
+    if "user-provided" in fallback_lower:
+        return "User-provided"
+
+    if not example_brands:
+        return "AI-discovered market signals"
+
+    tracked_mentions = [
+        brand_name
+        for brand_name in example_brands
+        if is_tracked_competitor(brand_name, tracked_competitors)
+    ]
+    non_tracked_mentions = [
+        brand_name
+        for brand_name in example_brands
+        if not is_tracked_competitor(brand_name, tracked_competitors)
+    ]
+
+    if tracked_mentions and non_tracked_mentions:
+        return "Mixed tracked competitors / AI-discovered market signals"
+    if tracked_mentions:
+        return "Tracked competitors"
+    if non_tracked_mentions:
+        return "AI-discovered market signals"
+
+    return "AI-discovered market signals"
+
+
+def sanitize_competitor_advantage_tables(text, tracked_competitors):
+    lines = str(text or "").splitlines()
+    sanitized_lines = []
+    index = 0
+
+    while index < len(lines):
+        line = lines[index]
+        header_parts = [part.strip() for part in line.split("|")[1:-1]]
+        is_competitor_table = (
+            line.strip().startswith("|")
+            and header_parts
+            and header_parts[0].lower() == "advantage signal"
+            and any(part.lower() in {"source", "source type"} for part in header_parts)
+        )
+
+        if not is_competitor_table:
+            sanitized_lines.append(line)
+            index += 1
+            continue
+
+        table_lines = [line]
+        index += 1
+        while index < len(lines) and lines[index].strip().startswith("|"):
+            table_lines.append(lines[index])
+            index += 1
+
+        sanitized_lines.append("| " + " | ".join(COMPETITOR_ADVANTAGE_COLUMNS) + " |")
+        sanitized_lines.append("|---|---|---|---|")
+
+        for row in table_lines[2:]:
+            row_parts = [part.strip() for part in row.split("|")[1:-1]]
+            if len(row_parts) < 2:
+                continue
+
+            if len(row_parts) >= 4:
+                signal = row_parts[0]
+                evidence_source = row_parts[1]
+                example_brands_cell = row_parts[2]
+                source_value = row_parts[3]
+            else:
+                signal = row_parts[0]
+                evidence_source = "Diagnostic inference"
+                example_brands_cell = ""
+                source_value = row_parts[1]
+
+            signal = SOURCE_LABEL_PATTERN.sub("", signal).strip()
+            source_value = SOURCE_LABEL_PATTERN.sub("", source_value).strip()
+            example_brands = extract_brand_mentions_from_line(
+                example_brands_cell or signal,
+                tracked_competitors,
+            )
+            example_brand_text = ", ".join(example_brands) if example_brands else "None listed"
+
+            if not example_brands and "tracked competitor" in source_value.lower():
+                evidence_source = "Diagnostic inference"
+
+            if "user-provided" in source_value.lower() or "user-provided" in evidence_source.lower():
+                evidence_source = "User-provided context"
+            elif not evidence_source:
+                evidence_source = "Diagnostic inference"
+
+            source_type = classify_source_type_from_example_brands(
+                example_brands,
+                tracked_competitors,
+                fallback_text=f"{evidence_source} {source_value}",
+            )
+
+            sanitized_lines.append(
+                "| "
+                + " | ".join([
+                    signal,
+                    evidence_source,
+                    example_brand_text,
+                    source_type,
+                ])
+                + " |"
+            )
+
+    return "\n".join(sanitized_lines)
+
+
 def correct_competitor_source_labels(text, tracked_competitors):
     corrected_lines = []
     previous_context_line = ""
@@ -262,6 +409,54 @@ def sanitize_claim_safety(text, category):
 
     replacements = [
         (
+            r"Absence of claims support documentation, where substantiated and compliant showing product effectiveness in local skin concerns",
+            "claims support documentation, consumer feedback, or expert validation for Hong Kong market claims",
+        ),
+        (
+            r"Absence of studies demonstrating product effectiveness for common skin concerns in the local market\.?",
+            "Absence of claims support documentation, consumer feedback, or expert validation for Hong Kong market claims.",
+        ),
+        (
+            r"claims support documentation, where substantiated and compliant showing product effectiveness in local skin concerns",
+            "claims support documentation, consumer feedback, or expert validation for Hong Kong market claims",
+        ),
+        (
+            r"claims support documentation, where substantiated and compliant showing product effectiveness",
+            "claims support documentation, consumer feedback, or expert validation",
+        ),
+        (
+            r"Absence of claims support documentation, where substantiated and compliant validating product efficacy specific to the Hong Kong demographic\.?",
+            "Absence of claims support documentation, consumer feedback, or expert validation specific to the Hong Kong market.",
+        ),
+        (
+            r"Absence of claims support documentation, where substantiated and compliant validating product efficacy",
+            "Absence of claims support documentation, consumer feedback, or expert validation",
+        ),
+        (
+            r"Promote the efficacy of products through claims support documentation, where substantiated and compliant and consumer testimonials\.",
+            "Support product claims with compliant documentation, consumer testimonials, and expert validation.",
+        ),
+        (
+            r"Promote the efficacy of products",
+            "Support product claims",
+        ),
+        (
+            r"Professional and Clinical Endorsement",
+            "Professional Trust Signals",
+        ),
+        (
+            r"Medical-Grade Efficacy",
+            "Evidence-Supported Product Positioning",
+        ),
+        (
+            r"Clinical studies or data demonstrating product efficacy in the local context",
+            "Claims support documentation, consumer feedback, or expert validation, where substantiated and compliant",
+        ),
+        (
+            r"Clinical studies or data demonstrating product efficacy",
+            "Claims support documentation, consumer feedback, or expert validation, where substantiated and compliant",
+        ),
+        (
             r"Clinical studies or consumer feedback validating product effectiveness",
             "Claims support documentation, consumer feedback, or expert validation, only where substantiated and compliant",
         ),
@@ -276,6 +471,22 @@ def sanitize_claim_safety(text, category):
         (
             r"published studies demonstrating product effectiveness",
             "substantiated evidence or consumer study documentation",
+        ),
+        (
+            r"Collaborate with local dermatologists for studies",
+            "Collaborate with qualified professionals to review evidence and claims support materials",
+        ),
+        (
+            r"Collaborate with dermatologists for clinical studies",
+            "Collaborate with qualified professionals to review evidence and claims support materials",
+        ),
+        (
+            r"Studies or data demonstrating efficacy in Hong Kong",
+            "consumer feedback, expert validation, ingredient documentation, or compliant claims support",
+        ),
+        (
+            r"Studies or data demonstrating efficacy",
+            "consumer feedback, expert validation, ingredient documentation, or compliant claims support",
         ),
         (
             r"studies to substantiate efficacy claims",
@@ -298,12 +509,60 @@ def sanitize_claim_safety(text, category):
             "claims support documentation, only where substantiated and compliant",
         ),
         (
+            r"clinical studies",
+            "claims support documentation, where substantiated and compliant",
+        ),
+        (
+            r"clinical evidence",
+            "claims support documentation and expert validation",
+        ),
+        (
+            r"clinical data",
+            "claims support documentation",
+        ),
+        (
+            r"clinical support",
+            "evidence support",
+        ),
+        (
             r"clinical efficacy",
             "substantiated product evidence",
         ),
         (
+            r"proven effectiveness",
+            "evidence-supported product claims",
+        ),
+        (
             r"clinically effective",
             "evidence-supported",
+        ),
+        (
+            r"clinically proven",
+            "evidence-supported",
+        ),
+        (
+            r"medical-grade efficacy",
+            "evidence-supported product positioning",
+        ),
+        (
+            r"Strong clinical backing",
+            "Strong evidence-supported positioning",
+        ),
+        (
+            r"clinical backing",
+            "evidence-supported positioning",
+        ),
+        (
+            r"clinically backed",
+            "evidence-supported",
+        ),
+        (
+            r"clinical approach",
+            "professional evidence approach",
+        ),
+        (
+            r"clinical endorsements",
+            "professional endorsements",
         ),
         (
             r"prove effectiveness",
@@ -313,10 +572,32 @@ def sanitize_claim_safety(text, category):
             r"medical-grade claims",
             "professional-grade positioning, where substantiated",
         ),
+        (
+            r"substantiated product evidence Data",
+            "Claims Support Documentation",
+        ),
+        (
+            r"showcasing ingredient efficacy",
+            "showcasing ingredient documentation and claims support",
+        ),
+        (
+            r"ingredient efficacy",
+            "ingredient documentation and claims support",
+        ),
     ]
 
     sanitized = str(text)
     for pattern, replacement in replacements:
+        sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
+
+    cleanup_replacements = [
+        (r"where substantiated and compliant and", "where substantiated and compliant, with"),
+        (r"claims support documentation, where substantiated and compliant validating", "claims support documentation, consumer feedback, or expert validation"),
+        (r"substantiated product evidence Data", "Claims Support Documentation"),
+        (r"product efficacy specific to the Hong Kong demographic", "product claims specific to the Hong Kong market, where substantiated and compliant"),
+    ]
+
+    for pattern, replacement in cleanup_replacements:
         sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
 
     return sanitized
@@ -355,16 +636,63 @@ def remove_tracked_competitors_from_market_signals(text, tracked_competitors):
     lines = str(text).splitlines()
     cleaned_lines = []
     in_market_signal_section = False
+    market_signal_lines = []
+
+    def flush_market_signal_section():
+        if not market_signal_lines:
+            return
+
+        brand_lines = []
+        trend_lines = []
+
+        for raw_line in market_signal_lines:
+            stripped_line = raw_line.strip()
+            if not stripped_line:
+                continue
+
+            if "Consider adding" in raw_line:
+                updated_line = _remove_tracked_names_from_sentence(
+                    raw_line,
+                    tracked_competitors,
+                )
+                if updated_line == "No additional non-tracked market signals were identified in this section.":
+                    continue
+                raw_line = updated_line
+                stripped_line = raw_line.strip()
+
+            if SOURCE_LABEL_ONLY_PATTERN.match(stripped_line):
+                continue
+
+            mentioned_brands = extract_brand_mentions_from_line(
+                raw_line,
+                tracked_competitors,
+            )
+
+            if mentioned_brands:
+                brand_lines.append(raw_line)
+            else:
+                trend_lines.append(raw_line)
+
+        cleaned_lines.append("AI-Discovered Brands Not Included in Scoring")
+        if brand_lines:
+            cleaned_lines.extend(brand_lines)
+        else:
+            cleaned_lines.append("No additional non-tracked brands were identified.")
+
+        if trend_lines:
+            cleaned_lines.append("Market Trends / Demand Signals")
+            cleaned_lines.extend(trend_lines)
 
     for line in lines:
         stripped_line = line.strip()
 
         if MARKET_SIGNAL_HEADING_PATTERN.match(stripped_line):
             in_market_signal_section = True
-            cleaned_lines.append(line)
             continue
 
         if TRACKED_COMPETITOR_HEADING_PATTERN.match(stripped_line):
+            flush_market_signal_section()
+            market_signal_lines.clear()
             in_market_signal_section = False
             cleaned_lines.append(line)
             continue
@@ -373,26 +701,124 @@ def remove_tracked_competitors_from_market_signals(text, tracked_competitors):
             brand_name = _extract_labeled_brand_name(line)
             if brand_name and is_tracked_competitor(brand_name, tracked_competitors):
                 continue
-
-            if "Consider adding" in line:
-                cleaned_lines.append(
-                    _remove_tracked_names_from_sentence(line, tracked_competitors)
-                )
-                continue
+            market_signal_lines.append(line)
+            continue
 
         cleaned_lines.append(line)
+
+    flush_market_signal_section()
+
+    return "\n".join(cleaned_lines)
+
+
+def _is_non_brand_market_signal_line(line):
+    stripped_line = str(line or "").strip()
+    if not stripped_line:
+        return False
+
+    for pattern in NON_BRAND_MARKET_SIGNAL_PATTERNS:
+        if re.search(pattern, stripped_line, flags=re.IGNORECASE):
+            return True
+
+    return False
+
+
+def sanitize_ai_discovered_brands_sections(text, tracked_competitors):
+    lines = str(text or "").splitlines()
+    cleaned_lines = []
+    section_mode = None
+    section_buffer = []
+
+    def flush_section():
+        nonlocal section_buffer, section_mode
+
+        if section_mode == "brands":
+            valid_brand_lines = []
+            for raw_line in section_buffer:
+                stripped_line = raw_line.strip()
+                if not stripped_line:
+                    continue
+                if _is_non_brand_market_signal_line(raw_line):
+                    continue
+                if extract_brand_mentions_from_line(raw_line, tracked_competitors):
+                    valid_brand_lines.append(raw_line)
+
+            if valid_brand_lines:
+                cleaned_lines.extend(valid_brand_lines)
+            else:
+                cleaned_lines.append("No additional non-tracked brands were identified.")
+
+        elif section_mode == "trends":
+            for raw_line in section_buffer:
+                if _is_non_brand_market_signal_line(raw_line):
+                    cleaned_lines.append(raw_line)
+
+        section_buffer = []
+        section_mode = None
+
+    for line in lines:
+        stripped_line = line.strip()
+
+        if AI_DISCOVERED_BRANDS_HEADING_PATTERN.match(stripped_line):
+            flush_section()
+            cleaned_lines.append("AI-Discovered Brands Not Included in Scoring")
+            section_mode = "brands"
+            continue
+
+        if MARKET_TRENDS_HEADING_PATTERN.match(stripped_line):
+            flush_section()
+            cleaned_lines.append("Market Trends / Demand Signals")
+            section_mode = "trends"
+            continue
+
+        if (
+            TRACKED_COMPETITOR_HEADING_PATTERN.match(stripped_line)
+            or MARKET_SIGNAL_HEADING_PATTERN.match(stripped_line)
+        ):
+            flush_section()
+            cleaned_lines.append(line)
+            continue
+
+        if section_mode in {"brands", "trends"}:
+            section_buffer.append(line)
+            continue
+
+        cleaned_lines.append(line)
+
+    flush_section()
 
     return "\n".join(cleaned_lines)
 
 
 def _sanitize_brand_intelligence_text(text, tracked_competitors, category):
     sanitized = correct_competitor_source_labels(text, tracked_competitors)
+    sanitized = sanitize_competitor_advantage_tables(
+        sanitized,
+        tracked_competitors,
+    )
     sanitized = remove_tracked_competitors_from_market_signals(
         sanitized,
         tracked_competitors,
     )
+    sanitized = sanitize_ai_discovered_brands_sections(
+        sanitized,
+        tracked_competitors,
+    )
     sanitized = sanitize_claim_safety(sanitized, category)
-    return sanitized
+    return oq_sanitize_brand_intelligence_text(
+        sanitized,
+        OutputQualityContext(
+            category=category,
+            tracked_competitors=list(tracked_competitors or []),
+        ),
+    )
+
+
+def sanitize_claim_safety(text, category):
+    return sanitize_claim_safety_text(
+        text,
+        OutputQualityContext(category=category),
+    )
 
 
 def _dataframe_preview(df, max_rows=40):
@@ -489,12 +915,14 @@ Extract the recurring recommendation drivers that appear in the benchmark answer
 
 Return:
 - Top 5 recurring recommendation drivers
-- Top 5 competitor advantage signals
+- Top 5 competitor advantage signals in a markdown table with these exact columns:
+  Advantage Signal | Evidence Source | Example Brands | Source Type
 - Evidence patterns from benchmark answers
 - Unmet query intents
 - Tracked Competitors Included in Scoring
 - AI-Discovered Market Signals Not Included in Scoring
-- If listing competitor advantage signals, label each item with Source: Tracked competitor or Source: AI-discovered market signal
+- Do not label abstract advantage signals directly as tracked competitors
+- Source Type must depend on Example Brands
 
 Format:
 - Prefer compact tables or bullet lists over long paragraphs.
@@ -509,6 +937,9 @@ Rules:
 - Do not list tracked competitors as AI-discovered market signals.
 - Before suggesting a brand for the next benchmark run, verify it is not already in the tracked competitor list.
 - If no non-tracked brands are available, say no additional non-tracked market signals were identified.
+- For Competitor Advantage Signals, use the schema Advantage Signal | Evidence Source | Example Brands | Source Type.
+- Evidence Source must be Benchmark answers, Diagnostic inference, or User-provided context.
+- Source Type must be Tracked competitors, AI-discovered market signals, Mixed tracked competitors / AI-discovered market signals, or User-provided.
 - If other brands appear in raw answers, describe them as AI-discovered market signals only.
 - Do not imply AI-discovered market signals are included in visibility scoring unless they are tracked competitors.
 - Prefer tracked competitors first when listing competitor signals.

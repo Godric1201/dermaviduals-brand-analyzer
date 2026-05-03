@@ -1,6 +1,7 @@
 from analyzer import ask_ai
 from app_constants import DEFAULT_COMPETITORS
 from optimizer import generate_action_plan
+from output_quality import OutputQualityContext, sanitize_strategy_text
 from prompt_generator import generate_search_prompts
 from recommender import generate_recommendations
 from scoring import analyze_answer, summarize_results, calculate_share_of_voice
@@ -77,6 +78,15 @@ def run_visibility_analysis(
 
     raw_answer_df = create_raw_answer_dataframe(raw_answers)
 
+    quality_context = OutputQualityContext(
+        category=category,
+        run_mode=run_mode,
+        brand=brand,
+        market=market,
+        audience=audience,
+        tracked_competitors=list(competitors or []),
+    )
+
     recommendations = generate_recommendations(
         brand=brand,
         category=category,
@@ -86,6 +96,7 @@ def run_visibility_analysis(
         detailed_table=detailed_df.head(40).to_string(index=False),
         report_language=report_language
     )
+    recommendations = sanitize_strategy_text(recommendations, quality_context)
 
     plan = generate_action_plan(
         brand=brand,

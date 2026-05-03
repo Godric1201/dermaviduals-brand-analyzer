@@ -11,6 +11,7 @@ from report_generator import (
     get_visibility_state_noun,
 )
 from prompts import format_audience_market_context
+from output_quality import OutputQualityContext, sanitize_report_text, validate_output_quality
 
 
 def _normalize_markdown_table_headers(df, column_map):
@@ -113,6 +114,7 @@ def build_executive_markdown_report(
     geo_content_roadmap=None,
     geo_content_roadmap_done=False,
     prompt_categories=None,
+    tracked_competitors=None,
 ):
     is_quick_test_mode = run_mode == "Quick Test Mode"
     prompt_categories = prompt_categories or []
@@ -336,4 +338,26 @@ def build_executive_markdown_report(
             f"## Appendix E: Gap Analysis\n\n{gap_analysis}"
         )
 
-    return "\n\n---\n\n".join(parts + appendix_sections)
+    final_report = "\n\n---\n\n".join(parts + appendix_sections)
+    if tracked_competitors is None and summary_df is not None and "brand" in summary_df.columns:
+        tracked_competitors = [
+            str(item)
+            for item in summary_df["brand"].dropna().tolist()
+            if str(item).strip().lower() != str(brand).strip().lower()
+        ]
+    context = OutputQualityContext(
+        category=display_category or category,
+        run_mode=run_mode,
+        brand=display_brand or brand,
+        market=display_market or market,
+        audience=display_audience or audience,
+        tracked_competitors=tracked_competitors,
+    )
+    final_report = sanitize_report_text(final_report, context)
+    validate_output_quality(
+        final_report,
+        context,
+        content_type="final_markdown_report",
+        strict=False,
+    )
+    return final_report

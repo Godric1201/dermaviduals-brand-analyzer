@@ -167,3 +167,42 @@ def test_quick_test_note_is_included_only_for_quick_test_mode():
         full_snapshot["notes"]["brand_intelligence"]
         == "Brand Intelligence diagnostic output is not part of visibility scoring or share of voice."
     )
+
+
+def test_benchmark_snapshot_sanitizes_brand_intelligence_without_changing_records():
+    summary_df = pd.DataFrame([
+        {"brand": "Dermaviduals", "total_mentions": 0},
+    ])
+    detailed_df = pd.DataFrame([
+        {"brand": "Dermaviduals", "visibility_score": 0},
+    ])
+
+    snapshot = build_benchmark_snapshot(
+        brand="Dermaviduals",
+        market="Hong Kong",
+        category="skincare products",
+        audience="skincare-conscious consumers",
+        report_date="2026-05-02",
+        run_mode="Quick Test Mode",
+        prompt_limit=1,
+        prompt_count=1,
+        competitors=["Environ"],
+        query_intent_categories=["Best Options"],
+        summary_df=summary_df,
+        detailed_df=detailed_df,
+        brand_intelligence={
+            "recommendation_drivers": "clinical backing",
+            "target_brand_understanding": "product effectiveness",
+            "positioning_gap_analysis": (
+                "AI-Discovered Brands Not Included in Scoring\n"
+                "- Market Research"
+            ),
+        },
+    )
+
+    assert snapshot["summary_records"] == [{"brand": "Dermaviduals", "total_mentions": 0}]
+    assert snapshot["detailed_records"] == [{"brand": "Dermaviduals", "visibility_score": 0}]
+    assert "clinical backing" not in snapshot["brand_intelligence"]["recommendation_drivers"].lower()
+    assert "product effectiveness" not in snapshot["brand_intelligence"]["target_brand_understanding"].lower()
+    assert "Market Research" not in snapshot["brand_intelligence"]["positioning_gap_analysis"]
+    assert "No additional non-tracked brands were identified." in snapshot["brand_intelligence"]["positioning_gap_analysis"]

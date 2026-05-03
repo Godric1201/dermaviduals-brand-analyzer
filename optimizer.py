@@ -1,6 +1,7 @@
 import re
 
 from analyzer import ask_ai
+from output_quality import OutputQualityContext, sanitize_strategy_text
 
 
 def _get_target_brand_metrics(summary_df, brand):
@@ -48,16 +49,35 @@ def sanitize_conservative_targets(text, run_mode=None, target_brand_metrics=None
         ),
         (
             r"Aim for at least \d+ mentions",
-            "begin generating detectable mentions in a full benchmark",
+            "begin generating detectable mentions in a future full benchmark",
         ),
         (
             r"at least \d+ mentions",
-            "begin generating detectable mentions in a full benchmark",
+            "begin generating detectable mentions in a future full benchmark",
         ),
     ]
 
     for pattern, replacement in replacements:
         sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
+
+    sanitized = re.sub(
+        r"Expected AI visibility effect:\s*Aim for a begin generating measurable share of voice in a full benchmark(?: in targeted categories)?\.?",
+        "Expected AI visibility effect: Begin generating measurable share of voice in a future full benchmark.",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
+    sanitized = re.sub(
+        r"Aim for a begin generating measurable share of voice in a full benchmark(?: in targeted categories)?\.?",
+        "Begin generating measurable share of voice in a future full benchmark.",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
+    sanitized = re.sub(
+        r"begin generating measurable share of voice in a full benchmark",
+        "begin generating measurable share of voice in a future full benchmark",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
 
     return sanitized
 
@@ -428,8 +448,17 @@ GENERAL RULES
 """
 
     result = ask_ai(prompt, report_language)
-    return sanitize_conservative_targets(
+    target_metrics = _get_target_brand_metrics(summary_df, brand)
+    sanitized_result = sanitize_conservative_targets(
         result,
         run_mode=run_mode,
-        target_brand_metrics=_get_target_brand_metrics(summary_df, brand),
+        target_brand_metrics=target_metrics,
+    )
+    return sanitize_strategy_text(
+        sanitized_result,
+        OutputQualityContext(
+            category=category,
+            run_mode=run_mode,
+            target_brand_metrics=target_metrics,
+        ),
     )

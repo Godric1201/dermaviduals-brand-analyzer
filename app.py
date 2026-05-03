@@ -37,6 +37,7 @@ from narrative_prompts import (
     build_replacement_strategy_prompt,
 )
 from prompts import build_fixed_prompts
+from output_quality import OutputQualityContext, sanitize_narrative_appendix_text
 from run_progress import (
     build_progress_steps,
     format_progress_message,
@@ -679,7 +680,17 @@ def display_results():
             )
 
             if "brand_win_explanation" not in st.session_state:
-                st.session_state["brand_win_explanation"] = ask_ai(explain_prompt)
+                st.session_state["brand_win_explanation"] = sanitize_narrative_appendix_text(
+                    ask_ai(explain_prompt),
+                    OutputQualityContext(
+                        category=category,
+                        run_mode=run_mode,
+                        brand=brand,
+                        market=market,
+                        audience=audience,
+                        tracked_competitors=competitors,
+                    ),
+                )
 
             st.write(st.session_state["brand_win_explanation"])
 
@@ -702,7 +713,17 @@ def display_results():
             )
 
             if "replacement_strategy" not in st.session_state:
-                st.session_state["replacement_strategy"] = ask_ai(replace_prompt)
+                st.session_state["replacement_strategy"] = sanitize_narrative_appendix_text(
+                    ask_ai(replace_prompt),
+                    OutputQualityContext(
+                        category=category,
+                        run_mode=run_mode,
+                        brand=brand,
+                        market=market,
+                        audience=audience,
+                        tracked_competitors=competitors,
+                    ),
+                )
 
             st.write(st.session_state["replacement_strategy"])
 
@@ -790,7 +811,17 @@ def display_results():
         )
 
         if "gap_analysis" not in st.session_state:
-            st.session_state["gap_analysis"] = ask_ai(gap_prompt)
+            st.session_state["gap_analysis"] = sanitize_narrative_appendix_text(
+                ask_ai(gap_prompt),
+                OutputQualityContext(
+                    category=category,
+                    run_mode=run_mode,
+                    brand=brand,
+                    market=market,
+                    audience=audience,
+                    tracked_competitors=competitors,
+                ),
+            )
 
     st.write(st.session_state["gap_analysis"])
 
@@ -1005,6 +1036,7 @@ def display_results():
         geo_content_roadmap=st.session_state.get("geo_content_roadmap"),
         geo_content_roadmap_done=st.session_state.get("geo_content_roadmap_done", False),
         prompt_categories=prompt_categories,
+        tracked_competitors=competitors,
     )
     executive_docx = create_executive_docx_report(
         brand=display_brand,
