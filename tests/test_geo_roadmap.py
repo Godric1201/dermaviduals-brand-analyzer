@@ -127,9 +127,56 @@ def test_geo_roadmap_generic_asset_and_claim_safety_sanitizers(geo_roadmap_modul
     assert "Dermaviduals Product Benefits FAQ for Skincare-Conscious Consumers in Hong Kong" in sanitized
     assert "Dermaviduals Hong Kong Customer Review Collection Page" in sanitized
     assert "Dermaviduals Ingredient Evidence & Product Selection Page" in sanitized
-    assert "claims support documentation, only where substantiated and compliant" in sanitized
+    assert "claims support documentation, where substantiated and compliant" in sanitized
     assert "evidence-supported" in sanitized
-    assert "substantiated product evidence" in sanitized
+    assert "product claims" in sanitized
     assert "professional-grade positioning, where substantiated" in sanitized
     assert "Intended benchmark influence: total_mentions and prompts_visible" in sanitized
     assert "30%" not in sanitized
+
+
+def test_geo_roadmap_rewrites_claim_heavy_titles_and_associations(geo_roadmap_module):
+    roadmap = "\n".join([
+        "| Priority | Query Intent | Content Asset | Target Association | Competitor / Market Signal | Evidence Needed | Expected Metric Impact | Suggested Timing |",
+        "|---|---|---|---|---|---|---|---|",
+        "| 1 | Use Case | The Efficacy of Dermaviduals Against Hong Kong's Environmental Stressors | Professional and Clinical Endorsement | | Comparative analysis data on product effectiveness | Intended benchmark influence: target-brand association | 30 Days |",
+        "| 2 | Decision Criteria | Evidence Page | Efficacy Against Environmental Stressors | | Ingredient documentation supporting product efficacy | Intended benchmark influence: average_visibility_score | 60 Days |",
+    ])
+
+    sanitized = geo_roadmap_module.sanitize_geo_roadmap_markdown(
+        roadmap,
+        brand="Dermaviduals",
+        market="Hong Kong",
+        category="skincare products",
+        audience="skincare-conscious consumers",
+        tracked_competitors=["SkinCeuticals"],
+    )
+
+    assert "Dermaviduals Ingredient Guide for Hong Kong Environmental Stressors" in sanitized
+    assert "Professional Trust Signals" in sanitized
+    assert "Comparison table data and claims support documentation" in sanitized
+    assert "Evidence-Supported Environmental Stressor Positioning" in sanitized
+    assert "Ingredient documentation and claims support materials" in sanitized
+
+
+def test_geo_roadmap_removes_remaining_medical_grade_and_ingredient_efficacy_wording(
+    geo_roadmap_module,
+):
+    roadmap = "\n".join([
+        "| Priority | Query Intent | Content Asset | Target Association | Competitor / Market Signal | Evidence Needed | Expected Metric Impact | Suggested Timing |",
+        "|---|---|---|---|---|---|---|---|",
+        "| 1 | Trust Signals | Medical-Grade Efficacy | Medical-Grade Efficacy | | Comparison table data showcasing ingredient efficacy | Intended benchmark influence: target-brand association | 30 Days |",
+    ])
+
+    sanitized = geo_roadmap_module.sanitize_geo_roadmap_markdown(
+        roadmap,
+        brand="Dermaviduals",
+        market="Hong Kong",
+        category="skincare products",
+        audience="skincare-conscious consumers",
+        tracked_competitors=["SkinCeuticals"],
+    )
+
+    assert "Medical-Grade Efficacy" not in sanitized
+    assert "Evidence-Supported Product Positioning" in sanitized
+    assert "Comparison table data showcasing ingredient documentation and claims support" in sanitized

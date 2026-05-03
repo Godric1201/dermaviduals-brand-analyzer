@@ -146,6 +146,7 @@ def test_run_brand_intelligence_analysis_prompts_include_context(
     assert "Do not call non-tracked brands competitors included in benchmark" in combined_prompts
     assert "Prefer compact tables or bullet lists" in combined_prompts
     assert "Avoid generic advice" in combined_prompts
+    assert "Advantage Signal | Evidence Source | Example Brands | Source Type" in combined_prompts
     assert "Recommendation likelihood" not in combined_prompts
 
 
@@ -283,7 +284,7 @@ Tracked Competitors Included in Scoring
 
     assert "**Obagi** - Prescription-led familiarity. (Source: AI-discovered market signal)" in cleaned
     assert "**Universkin** - Personalized skincare positioning." not in cleaned
-    assert "No additional non-tracked market signals were identified in this section." in cleaned
+    assert "AI-Discovered Brands Not Included in Scoring" in cleaned
     assert "**SkinCeuticals** - Antioxidant authority. (Source: Tracked competitor)" in cleaned
 
 
@@ -300,8 +301,8 @@ def test_brand_intelligence_claim_safety_rewrites_regulated_phrasing(
         "skincare products",
     )
 
-    assert "substantiated evidence or consumer study documentation" in sanitized
-    assert "substantiated product evidence" in sanitized
+    assert "consumer study documentation or compliant claims support" in sanitized
+    assert "product claims" in sanitized
     assert "support product claims" in sanitized
     assert "expert validation and claims support documentation" in sanitized
     assert "professional-grade positioning, where substantiated" in sanitized
@@ -344,3 +345,177 @@ def test_claim_safety_rewrites_new_harder_phrasing(
 
     assert "Claims support documentation, consumer feedback, or expert validation, only where substantiated and compliant" in sanitized
     assert "Develop claims support documentation and consumer evidence where substantiated and compliant" in sanitized
+
+
+def test_classify_source_type_from_example_brands(brand_intelligence_module):
+    assert brand_intelligence_module.classify_source_type_from_example_brands(
+        ["SkinCeuticals", "Environ"],
+        ["SkinCeuticals", "Environ", "iS Clinical"],
+    ) == "Tracked competitors"
+
+    assert brand_intelligence_module.classify_source_type_from_example_brands(
+        ["Obagi", "CeraVe"],
+        ["SkinCeuticals", "Environ", "iS Clinical"],
+    ) == "AI-discovered market signals"
+
+    assert brand_intelligence_module.classify_source_type_from_example_brands(
+        ["SkinCeuticals", "Obagi"],
+        ["SkinCeuticals", "Environ", "iS Clinical"],
+    ) == "Mixed tracked competitors / AI-discovered market signals"
+
+
+def test_sanitize_competitor_advantage_tables_uses_clean_schema(
+    brand_intelligence_module,
+):
+    text = "\n".join([
+        "| Advantage Signal | Source |",
+        "|---|---|",
+        "| Proven effectiveness in addressing aging and pigmentation | (Source: AI-discovered market signal) |",
+        "| Antioxidant authority with SkinCeuticals and Environ | (Source: Tracked competitor) |",
+    ])
+
+    sanitized = brand_intelligence_module.sanitize_competitor_advantage_tables(
+        text,
+        ["SkinCeuticals", "Environ"],
+    )
+
+    assert "| Advantage Signal | Evidence Source | Example Brands | Source Type |" in sanitized
+    assert "(Source:" not in sanitized
+    assert "Tracked competitors" in sanitized
+    assert "AI-discovered market signals" in sanitized
+
+
+def test_claim_safety_removes_additional_bad_clinical_phrasing(
+    brand_intelligence_module,
+):
+    text = (
+        "Clinical studies or data demonstrating product efficacy in the local context. "
+        "Clinical studies or data demonstrating product efficacy. "
+        "clinical studies. clinical evidence. Collaborate with dermatologists for clinical studies. "
+        "substantiated product evidence Data. Studies or data demonstrating efficacy in Hong Kong."
+    )
+
+    sanitized = brand_intelligence_module.sanitize_claim_safety(
+        text,
+        "skincare products",
+    )
+
+    assert "clinical studies" not in sanitized.lower()
+    assert "clinical evidence" not in sanitized.lower()
+    assert "substantiated product evidence" not in sanitized
+    assert "Collaborate with qualified professionals to review evidence and claims support materials" in sanitized
+    assert "Claims Support Documentation" in sanitized
+    assert "consumer feedback, expert validation, ingredient documentation, or compliant claims support" in sanitized
+
+
+def test_claim_safety_cleans_awkward_sentences_and_clinical_wording(
+    brand_intelligence_module,
+):
+    text = (
+        "Absence of claims support documentation, where substantiated and compliant validating product efficacy specific to the Hong Kong demographic. "
+        "Promote the efficacy of products through claims support documentation, where substantiated and compliant and consumer testimonials. "
+        "Professional and Clinical Endorsement. clinically proven antioxidant products. clinical endorsements."
+    )
+
+    sanitized = brand_intelligence_module.sanitize_claim_safety(
+        text,
+        "skincare products",
+    )
+
+    assert "Absence of claims support documentation, consumer feedback, or expert validation specific to the Hong Kong market." in sanitized
+    assert "Support product claims with compliant documentation, consumer testimonials, and expert validation." in sanitized
+    assert "Professional Trust Signals" in sanitized
+    assert "evidence-supported antioxidant products" in sanitized
+    assert "professional endorsements" in sanitized
+    assert "where substantiated and compliant and" not in sanitized
+    assert "claims support documentation, where substantiated and compliant validating" not in sanitized
+
+
+def test_market_signal_cleanup_splits_trends_from_brands(
+    brand_intelligence_module,
+):
+    text = """
+AI-Discovered Market Signals Not Included in Scoring
+- **Obagi** - Prescription-led familiarity. (Source: AI-discovered market signal)
+- Increased Focus on Clean Beauty
+- Interest in Personalized Skincare
+Tracked Competitors Included in Scoring
+- **SkinCeuticals** - Antioxidant authority. (Source: Tracked competitor)
+""".strip()
+
+    cleaned = brand_intelligence_module.remove_tracked_competitors_from_market_signals(
+        text,
+        ["SkinCeuticals"],
+    )
+
+    assert "AI-Discovered Brands Not Included in Scoring" in cleaned
+    assert "Market Trends / Demand Signals" in cleaned
+    assert "**Obagi** - Prescription-led familiarity. (Source: AI-discovered market signal)" in cleaned
+    assert "Increased Focus on Clean Beauty" in cleaned
+    assert "Interest in Personalized Skincare" in cleaned
+
+
+def test_market_signal_cleanup_uses_no_additional_brands_when_only_trends_remain(
+    brand_intelligence_module,
+):
+    text = """
+AI-Discovered Market Signals Not Included in Scoring
+- Increased Focus on Clean Beauty
+- Interest in Personalized Skincare
+""".strip()
+
+    cleaned = brand_intelligence_module.remove_tracked_competitors_from_market_signals(
+        text,
+        ["SkinCeuticals"],
+    )
+
+    assert "AI-Discovered Brands Not Included in Scoring" in cleaned
+    assert "No additional non-tracked brands were identified." in cleaned
+    assert "Market Trends / Demand Signals" in cleaned
+
+
+def test_ai_discovered_brands_section_removes_non_brand_action_items(
+    brand_intelligence_module,
+):
+    text = """
+AI-Discovered Brands Not Included in Scoring
+- Market Research
+- Distribution Strategy
+- Marketing Campaigns
+- Local claims support documentation for Hong Kong skin concerns
+Tracked Competitors Included in Scoring
+- **SkinCeuticals** - Antioxidant authority. (Source: Tracked competitor)
+""".strip()
+
+    cleaned = brand_intelligence_module.sanitize_ai_discovered_brands_sections(
+        text,
+        ["SkinCeuticals"],
+    )
+
+    assert "Market Research" not in cleaned
+    assert "Distribution Strategy" not in cleaned
+    assert "Marketing Campaigns" not in cleaned
+    assert "Local claims support documentation" not in cleaned
+    assert "No additional non-tracked brands were identified." in cleaned
+    assert "**SkinCeuticals** - Antioxidant authority. (Source: Tracked competitor)" in cleaned
+
+
+def test_claim_safety_removes_remaining_high_risk_wording(
+    brand_intelligence_module,
+):
+    text = (
+        "claims support documentation, where substantiated and compliant showing product effectiveness in local skin concerns. "
+        "Absence of studies demonstrating product effectiveness for common skin concerns in the local market. "
+        "Medical-Grade Efficacy. Strong clinical backing. clinical backing."
+    )
+
+    sanitized = brand_intelligence_module.sanitize_claim_safety(
+        text,
+        "skincare products",
+    )
+
+    assert "claims support documentation, consumer feedback, or expert validation for Hong Kong market claims" in sanitized
+    assert "Absence of claims support documentation, consumer feedback, or expert validation for local market claims." in sanitized
+    assert "Evidence-Supported Product Positioning" in sanitized
+    assert "Strong evidence-supported positioning" in sanitized
+    assert "clinical backing" not in sanitized.lower()

@@ -1,6 +1,7 @@
 import pandas as pd
 
 from markdown_report import build_executive_markdown_report
+from output_quality import OutputQualityContext, validate_output_quality
 
 
 def create_markdown_inputs():
@@ -219,3 +220,84 @@ def test_build_executive_markdown_report_uses_compressed_appendix_structure():
     assert "## Appendix D: Replacement Strategy" in report
     assert "## Appendix E: Gap Analysis" in report
     assert "## 9. Appendix" not in report
+
+
+def test_build_executive_markdown_report_applies_final_quality_gate():
+    inputs = create_markdown_inputs()
+    inputs["category"] = "skincare products"
+    inputs["display_category"] = "Skincare Products"
+    inputs["recommendations"] = "Strong clinical backing and product effectiveness."
+    inputs["plan"] = "capture 10% share of voice. Aim for at least 5 mentions."
+    inputs["brand_intelligence"] = {
+        "recommendation_drivers": (
+            "Top Competitor-Owned Associations (Source: AI-discovered market signal)s)\n\n"
+            "AI-Discovered Brands Not Included in Scoring\n"
+            "- Market Research"
+        ),
+        "target_brand_understanding": "clinical evidence",
+        "positioning_gap_analysis": "Medical-Grade Efficacy",
+    }
+    inputs["geo_content_roadmap"] = (
+        "| Priority | Query Intent | Content Asset | Target Association | Competitor / Market Signal | Evidence Needed | Expected Metric Impact | Suggested Timing |\n"
+        "|---|---|---|---|---|---|---|---|\n"
+        "| 1 | Trust | The Science Behind Espresso House: Professional Endorsements and Efficacy | Medical-Grade Efficacy | | Comparison table data showcasing ingredient efficacy | Intended benchmark influence: target-brand association | 30 Days |"
+    )
+
+    report = build_executive_markdown_report(**inputs)
+    report_lower = report.lower()
+
+    blocked_terms = [
+        "clinical backing",
+        "product effectiveness",
+        "clinical evidence",
+        "medical-grade efficacy",
+        "ingredient efficacy",
+        "capture 10% share of voice",
+        "aim for at least 5 mentions",
+        "top competitor-owned associations (source:",
+        "market research",
+    ]
+
+    for term in blocked_terms:
+        assert term not in report_lower
+
+    assert "No additional non-tracked brands were identified." in report
+
+
+def test_build_executive_markdown_report_passes_tracked_competitors_to_final_gate():
+    inputs = create_markdown_inputs()
+    inputs["category"] = "skincare products"
+    inputs["display_category"] = "Skincare Products"
+    inputs["brand_intelligence"] = {
+        "recommendation_drivers": (
+            "| Advantage Signal | Evidence Source | Example Brands | Source Type |\n"
+            "| --- | --- | --- | --- |\n"
+            "| High-potency serums for rejuvenation | Benchmark answers | iS Clinical | AI-discovered market signals |\n\n"
+            "AI-Discovered Brands Not Included in Scoring\n"
+            "- **Influencer Engagement**: Collaborate with local influencers to amplify brand credibility."
+        ),
+        "target_brand_understanding": "Test target brand understanding",
+        "positioning_gap_analysis": "Test positioning gap analysis",
+    }
+
+    report = build_executive_markdown_report(
+        **inputs,
+        tracked_competitors=["iS Clinical"],
+    )
+    issues = validate_output_quality(
+        report,
+        OutputQualityContext(
+            category="Skincare Products",
+            run_mode=inputs["run_mode"],
+            brand=inputs["display_brand"],
+            market=inputs["display_market"],
+            audience=inputs["display_audience"],
+            tracked_competitors=["iS Clinical"],
+        ),
+        content_type="final_markdown_report",
+        strict=True,
+    )
+
+    assert "Influencer Engagement" not in report
+    assert "iS Clinical | Tracked competitors" in report
+    assert issues == []
