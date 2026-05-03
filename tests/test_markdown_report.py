@@ -1,7 +1,11 @@
 import pandas as pd
 
 from markdown_report import build_executive_markdown_report
-from output_quality import OutputQualityContext, validate_output_quality
+from output_quality import (
+    FAILED_LLM_SECTION_PLACEHOLDER,
+    OutputQualityContext,
+    validate_output_quality,
+)
 
 
 def create_markdown_inputs():
@@ -300,4 +304,42 @@ def test_build_executive_markdown_report_passes_tracked_competitors_to_final_gat
 
     assert "Influencer Engagement" not in report
     assert "iS Clinical | Tracked competitors" in report
+    assert issues == []
+
+
+def test_build_executive_markdown_report_guards_raw_llm_errors_in_quick_test():
+    inputs = create_markdown_inputs()
+    inputs["run_mode"] = "Quick Test Mode"
+    inputs["prompt_limit"] = 1
+    inputs["deliverable_status"] = "Not Client Deliverable"
+    inputs["recommendations"] = "ERROR: Connection error."
+    inputs["plan"] = "ERROR: Connection error."
+    inputs["geo_content_roadmap"] = "ERROR: Connection error."
+    inputs["brand_win_explanation"] = "ERROR: Connection error."
+    inputs["replacement_strategy"] = "ERROR: Connection error."
+    inputs["gap_analysis"] = "ERROR: Connection error."
+    inputs["brand_intelligence"] = {
+        "recommendation_drivers": "ERROR: Connection error.",
+        "target_brand_understanding": "ERROR: Connection error.",
+        "positioning_gap_analysis": "ERROR: Connection error.",
+    }
+
+    report = build_executive_markdown_report(**inputs)
+    issues = validate_output_quality(
+        report,
+        OutputQualityContext(
+            category=inputs["display_category"],
+            run_mode=inputs["run_mode"],
+            brand=inputs["display_brand"],
+            market=inputs["display_market"],
+            audience=inputs["display_audience"],
+            tracked_competitors=["Coffee Fellows"],
+        ),
+        content_type="final_markdown_report",
+        strict=True,
+    )
+
+    assert "ERROR:" not in report
+    assert "Connection error" not in report
+    assert FAILED_LLM_SECTION_PLACEHOLDER in report
     assert issues == []

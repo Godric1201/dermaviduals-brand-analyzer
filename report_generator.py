@@ -15,7 +15,9 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from output_quality import (
     OutputQualityContext,
+    guard_generated_section_text,
     sanitize_brand_intelligence_text,
+    sanitize_business_kpi_text,
     sanitize_geo_roadmap_text,
     sanitize_narrative_appendix_text,
 )
@@ -406,6 +408,23 @@ def create_share_of_voice_chart(summary_df, brand):
 # =========================================================
 # Data helpers
 # =========================================================
+def sanitize_dataframe_text(df, context):
+    if df is None or df.empty:
+        return df
+
+    sanitized_df = df.copy()
+
+    for column in sanitized_df.columns:
+        sanitized_df[column] = sanitized_df[column].map(
+            lambda value: (
+                sanitize_narrative_appendix_text(value, context)
+                if isinstance(value, str)
+                else value
+            )
+        )
+
+    return sanitized_df
+
 
 def get_target_metrics(summary_df, brand):
     target_row = summary_df[
@@ -1095,7 +1114,13 @@ def add_roadmap(document, roadmap_df, section_number="8"):
     add_styled_table(document, roadmap_df, max_rows=10, font_size=8)
 
 
-def add_measurement_plan(document, brand, metrics, section_number="9"):
+def add_measurement_plan(
+    document,
+    brand,
+    metrics,
+    section_number="9",
+    quality_context=None,
+):
     add_section_heading(document, "Measurement Plan", section_number)
 
     add_paragraph_text(
@@ -1107,24 +1132,27 @@ def add_measurement_plan(document, brand, metrics, section_number="9"):
         {
             "Metric": "Total Mentions",
             "Current State": str(metrics["Total Mentions"]),
-            "Next Benchmark Target": "At least 5 detectable mentions"
+            "Next Benchmark Target": "Begin generating detectable mentions in a future full benchmark."
         },
         {
             "Metric": "Average Visibility Score",
             "Current State": str(metrics["Avg. Visibility"]),
-            "Next Benchmark Target": "Above 5.0"
+            "Next Benchmark Target": "Begin improving average visibility score in a future full benchmark."
         },
         {
             "Metric": "Prompts Visible",
             "Current State": str(metrics["Prompts Visible"]),
-            "Next Benchmark Target": "Visible in at least 3 prompt categories"
+            "Next Benchmark Target": "Begin generating prompt-level visibility in a future full benchmark."
         },
         {
             "Metric": "Share of Voice",
             "Current State": metrics["Share of Voice"],
-            "Next Benchmark Target": "At least 5%"
+            "Next Benchmark Target": "Begin generating measurable share of voice in a future full benchmark."
         }
     ])
+
+    if quality_context is not None:
+        measurement_df = sanitize_dataframe_text(measurement_df, quality_context)
 
     add_styled_table(document, measurement_df, max_rows=10, font_size=8)
 
@@ -1263,20 +1291,42 @@ def create_executive_docx_report(
     if brand_intelligence:
         brand_intelligence = {
             key: (
-                sanitize_brand_intelligence_text(value, quality_context)
+                sanitize_brand_intelligence_text(
+                    guard_generated_section_text(
+                        value,
+                        quality_context,
+                        f"Brand Intelligence {key}",
+                    ),
+                    quality_context,
+                )
                 if isinstance(value, str)
                 else value
             )
             for key, value in brand_intelligence.items()
         }
     if geo_content_roadmap:
+        geo_content_roadmap = guard_generated_section_text(
+            geo_content_roadmap,
+            quality_context,
+            "GEO Content Roadmap",
+        )
         geo_content_roadmap = sanitize_geo_roadmap_text(
             geo_content_roadmap,
             quality_context,
         )
+    strategy_report = guard_generated_section_text(
+        strategy_report,
+        quality_context,
+        "AI Visibility Strategy Deep Dive",
+    )
     strategy_report = sanitize_narrative_appendix_text(
         strategy_report,
         quality_context,
+    )
+    gap_analysis = guard_generated_section_text(
+        gap_analysis,
+        quality_context,
+        "Gap Analysis",
     )
     gap_analysis = sanitize_narrative_appendix_text(
         gap_analysis,
@@ -1287,13 +1337,17 @@ def create_executive_docx_report(
     benchmark_df = build_benchmark_df(summary_df, brand)
     winners_df = build_winners_df(top_brands_df, max_rows=12)
     priorities_df = create_strategy_priorities_df(
-        brand,
-        category,
-        market,
-        audience,
-        top_competitors
-    )
+    brand,
+    category,
+    market,
+    audience,
+    top_competitors
+)
+    priorities_df = sanitize_dataframe_text(priorities_df, quality_context)
+
     roadmap_df = create_roadmap_df(brand, category, top_competitors, metrics)
+    roadmap_df = sanitize_dataframe_text(roadmap_df, quality_context)
+
     add_cover_page(document, brand, market, report_date)
     add_report_overview(
         document,
@@ -1328,16 +1382,13 @@ def create_executive_docx_report(
 
     add_roadmap(document, roadmap_df, str(next_section_number))
     next_section_number += 1
-    add_measurement_plan(document, brand, metrics, str(next_section_number))
-    next_section_number += 1
-    add_recommended_next_step(
-        document,
-        brand,
-        category,
-        market,
-        metrics,
-        str(next_section_number)
-    )
+    add_measurement_plan(
+    document,
+    brand,
+    metrics,
+    str(next_section_number),
+    quality_context=quality_context,
+)
     next_section_number += 1
     add_methodology_notes(
         document,

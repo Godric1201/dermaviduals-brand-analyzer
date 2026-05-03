@@ -1,6 +1,11 @@
+import pytest
+
 from output_quality import (
+    FAILED_LLM_SECTION_PLACEHOLDER,
     OutputQualityContext,
     FORBIDDEN_CLAIM_PHRASES,
+    guard_generated_section_text,
+    is_raw_error_output,
     sanitize_business_kpi_text,
     sanitize_ai_discovered_brands_section,
     sanitize_brand_intelligence_text,
@@ -70,6 +75,43 @@ def test_claim_safety_sanitizer_removes_forbidden_health_adjacent_claims():
     assert "professional-grade" in sanitized_lower
     assert "product claims" in sanitized_lower
     assert "professional evidence review" in sanitized_lower
+
+
+def test_raw_error_output_is_detected_and_not_silently_sanitized():
+    dirty = "ERROR: Connection error."
+    context = skincare_context()
+
+    assert is_raw_error_output(dirty)
+
+    dirty_issues = validate_output_quality(dirty, context)
+    assert any(issue.code == "raw_error_output" for issue in dirty_issues)
+
+    sanitized = sanitize_report_text(dirty, context)
+    assert is_raw_error_output(sanitized)
+
+    sanitized_issues = validate_output_quality(sanitized, context)
+    assert any(issue.code == "raw_error_output" for issue in sanitized_issues)
+
+
+def test_generated_section_guard_uses_placeholder_for_quick_test_raw_errors():
+    guarded = guard_generated_section_text(
+        "ERROR: Connection error.",
+        skincare_context(run_mode="Quick Test Mode"),
+        "GEO Content Roadmap",
+    )
+
+    assert guarded == FAILED_LLM_SECTION_PLACEHOLDER
+    assert "ERROR:" not in guarded
+    assert "Connection error" not in guarded
+
+
+def test_generated_section_guard_blocks_full_report_raw_errors():
+    with pytest.raises(ValueError, match="LLM request failed"):
+        guard_generated_section_text(
+            "ERROR: Connection error.",
+            skincare_context(run_mode="Full Report Mode"),
+            "AI Visibility Strategy Deep Dive",
+        )
 
 
 def test_ai_discovered_brands_section_keeps_only_non_tracked_brand_bullets():
@@ -517,4 +559,507 @@ Evidence of Effectiveness
     assert "market performance indicators" in clean
     assert "Evidence Support" in clean
     assert "Claims support documentation, consumer feedback, or expert validation." in clean
+    assert clean_issues == []
+
+
+def test_ai_discovered_brands_rejects_monitor_competitors_action_item():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+        tracked_competitors=["The Barn"],
+    )
+    dirty = """
+AI-Discovered Brands Not Included in Scoring
+- **Monitor Competitors**: Analyze competitor strategies to identify gaps in Espresso House's offerings.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "Monitor Competitors" not in clean
+    assert "No additional non-tracked brands were identified." in clean
+    assert clean_issues == []
+
+
+def test_quick_test_latest_malformed_targets_sanitize_to_directional_language():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+    )
+    dirty = """
+visibility in 1-3 relevant prompt categories
+a begin generating measurable share of voice in a future full benchmark
+Gain initial mentions and recognition among target queries
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "visibility in 1-3 relevant prompt categories" not in clean
+    assert "a begin generating measurable share of voice" not in clean
+    assert "Gain initial mentions" not in clean
+    assert "Begin generating prompt-level visibility in relevant prompt categories" in clean
+    assert "begin generating measurable share of voice in a future full benchmark" in clean
+    assert "Begin generating detectable mentions in relevant target queries" in clean
+    assert clean_issues == []
+
+
+def test_ai_discovered_brands_rejects_brand_positioning_action_item():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+        tracked_competitors=["The Barn"],
+    )
+    dirty = """
+AI-Discovered Brands Not Included in Scoring
+3. **Brand Positioning**: Enhance marketing strategies to highlight features appealing to remote workers, such as seating and Wi-Fi availability.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "Brand Positioning" not in clean
+    assert "Enhance marketing strategies" not in clean
+    assert "No additional non-tracked brands were identified." in clean
+    assert clean_issues == []
+
+
+def test_quick_test_parenthetical_numeric_targets_sanitize_to_directional_language():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+    )
+    dirty = (
+        "Target a benchmark of 10% share of voice in the remote work cafe category.\n"
+        "Total mentions (aim to reach at least 5), average visibility score (target 1.0), "
+        "and share of voice (aim for 5%)."
+    )
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "Target a benchmark of 10% share of voice" not in clean
+    assert "aim to reach at least 5" not in clean
+    assert "target 1.0" not in clean
+    assert "aim for 5%" not in clean
+    assert "Begin generating measurable share of voice in a future full benchmark." in clean
+    assert "begin generating detectable mentions in a future full benchmark" in clean
+    assert "begin improving average visibility score in a future full benchmark" in clean
+    assert clean_issues == []
+
+
+def test_ai_discovered_brands_extracts_embedded_brands_from_wrapper_line():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+        tracked_competitors=[],
+    )
+    dirty = """
+AI-Discovered Brands Not Included in Scoring
+- **Additional Brands**: Consider adding brands like **Vits der Kaffee**, **The Barn**, or **Silo Coffee** for strategic relevance in the market.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "Additional Brands" not in clean
+    assert "- **Vits der Kaffee**" in clean
+    assert "- **The Barn**" in clean
+    assert "- **Silo Coffee**" in clean
+    assert clean_issues == []
+
+
+def test_quick_test_initial_visibility_artifacts_sanitize_to_directional_language():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+    )
+    dirty = (
+        "Increase Begin generating prompt-level visibility in relevant prompt categories. "
+        "Achieve initial visibility in at least 1-3 relevant prompt categories."
+    )
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "Increase Begin generating" not in clean
+    assert "Achieve initial visibility" not in clean
+    assert "initial visibility in at least 1-3" not in clean
+    assert clean.count("Begin generating prompt-level visibility in relevant prompt categories") >= 1
+    assert clean_issues == []
+
+
+def test_quick_test_zero_baseline_numeric_targets_sanitize_to_directional_language():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+    )
+    dirty = """
+Increase mentions from 0 to 1-3.
+Move from 0.0 visibility to 0.1 or more.
+Establish presence in 1-2 relevant prompt categories.
+Total mentions, average visibility score, and prompts visible should each aim to increase from 0 to at least 1-3.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "Increase mentions from 0 to 1-3" not in clean
+    assert "Move from 0.0 visibility to 0.1 or more" not in clean
+    assert "Establish presence in 1-2 relevant prompt categories" not in clean
+    assert "should each aim to increase from 0 to at least 1-3" not in clean
+    assert "Begin generating detectable mentions in a future full benchmark." in clean
+    assert "Begin improving average visibility score in a future full benchmark." in clean
+    assert "Begin generating prompt-level visibility in relevant prompt categories." in clean
+    assert (
+        "Total mentions, average visibility score, and prompts visible should improve directionally in a future full benchmark."
+        in clean
+    )
+    assert clean_issues == []
+
+
+def test_ai_discovered_brands_rejects_highlight_amenities_action_item():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+        tracked_competitors=["The Barn"],
+    )
+    dirty = """
+AI-Discovered Brands Not Included in Scoring
+- **Highlight Amenities**: Clearly communicate Wi-Fi quality and work-friendly features in marketing materials.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "Highlight Amenities" not in clean
+    assert "communicate Wi-Fi quality" not in clean
+    assert "No additional non-tracked brands were identified." in clean
+    assert clean_issues == []
+
+
+def test_quick_test_latest_visibility_and_mentions_targets_sanitize_directionally():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+    )
+    dirty = """
+Achieve visibility in at least 1-2 relevant prompt categories.
+Gain visibility in 2-3 prompt categories.
+Generate 5-10 mentions from trusted sources.
+Establish a recognizable presence in local searches and begin to capture share of voice.
+aiming for begin generating detectable mentions in a future full benchmark
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "Achieve visibility in at least 1-2 relevant prompt categories" not in clean
+    assert "Gain visibility in 2-3 prompt categories" not in clean
+    assert "Generate 5-10 mentions" not in clean
+    assert "Establish a recognizable presence" not in clean
+    assert "aiming for begin generating" not in clean
+    assert "Begin generating prompt-level visibility in relevant prompt categories." in clean
+    assert "Begin generating detectable mentions in a future full benchmark." in clean
+    assert "Begin generating measurable share of voice in a future full benchmark." in clean
+    assert clean_issues == []
+
+
+def test_ai_discovered_brands_strictly_rejects_action_task_labels():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+        tracked_competitors=[],
+    )
+    dirty = """
+AI-Discovered Brands Not Included in Scoring
+- **Benchmark Against Competitors**: Consider adding non-tracked brands relevant to remote working to gain deeper insights and competitive advantages.
+- **Highlight Amenities**: Clearly communicate Wi-Fi quality and work-friendly features in marketing materials.
+- **Brand Positioning**: Enhance marketing strategies to highlight features.
+- **Monitor Competitors**: Analyze competitor strategies.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "Benchmark Against Competitors" not in clean
+    assert "Highlight Amenities" not in clean
+    assert "Brand Positioning" not in clean
+    assert "Monitor Competitors" not in clean
+    assert "No additional non-tracked brands were identified." in clean
+    assert clean_issues == []
+
+
+def test_ai_discovered_brands_strict_wrapper_extraction_preserves_embedded_brands():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+        tracked_competitors=[],
+    )
+    dirty = """
+AI-Discovered Brands Not Included in Scoring
+- **Additional Brands**: Consider adding brands like **Vits der Kaffee**, **The Barn**, or **Silo Coffee** for strategic relevance.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert "Additional Brands" not in clean
+    assert "- **Vits der Kaffee**" in clean
+    assert "- **The Barn**" in clean
+    assert "- **Silo Coffee**" in clean
+    assert clean_issues == []
+
+
+def test_quick_test_sentence_level_numeric_targets_sanitize_directionally():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+    )
+    dirty = """
+Achieve visibility in at least 1-2 relevant prompt categories.
+Gain visibility in 2-3 prompt categories.
+Generate 5-10 mentions from trusted sources.
+Establish a recognizable presence in local searches and begin to capture share of voice.
+with conservative targets set at generating 1-3 detectable mentions and being visible in 1-3 prompt categories.
+Aim for Begin generating prompt-level visibility in relevant prompt categories.
+Increase mentions from 0 to 1-3.
+Move from 0.0 visibility to 0.1 or more.
+Total mentions, average visibility score, and prompts visible should each aim to increase from 0 to at least 1-3.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    blocked = [
+        "Achieve visibility in at least",
+        "Gain visibility in",
+        "Generate 5-10 mentions",
+        "capture share of voice",
+        "conservative targets set",
+        "1-3 detectable mentions",
+        "visible in 1-3 prompt categories",
+        "Aim for Begin generating",
+        "Increase mentions from 0 to 1-3",
+        "Move from 0.0 visibility to 0.1 or more",
+        "should each aim to increase from 0 to at least 1-3",
+    ]
+    for phrase in blocked:
+        assert phrase not in clean
+    assert "Begin generating prompt-level visibility in relevant prompt categories." in clean
+    assert "Begin generating detectable mentions in a future full benchmark." in clean
+    assert "Begin improving average visibility score in a future full benchmark." in clean
+    assert (
+        "Total mentions, average visibility score, and prompts visible should improve directionally in a future full benchmark."
+        in clean
+    )
+    assert clean_issues == []
+
+
+def test_final_report_quality_gate_cleans_latest_smoke_test_snippets():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+    )
+    dirty = """
+## Appendix A
+AI-Discovered Brands Not Included in Scoring
+- **Benchmark Against Competitors**: Consider adding non-tracked brands relevant to remote working to gain deeper insights and competitive advantages.
+- **Highlight Amenities**: Clearly communicate Wi-Fi quality and work-friendly features in marketing materials.
+
+## Appendix B
+Achieve visibility in at least 1-2 relevant prompt categories.
+Gain visibility in 2-3 prompt categories.
+Generate 5-10 mentions from trusted sources.
+Establish a recognizable presence in local searches and begin to capture share of voice.
+with conservative targets set at generating 1-3 detectable mentions and being visible in 1-3 prompt categories.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    blocked = [
+        "Benchmark Against Competitors",
+        "Highlight Amenities",
+        "Achieve visibility in at least",
+        "Gain visibility in",
+        "Generate 5-10 mentions",
+        "capture share of voice",
+        "conservative targets set",
+        "1-3 detectable mentions",
+        "visible in 1-3 prompt categories",
+    ]
+    for phrase in blocked:
+        assert phrase not in clean
+    assert "No additional non-tracked brands were identified." in clean
+    assert clean_issues == []
+
+
+def test_quick_test_current_state_diagnostics_are_preserved():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+    )
+    diagnostics = [
+        "Espresso House is currently not visible across the tested AI search prompts, with 0 total mentions, 0.0 average visibility, 0 prompts visible, and 0% share of voice.",
+        "The main strategic issue is that AI systems have not produced measurable mentions for Espresso House in this benchmark, leaving the brand at 0% share of voice.",
+        "No benchmark competitor generated measurable visibility, mentions, or share of voice in this run, so this benchmark does not identify a stronger competitor leader.",
+        "Espresso House is currently not visible in AI-generated Cafes category recommendations in Berlin. The brand records 0 total mentions, an average visibility score of 0.0, 0 prompts visible, and 0% share of voice.",
+    ]
+    dirty = "\n".join(diagnostics)
+
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    for sentence in diagnostics:
+        assert sentence in clean
+    assert clean_issues == []
+
+
+def test_quick_test_future_target_statements_are_rewritten_without_affecting_diagnostics():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+    )
+    dirty = """
+Increase mentions from 0 to 1-3.
+Move from 0.0 visibility to 0.1 or more.
+Generate 5-10 mentions from trusted sources.
+Achieve visibility in at least 1-2 relevant prompt categories.
+with conservative targets set at generating 1-3 detectable mentions and being visible in 1-3 prompt categories.
+Total mentions, average visibility score, and prompts visible should each aim to increase from 0 to at least 1-3.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    blocked = [
+        "Increase mentions from 0 to 1-3",
+        "Move from 0.0 visibility to 0.1 or more",
+        "Generate 5-10 mentions",
+        "Achieve visibility in at least 1-2",
+        "conservative targets set",
+        "should each aim to increase",
+    ]
+    for phrase in blocked:
+        assert phrase not in clean
+    assert "Begin generating detectable mentions in a future full benchmark." in clean
+    assert "Begin improving average visibility score in a future full benchmark." in clean
+    assert "Begin generating prompt-level visibility in relevant prompt categories." in clean
+    assert (
+        "Total mentions, average visibility score, and prompts visible should improve directionally in a future full benchmark."
+        in clean
+    )
+    assert clean_issues == []
+
+
+def test_quick_test_mixed_report_preserves_current_state_and_rewrites_appendix_targets():
+    context = OutputQualityContext(
+        category="Cafes",
+        run_mode="Quick Test Mode",
+        brand="Espresso House",
+        market="Berlin",
+        audience="Remote Workers",
+    )
+    current_state = (
+        "Espresso House is currently not visible across the tested AI search prompts, "
+        "with 0 total mentions, 0.0 average visibility, 0 prompts visible, and 0% share of voice."
+    )
+    dirty = f"""
+## Executive Summary
+{current_state}
+
+## Appendix B
+Increase mentions from 0 to 1-3.
+Move from 0.0 visibility to 0.1 or more.
+Generate 5-10 mentions from trusted sources.
+Achieve visibility in at least 1-2 relevant prompt categories.
+""".strip()
+
+    dirty_issues = validate_output_quality(dirty, context)
+    clean = sanitize_report_text(dirty, context)
+    clean_issues = validate_output_quality(clean, context)
+
+    assert dirty_issues
+    assert current_state in clean
+    assert "Increase mentions from 0 to 1-3" not in clean
+    assert "Move from 0.0 visibility to 0.1 or more" not in clean
+    assert "Generate 5-10 mentions" not in clean
+    assert "Achieve visibility in at least 1-2" not in clean
+    assert "Begin generating detectable mentions in a future full benchmark." in clean
+    assert "Begin improving average visibility score in a future full benchmark." in clean
+    assert "Begin generating prompt-level visibility in relevant prompt categories." in clean
     assert clean_issues == []

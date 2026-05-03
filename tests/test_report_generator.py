@@ -4,6 +4,7 @@ from zipfile import ZipFile
 
 import pandas as pd
 
+from output_quality import FAILED_LLM_SECTION_PLACEHOLDER
 from report_generator import create_executive_docx_report, parse_markdown_table
 
 
@@ -139,6 +140,27 @@ def test_create_executive_docx_report_supports_quick_test_mode_metadata():
 
     assert "TEST VERSION ONLY" in document_xml
     assert "Not Client Deliverable" in document_xml
+
+
+def test_create_executive_docx_report_guards_raw_llm_errors_in_quick_test():
+    report_bytes = create_test_report(
+        run_mode="Quick Test Mode",
+        prompt_limit=1,
+        strategy_report="ERROR: Connection error.",
+        gap_analysis="ERROR: Connection error.",
+        brand_intelligence={
+            "recommendation_drivers": "ERROR: Connection error.",
+            "target_brand_understanding": "ERROR: Connection error.",
+            "positioning_gap_analysis": "ERROR: Connection error.",
+        },
+        geo_content_roadmap="ERROR: Connection error.",
+    )
+
+    text = read_document_text(report_bytes)
+
+    assert "ERROR:" not in text
+    assert "Connection error" not in text
+    assert FAILED_LLM_SECTION_PLACEHOLDER in text
 
 
 def test_create_executive_docx_report_uses_generic_category_wording():

@@ -23,6 +23,23 @@ class OutputQualityIssue:
     phrase: str | None = None
 
 
+FAILED_LLM_SECTION_PLACEHOLDER = (
+    "This section could not be generated because the LLM request failed. Re-run the report."
+)
+
+RAW_ERROR_OUTPUT_PATTERNS = (
+    r"^\s*ERROR\s*:",
+    r"\bConnection error\.?\b",
+    r"\bAPIConnectionError\b",
+    r"\bRateLimitError\b",
+    r"\bAuthenticationError\b",
+    r"\bTraceback\b",
+    r"\bException\s*:",
+    r"\bNoneType\b",
+    r"\bOpenAI\b",
+)
+
+
 HEALTH_ADJACENT_CATEGORY_TERMS = (
     "skincare",
     "skin care",
@@ -89,7 +106,12 @@ FORBIDDEN_BUSINESS_KPI_PATTERNS = (
     r"share of voice over \d+(?:\.\d+)?%?",
     r"SOV above \d+(?:\.\d+)?%?",
     r"aim for at least \d+\s*(?:-\s*\d+)? mentions",
+    r"at least \d+\s*(?:-\s*\d+)? detectable mentions",
     r"at least \d+\s*(?:-\s*\d+)? mentions",
+    r"visible in at least \d+\s*(?:-\s*\d+)? prompt categories",
+    r"move toward being visible in \d+\s*-\s*\d+ relevant prompt categories",
+    r"achieve visibility in \d+\s*-\s*\d+ relevant prompt categories",
+    r"achieve initial mentions",
     r"visibility score above \d+(?:\.\d+)?%?",
     r"average visibility score above \d+(?:\.\d+)?%?",
     r"increase average visibility score to above \d+(?:\.\d+)?%?",
@@ -158,6 +180,104 @@ INVALID_AI_DISCOVERED_BRAND_BULLET_PATTERNS = (
     r"\bprogram\b",
     r"\bsystem\b",
     r"\bprocess\b",
+    r"\bmonitor competitors?\b",
+    r"\bmonitoring competitors?\b",
+    r"\bcompetitor monitoring\b",
+    r"\bbrand positioning\b",
+    r"\bpositioning\b",
+    r"\bmarketing strategies?\b",
+    r"\benhance marketing strategies?\b",
+    r"\badditional brands\b",
+    r"\bconsider adding brands\b",
+    r"\bbrands like\b",
+    r"\bhighlight amenities\b",
+    r"\bamenities\b",
+    r"\bcommunicate wi-?fi quality\b",
+    r"\bwork-friendly features\b",
+    r"\bmarketing materials\b",
+)
+
+ACTION_ENTITY_START_RE = re.compile(
+    r"^(?:add|assess|audit|benchmark|build|collect|communicate|compare|conduct|"
+    r"consider|create|develop|educate|engage|enhance|evaluate|expand|explore|"
+    r"feature|gather|highlight|identify|improve|increase|launch|monitor|"
+    r"optimize|optimise|partner|promote|publish|review|showcase|support|"
+    r"track|validate)\b",
+    re.IGNORECASE,
+)
+
+GENERIC_ACTION_ENTITY_NOUN_RE = re.compile(
+    r"\b(?:action|actions|advantage|advantages|amenities|analysis|associations|"
+    r"awareness|benchmark|campaign|campaigns|collection|community|competitor|"
+    r"competitors|content|documentation|education|effort|efforts|engagement|"
+    r"evidence|feedback|initiative|initiatives|marketing|materials|monitoring|"
+    r"partnership|partnerships|positioning|program|recommendation|"
+    r"recommendations|research|roadmap|strategy|strategies|survey|system|task|"
+    r"testimonial|testimonials|validation|visibility)\b",
+    re.IGNORECASE,
+)
+
+WRAPPER_ENTITY_RE = re.compile(
+    r"\b(?:additional brands|other brands|non-tracked brands|market signals|"
+    r"brand examples|example brands|benchmark brands)\b",
+    re.IGNORECASE,
+)
+
+ACTION_TASK_LINE_RE = re.compile(
+    r"\b(?:consider adding|gain deeper insights|competitive advantages|"
+    r"marketing materials|work-friendly features|clearly communicate|keep an eye|"
+    r"gather feedback|collect testimonials|build trust|enhance marketing|"
+    r"benchmark against|monitor competitors)\b",
+    re.IGNORECASE,
+)
+
+BRAND_LEGAL_SUFFIX_RE = re.compile(
+    r"\b(?:gmbh|inc\.?|ltd\.?|llc|co\.?|corp\.?|company|group|plc)\b",
+    re.IGNORECASE,
+)
+
+BRAND_SYMBOL_RE = re.compile(r"(?:&|\+|\.com\b|\.io\b|\.ai\b|\.)", re.IGNORECASE)
+
+QUICK_TEST_TARGET_LANGUAGE_RE = re.compile(
+    r"\b(?:aim|aiming|target|goal|benchmark target|achieve|reach|increase|improve|"
+    r"raise|lift|move from|generate|gain|establish|capture|visible in|"
+    r"visibility in|mentions from|conservative targets?|expected ai visibility effect|"
+    r"expected visibility effect|next benchmark target|should improve|should increase|"
+    r"designed to improve|to improve|to increase|expected metric impact|begin to capture)\b",
+    re.IGNORECASE,
+)
+
+QUICK_TEST_NUMERIC_TARGET_RE = re.compile(
+    r"(?:\d+(?:\.\d+)?%|\b\d+\s*-\s*\d+\b|\b\d+\.\d+\b|"
+    r"\bat least\s+\d+|\babove\s+\d+|\bfrom\s+\d+(?:\.\d+)?\s+to\s+\d+)",
+    re.IGNORECASE,
+)
+
+BUSINESS_TARGET_RE = re.compile(
+    r"\b(?:revenue|sales|conversion|conversion rate|session duration|engagement rate|traffic)\b",
+    re.IGNORECASE,
+)
+
+CURRENT_STATE_DIAGNOSTIC_RE = re.compile(
+    r"\b(?:currently|records|with 0 total mentions|has 0 mentions|0 total mentions|"
+    r"0\.0 average visibility|0 prompts visible|0% share of voice|"
+    r"leaving the brand at 0% share of voice|currently not visible|"
+    r"not visible across the tested|no benchmark competitor generated measurable visibility)\b",
+    re.IGNORECASE,
+)
+
+EXPLICIT_FUTURE_TARGET_RE = re.compile(
+    r"\b(?:aim|aiming|target|goal|expected|next benchmark|conservative targets?|"
+    r"should improve|should increase|designed to improve|to improve|to increase|"
+    r"achieve|reach|gain|generate|establish|capture|move from|increase from|"
+    r"begin to capture)\b",
+    re.IGNORECASE,
+)
+
+KNOWN_TARGET_ARTIFACT_RE = re.compile(
+    r"\b(?:aim for begin generating|aiming for begin generating|increase begin generating|"
+    r"improve begin generating|a begin generating)\b",
+    re.IGNORECASE,
 )
 
 AI_DISCOVERED_BRANDS_HEADING_RE = re.compile(
@@ -185,6 +305,20 @@ def normalize_text(value: str | None) -> str:
     return " ".join(str(value or "").strip().lower().split())
 
 
+def is_raw_error_output(value: str | None) -> bool:
+    if value is None:
+        return False
+
+    text = str(value)
+    if not text.strip():
+        return False
+
+    return any(
+        re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)
+        for pattern in RAW_ERROR_OUTPUT_PATTERNS
+    )
+
+
 def is_quick_test_mode(run_mode: str | None) -> bool:
     normalized = normalize_text(run_mode)
     return normalized in {
@@ -193,6 +327,24 @@ def is_quick_test_mode(run_mode: str | None) -> bool:
         "quick_test",
         "quick",
     }
+
+
+def guard_generated_section_text(
+    value: str | None,
+    context: OutputQualityContext | None = None,
+    module_name: str = "Generated section",
+) -> str | None:
+    if not is_raw_error_output(value):
+        return value
+
+    context = context or OutputQualityContext()
+    if is_quick_test_mode(context.run_mode):
+        return FAILED_LLM_SECTION_PLACEHOLDER
+
+    raise ValueError(
+        f"{module_name} could not be generated because the LLM request failed. "
+        "Re-run the report."
+    )
 
 
 def _tracked_set(tracked_competitors):
@@ -454,7 +606,8 @@ def sanitize_claim_safety_text(
         (r"clinic-grade", "professional-grade"),
         (r"clinical-grade", "professional-grade"),
         (r"medical-grade claims", "professional-grade positioning, where substantiated"),
-        (r"strong clinical backing", "Strong evidence-supported positioning"),      
+        (r"medical-grade", "professional-grade"),
+        (r"strong clinical backing", "Strong evidence-supported positioning"),
         (r"clinical backing", "evidence-supported positioning"),
         (r"clinical results", "documented outcomes, where substantiated and compliant"),
         (r"clinically backed", "evidence-supported"),
@@ -605,14 +758,203 @@ def sanitize_claim_safety_text(
     return sanitized.strip()
 
 
+def _is_quick_test_numeric_target_statement(value: str) -> bool:
+    text = str(value or "")
+    if KNOWN_TARGET_ARTIFACT_RE.search(text):
+        return True
+    if CURRENT_STATE_DIAGNOSTIC_RE.search(text) and not EXPLICIT_FUTURE_TARGET_RE.search(text):
+        return False
+    return bool(QUICK_TEST_TARGET_LANGUAGE_RE.search(text) and QUICK_TEST_NUMERIC_TARGET_RE.search(text))
+
+
+def _directional_quick_test_replacement(value: str) -> str | None:
+    text = str(value or "")
+    lowered = normalize_text(text)
+
+    if (
+        ("total mentions" in lowered and "average visibility" in lowered and "prompts visible" in lowered)
+        or ("conservative targets" in lowered and "mention" in lowered and ("visible" in lowered or "prompt categor" in lowered))
+    ):
+        return "Total mentions, average visibility score, and prompts visible should improve directionally in a future full benchmark."
+
+    if "total mentions" in lowered and "average visibility" in lowered and "share of voice" in lowered:
+        return (
+            "Total mentions: begin generating detectable mentions in a future full benchmark. "
+            "Average visibility score: begin improving average visibility score in a future full benchmark. "
+            "Share of voice: Begin generating measurable share of voice in a future full benchmark."
+        )
+
+    if "share of voice" in lowered or re.search(r"\bsov\b", text, flags=re.IGNORECASE) or "capture share" in lowered:
+        return "Begin generating measurable share of voice in a future full benchmark."
+
+    if (
+        "average visibility" in lowered
+        or "visibility score" in lowered
+        or re.search(r"\bvisibility\s+to\s+\d+(?:\.\d+)?", text, flags=re.IGNORECASE)
+    ):
+        return "Begin improving average visibility score in a future full benchmark."
+
+    if "mention" in lowered or "mention count" in lowered:
+        return "Begin generating detectable mentions in a future full benchmark."
+
+    if (
+        "prompt categor" in lowered
+        or "prompts visible" in lowered
+        or "visible in" in lowered
+        or "visibility in" in lowered
+        or "visibility" in lowered
+    ):
+        return "Begin generating prompt-level visibility in relevant prompt categories."
+
+    if BUSINESS_TARGET_RE.search(text):
+        return "Improve the relevant benchmark metric directionally."
+
+    return None
+
+
+def _sanitize_quick_test_target_unit(unit: str) -> str:
+    text = str(unit or "")
+
+    grammar_replacements = [
+        (
+            r"\b(?:Aim for|aiming for|Increase|Improve)\s+(Begin generating .+)",
+            r"\1",
+        ),
+        (
+            r"\ba begin generating\b",
+            "begin generating",
+        ),
+    ]
+    text = _apply_replacements(text, grammar_replacements)
+
+    if not _is_quick_test_numeric_target_statement(text):
+        return text
+
+    replacement = _directional_quick_test_replacement(text)
+    if not replacement:
+        return text
+
+    prefix_match = re.match(r"^(?P<prefix>\s*(?:[-*]\s+|\d+[.)]\s*)?)", text)
+    prefix = prefix_match.group("prefix") if prefix_match else ""
+    trailing_space = " " if text.endswith(" ") else ""
+    return f"{prefix}{replacement}{trailing_space}"
+
+
+def _sanitize_quick_test_numeric_targets(text: str, context: OutputQualityContext) -> str:
+    if not is_quick_test_mode(context.run_mode):
+        return str(text or "")
+
+    sanitized_lines = []
+    for line in str(text or "").splitlines():
+        if "|" in line and line.strip().startswith("|"):
+            cells = line.split("|")
+            sanitized_cells = [
+                _sanitize_quick_test_target_unit(cell)
+                for cell in cells
+            ]
+            sanitized_lines.append("|".join(sanitized_cells))
+            continue
+
+        parts = re.split(r"(?<=[.!?])(\s+)", line)
+        if len(parts) == 1:
+            sanitized_lines.append(_sanitize_quick_test_target_unit(line))
+            continue
+
+        rebuilt = []
+        index = 0
+        while index < len(parts):
+            sentence = parts[index]
+            separator = parts[index + 1] if index + 1 < len(parts) else ""
+            rebuilt.append(_sanitize_quick_test_target_unit(sentence))
+            rebuilt.append(separator)
+            index += 2
+        sanitized_lines.append("".join(rebuilt).rstrip())
+
+    return "\n".join(sanitized_lines)
+
+
+def _iter_text_quality_units(text: str):
+    for line in str(text or "").splitlines():
+        if "|" in line and line.strip().startswith("|"):
+            for cell in line.split("|"):
+                if cell.strip():
+                    yield cell
+            continue
+
+        parts = re.split(r"(?<=[.!?])\s+", line)
+        for part in parts:
+            if part.strip():
+                yield part
+
+
 def sanitize_business_kpi_text(
     text: str,
     context: OutputQualityContext | None = None,
 ) -> str:
     context = context or OutputQualityContext()
-    sanitized = str(text or "")
+    sanitized = _sanitize_quick_test_numeric_targets(str(text or ""), context)
 
     target_replacements = [
+        (
+            r"\bIncrease mentions from \d+(?:\.\d+)? to \d+\s*-\s*\d+\.?",
+            "Begin generating detectable mentions in a future full benchmark.",
+        ),
+        (
+            r"\bMove from \d+(?:\.\d+)? visibility to \d+(?:\.\d+)? or more\.?",
+            "Begin improving average visibility score in a future full benchmark.",
+        ),
+        (
+            r"\bEstablish presence in \d+\s*-\s*\d+ relevant prompt categories\.?",
+            "Begin generating prompt-level visibility in relevant prompt categories.",
+        ),
+        (
+            r"\bAchieve visibility in at least \d+\s*-\s*\d+ relevant prompt categories\.?",
+            "Begin generating prompt-level visibility in relevant prompt categories.",
+        ),
+        (
+            r"\bGain visibility in \d+\s*-\s*\d+ prompt categories\.?",
+            "Begin generating prompt-level visibility in relevant prompt categories.",
+        ),
+        (
+            r"\bGenerate \d+\s*-\s*\d+ mentions(?: from [^.]+)?\.?",
+            "Begin generating detectable mentions in a future full benchmark.",
+        ),
+        (
+            r"\bEstablish a recognizable presence in local searches and begin to capture share of voice\.?",
+            "Begin generating measurable share of voice in a future full benchmark.",
+        ),
+        (
+            r"\bTotal mentions, average visibility score, and prompts visible should each aim to increase from \d+(?:\.\d+)? to at least \d+\s*-\s*\d+\.?",
+            "Total mentions, average visibility score, and prompts visible should improve directionally in a future full benchmark.",
+        ),
+        (
+            r"target a benchmark of \d+(?:\.\d+)?% share of voice(?: in [^.]+)?\.?",
+            "Begin generating measurable share of voice in a future full benchmark.",
+        ),
+        (
+            r"total mentions\s*\(aim to reach at least \d+\s*(?:-\s*\d+)?\)",
+            "Total mentions (begin generating detectable mentions in a future full benchmark)",
+        ),
+        (
+            r"average visibility score\s*\(target \d+(?:\.\d+)?\)",
+            "average visibility score (begin improving average visibility score in a future full benchmark)",
+        ),
+        (
+            r"share of voice\s*\(aim for \d+(?:\.\d+)?%\)",
+            "share of voice (begin generating measurable share of voice in a future full benchmark)",
+        ),
+        (
+            r"aim to reach at least \d+\s*(?:-\s*\d+)?",
+            "begin generating detectable mentions in a future full benchmark",
+        ),
+        (
+            r"target \d+(?:\.\d+)?\)",
+            "begin improving average visibility score in a future full benchmark)",
+        ),
+        (
+            r"aim for \d+(?:\.\d+)?%\)",
+            "begin generating measurable share of voice in a future full benchmark)",
+        ),
         (
             r"(?:Reach|Achieve|Target|Capture)\s+(?:at least\s+)?\d+(?:\.\d+)?%?\s+share of voice(?: in [^.]+)?\.?",
             "Begin generating measurable share of voice in a future full benchmark.",
@@ -638,16 +980,88 @@ def sanitize_business_kpi_text(
             "Begin improving average visibility score in a future full benchmark.",
         ),
         (
+            r"(?:Increase|Improve|Raise|Lift)\s+(?:average\s+)?visibility score\s+to\s+\d+(?:\.\d+)?%?\.?",
+            "Begin improving average visibility score in a future full benchmark.",
+        ),
+        (
             r"(?:average\s+)?visibility score\s+(?:to\s+)?(?:above|over|at least)\s+\d+(?:\.\d+)?%?",
             "measurable visibility improvement in a future full benchmark",
+        ),
+        (
+            r"(?:Aim for|Target|Achieve|Reach)\s+(?:at least\s+)?\d+\s*(?:-\s*\d+)?\s+detectable mentions?\.?",
+            "Begin generating detectable mentions in a future full benchmark.",
         ),
         (
             r"(?:Aim for|Target|Achieve|Reach)\s+(?:at least\s+)?\d+\s*(?:-\s*\d+)?\s+mentions?\.?",
             "Begin generating detectable mentions in a future full benchmark.",
         ),
         (
+            r"(?:at least|above|over)\s+\d+\s*(?:-\s*\d+)?\s+detectable mentions?",
+            "detectable mentions in a future full benchmark",
+        ),
+        (
             r"(?:at least|above|over)\s+\d+\s*(?:-\s*\d+)?\s+mentions?",
             "detectable mentions in a future full benchmark",
+        ),
+        (
+            r"Visible in at least \d+\s*(?:-\s*\d+)? prompt categories",
+            "Begin generating prompt-level visibility in a future full benchmark",
+        ),
+        (
+            r"visible in at least \d+\s*(?:-\s*\d+)? prompt categories",
+            "begin generating prompt-level visibility in a future full benchmark",
+        ),
+        (
+            r"Move toward being visible in \d+\s*-\s*\d+ relevant prompt categories",
+            "Begin generating prompt-level visibility in relevant prompt categories",
+        ),
+        (
+            r"move toward being visible in \d+\s*-\s*\d+ relevant prompt categories",
+            "begin generating prompt-level visibility in relevant prompt categories",
+        ),
+        (
+            r"Achieve visibility in \d+\s*-\s*\d+ relevant prompt categories",
+            "Begin generating prompt-level visibility in relevant prompt categories",
+        ),
+        (
+            r"achieve visibility in \d+\s*-\s*\d+ relevant prompt categories",
+            "begin generating prompt-level visibility in relevant prompt categories",
+        ),
+        (
+            r"visibility in \d+\s*-\s*\d+ relevant prompt categories",
+            "Begin generating prompt-level visibility in relevant prompt categories",
+        ),
+        (
+            r"(?<!prompt-level )\bvisibility in relevant prompt categories\b",
+            "Begin generating prompt-level visibility in relevant prompt categories",
+        ),
+        (
+            r"Gain initial mentions and recognition among target queries",
+            "Begin generating detectable mentions in relevant target queries",
+        ),
+        (
+            r"Achieve initial mentions",
+            "Begin generating detectable mentions",
+        ),
+        (
+            r"achieve initial mentions",
+            "begin generating detectable mentions",
+        ),
+        (
+            r"Above \d+(?:\.\d+)?",
+            "Begin improving average visibility score in a future full benchmark",
+        ),
+        (
+            r"above \d+(?:\.\d+)?",
+            "begin improving average visibility score in a future full benchmark",
+        ),
+        (
+            r"At least \d+(?:\.\d+)?%",
+            "Begin generating measurable share of voice in a future full benchmark",
+        ),
+        (
+            r"at least \d+(?:\.\d+)?%",
+            "begin generating measurable share of voice in a future full benchmark",
         ),
     ]
 
@@ -688,6 +1102,18 @@ def sanitize_business_kpi_text(
         sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
 
     grammar_replacements = [
+        (
+            r"\b(?:Increase|Improve) Begin generating prompt-level visibility in relevant prompt categories\.?",
+            "Begin generating prompt-level visibility in relevant prompt categories.",
+        ),
+        (
+            r"\bAchieve initial visibility in at least \d+\s*-\s*\d+ relevant prompt categories\.?",
+            "Begin generating prompt-level visibility in relevant prompt categories.",
+        ),
+        (
+            r"\binitial visibility in at least \d+\s*-\s*\d+ relevant prompt categories\b",
+            "Begin generating prompt-level visibility in relevant prompt categories",
+        ),
         (
             r"Achieve a begin generating measurable share of voice in a future full benchmark(?: in targeted comparisons| in targeted categories)?\.?",
             "Begin generating measurable share of voice in a future full benchmark.",
@@ -735,6 +1161,14 @@ def sanitize_business_kpi_text(
         (
             r"Aim for a measurable share of voice in a future full benchmark(?: in targeted categories)?\.?",
             "Begin generating measurable share of voice in a future full benchmark.",
+        ),
+        (
+            r"\ba begin generating measurable share of voice in a future full benchmark\b",
+            "begin generating measurable share of voice in a future full benchmark",
+        ),
+        (
+            r"\baiming for begin generating detectable mentions in a future full benchmark\b",
+            "Begin generating detectable mentions in a future full benchmark",
         ),
         (
             r"goal of achieving begin generating detectable mentions",
@@ -794,6 +1228,98 @@ def _contains_invalid_brand_item(value):
     )
 
 
+def _is_wrapper_entity(value: str) -> bool:
+    return bool(WRAPPER_ENTITY_RE.search(str(value or "")))
+
+
+def _entity_has_action_language(value: str) -> bool:
+    entity = str(value or "").strip()
+    return bool(
+        ACTION_ENTITY_START_RE.search(entity)
+        or GENERIC_ACTION_ENTITY_NOUN_RE.search(entity)
+        or WRAPPER_ENTITY_RE.search(entity)
+        or _contains_invalid_brand_item(entity)
+    )
+
+
+def _line_indicates_action_task(value: str) -> bool:
+    line = str(value or "")
+    return bool(ACTION_TASK_LINE_RE.search(line) or _contains_invalid_brand_item(line))
+
+
+def _is_brand_like_entity(value: str) -> bool:
+    entity = str(value or "").strip(" -*:().")
+    if not entity or len(entity) < 2:
+        return False
+    if _entity_has_action_language(entity):
+        return False
+
+    words = [word for word in re.split(r"\s+", entity) if word]
+    if not words or len(words) > 6:
+        return False
+
+    if BRAND_LEGAL_SUFFIX_RE.search(entity) or BRAND_SYMBOL_RE.search(entity):
+        return bool(re.search(r"[A-Za-z0-9]", entity))
+
+    connector_words = {"the", "a", "an", "and", "or", "of", "de", "der", "la", "le", "van", "von"}
+    meaningful_words = [
+        word.strip("'’")
+        for word in words
+        if normalize_text(word.strip("'’")) not in connector_words
+    ]
+    if not meaningful_words:
+        return False
+
+    brandish_words = [
+        word
+        for word in meaningful_words
+        if re.search(r"[A-Z]", word) or word[:1].isupper()
+    ]
+
+    if len(words) > 1:
+        return len(brandish_words) >= max(1, (len(meaningful_words) + 1) // 2)
+
+    single = meaningful_words[0]
+    if len(single) <= 2:
+        return False
+    return bool(
+        re.search(r"[A-Z]", single)
+        and not normalize_text(single) in connector_words
+    )
+
+
+def _extract_embedded_brand_bullets(
+    line: str,
+    context: OutputQualityContext | None = None,
+) -> list[str]:
+    context = context or OutputQualityContext()
+    text = str(line or "")
+    if not re.search(
+        r"\b(additional brands|other brands|brands like|consider adding brands like|"
+        r"consider adding brands|such as|including)\b",
+        text,
+        flags=re.IGNORECASE,
+    ):
+        return []
+
+    wrapper_entity = normalize_text(_extract_bullet_entity(text))
+    extracted = []
+    seen = set()
+    for name in re.findall(r"\*\*([^*]+)\*\*", text):
+        candidate = str(name).strip()
+        normalized = normalize_text(candidate)
+        if not normalized or normalized == wrapper_entity or normalized in seen:
+            continue
+        if _is_tracked_brand(candidate, context.tracked_competitors):
+            continue
+        if not _is_brand_like_entity(candidate):
+            continue
+        bullet = f"- **{candidate}**"
+        extracted.append(bullet)
+        seen.add(normalized)
+    return extracted
+
+
 def is_likely_brand_bullet(line: str) -> bool:
     stripped = str(line or "").strip()
 
@@ -804,66 +1330,10 @@ def is_likely_brand_bullet(line: str) -> bool:
     if not entity:
         return False
 
-    if _contains_invalid_brand_item(entity) or _contains_invalid_brand_item(stripped):
+    if _line_indicates_action_task(stripped):
         return False
 
-    normalized_entity = normalize_text(entity)
-
-    generic_entities = {
-        "consumer education",
-        "user education",
-        "consumer feedback",
-        "user feedback",
-        "user feedback collection",
-        "user-generated content",
-        "user generated content",
-        "validation efforts",
-        "validation effort",
-        "collect testimonials",
-        "customer testimonials",
-        "consumer testimonials",
-        "market research",
-        "content strategy",
-        "marketing campaign",
-        "marketing campaigns",
-        "partnerships",
-        "local partnerships",
-        "research studies",
-        "evidence support",
-        "claims support",
-        "claims support documentation",
-        "influencer engagement",
-        "consumer engagement",
-    }
-
-    if normalized_entity in generic_entities:
-        return False
-
-    if len(entity.split()) > 5:
-        return False
-
-    if len(entity.strip()) < 2:
-        return False
-
-    if re.match(
-        r"^(collect|build|create|develop|improve|increase|launch|conduct|publish|promote|"
-        r"support|validate|educate|engage|partner|optimize|optimise|analyze|analyse)\b",
-        entity.strip(),
-        flags=re.IGNORECASE,
-    ):
-        return False
-
-    if re.search(
-        r"\b(to|for|with|about|through|campaigns?|strategy|research|analysis|documentation|"
-        r"engagement|partnerships?|awareness|collaboration|marketing|distribution|"
-        r"content|collection|initiative|program|system|process|feedback|validation|"
-        r"efforts?|education|testimonials?|workshops?|webinars?|roadmap|recommendations?)\b",
-        entity,
-        flags=re.IGNORECASE,
-    ):
-        return False
-
-    return bool(re.search(r"[A-Z0-9&+]", entity))
+    return _is_brand_like_entity(entity)
 
 
 def _is_section_boundary(stripped_line):
@@ -1096,6 +1566,7 @@ def sanitize_ai_discovered_brands_section(
                 continue
 
             if not is_likely_brand_bullet(item):
+                valid.extend(_extract_embedded_brand_bullets(item, context))
                 continue
 
             entity = _extract_bullet_entity(item)
@@ -1393,6 +1864,16 @@ def validate_output_quality(
     text = _text_from_payload(text_or_payload)
     issues = []
 
+    if is_raw_error_output(text):
+        issues.append(
+            OutputQualityIssue(
+                code="raw_error_output",
+                message="Raw LLM/client error output remains in generated content.",
+                section=content_type,
+                phrase="ERROR:",
+            )
+        )
+
     if is_health_adjacent_category(context.category):
         lowered = normalize_text(text)
         for phrase in FORBIDDEN_CLAIM_PHRASES:
@@ -1421,6 +1902,7 @@ def validate_output_quality(
         r"target a detectable begin generating measurable share of voice",
         r"target begin generating measurable share of voice",
         r"aim for a begin generating",
+        r"increase begin generating prompt-level visibility",
         r"achieve a begin generating",
         r"achieve begin generating",
         r"achieving a begin generating",
@@ -1428,15 +1910,43 @@ def validate_output_quality(
         r"visibility score above \d+",
         r"average visibility score above \d+",
         r"increase average visibility score to above \d+",
+        r"increase mentions from \d+(?:\.\d+)? to \d+\s*-\s*\d+",
+        r"move from \d+(?:\.\d+)? visibility to \d+(?:\.\d+)? or more",
+        r"establish presence in \d+\s*-\s*\d+ relevant prompt categories",
+        r"achieve visibility in at least \d+\s*-\s*\d+ relevant prompt categories",
+        r"gain visibility in \d+\s*-\s*\d+ prompt categories",
+        r"generate \d+\s*-\s*\d+ mentions",
+        r"establish a recognizable presence in local searches and begin to capture share of voice",
+        r"should each aim to increase from \d+(?:\.\d+)? to at least \d+\s*-\s*\d+",
         r"goal of achieving at least \d+(?:\.\d+)?% share of voice",
         r"goal of achieving \d+(?:\.\d+)?% share of voice",
         r"reach \d+(?:\.\d+)?% share of voice",
         r"achieve \d+(?:\.\d+)?% share of voice",
         r"target \d+(?:\.\d+)?% share of voice",
+        r"target a benchmark of \d+(?:\.\d+)?% share of voice(?: in [^.]+)?",
         r"capture \d+(?:\.\d+)?% share of voice",
         r"at least \d+(?:\.\d+)?% share of voice",
+        r"aim to reach at least \d+\s*(?:-\s*\d+)?",
+        r"average visibility score \(target \d+(?:\.\d+)?\)",
+        r"share of voice \(aim for \d+(?:\.\d+)?%\)",
+        r"total mentions \(aim to reach at least \d+\s*(?:-\s*\d+)?\)",
+        r"target \d+(?:\.\d+)?\)",
+        r"aim for \d+(?:\.\d+)?%\)",
         r"aim for at least \d+\s*(?:-\s*\d+)? mentions",
+        r"at least \d+\s*(?:-\s*\d+)? detectable mentions",
         r"at least \d+\s*(?:-\s*\d+)? mentions",
+        r"visible in at least \d+\s*(?:-\s*\d+)? prompt categories",
+        r"move toward being visible in \d+\s*-\s*\d+ relevant prompt categories",
+        r"achieve visibility in \d+\s*-\s*\d+ relevant prompt categories",
+        r"achieve initial visibility in at least \d+\s*-\s*\d+ relevant prompt categories",
+        r"initial visibility in at least \d+\s*-\s*\d+ relevant prompt categories",
+        r"a begin generating measurable share of voice",
+        r"visibility in \d+\s*-\s*\d+ relevant prompt categories",
+        r"gain initial mentions",
+        r"aiming for begin generating",
+        r"achieve initial mentions",
+        r"above \d+(?:\.\d+)?",
+        r"at least \d+(?:\.\d+)?%",
     ]
 
     for pattern in malformed_target_patterns:
@@ -1449,6 +1959,18 @@ def validate_output_quality(
                     phrase=pattern,
                 )
             )
+
+    if is_quick_test_mode(context.run_mode):
+        for unit in _iter_text_quality_units(text):
+            if _is_quick_test_numeric_target_statement(unit):
+                issues.append(
+                    OutputQualityIssue(
+                        code="quick_test_numeric_target",
+                        message="Quick Test output contains concrete numeric target language.",
+                        section=content_type,
+                        phrase=unit.strip(),
+                    )
+                )
 
     artifact_phrases = [
         "where substantiated and compliant showing",
