@@ -1019,14 +1019,19 @@ def add_strategy_priorities(document, priorities_df):
     add_styled_table(document, priorities_df, max_rows=10, font_size=7.3)
 
 
-def add_brand_intelligence(document, brand_intelligence, section_number):
+def add_brand_intelligence(
+    document,
+    brand_intelligence,
+    section_number=None,
+    heading_text="Brand Intelligence & Positioning Audit"
+):
     if not brand_intelligence:
         return
 
     add_section_heading(
         document,
-        "Brand Intelligence & Positioning Audit",
-        str(section_number)
+        heading_text,
+        str(section_number) if section_number else None
     )
     add_callout_box(
         document,
@@ -1269,9 +1274,6 @@ def create_executive_docx_report(
     add_strategy_priorities(document, priorities_df)
 
     next_section_number = 8
-    if brand_intelligence:
-        add_brand_intelligence(document, brand_intelligence, next_section_number)
-        next_section_number += 1
 
     if geo_content_roadmap:
         add_geo_content_roadmap(document, geo_content_roadmap, next_section_number)
@@ -1296,6 +1298,12 @@ def create_executive_docx_report(
         str(next_section_number),
         prompt_categories=prompt_categories
     )
+    if brand_intelligence:
+        add_brand_intelligence(
+            document,
+            brand_intelligence,
+            heading_text="Appendix: Brand Intelligence & Positioning Audit"
+        )
 
     buffer = BytesIO()
     document.save(buffer)

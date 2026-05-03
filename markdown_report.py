@@ -1,8 +1,14 @@
+import pandas as pd
+
 from ui_formatters import df_to_markdown_table
 from report_generator import (
     build_competitor_leader_sentence,
+    create_roadmap_df,
     get_competitor_leaders,
+    get_target_metrics,
+    get_top_competitors,
     get_visibility_status,
+    get_visibility_state_noun,
 )
 
 
@@ -15,6 +21,69 @@ def _normalize_markdown_table_headers(df, column_map):
         for column, label in column_map.items()
         if column in df.columns
     })
+
+
+def _append_section(parts, title, body):
+    if not body:
+        return
+
+    parts.append(f"## {title}\n\n{body.strip()}")
+
+
+def _build_measurement_plan_md(metrics):
+    share_of_voice = metrics["Share of Voice"]
+
+    measurement_df = df_to_markdown_table(
+        _normalize_markdown_table_headers(
+            pd.DataFrame([
+                {
+                    "Metric": "Total Mentions",
+                    "Current State": str(metrics["Total Mentions"]),
+                    "Next Benchmark Target": "At least 5 detectable mentions",
+                },
+                {
+                    "Metric": "Average Visibility Score",
+                    "Current State": str(metrics["Avg. Visibility"]),
+                    "Next Benchmark Target": "Above 5.0",
+                },
+                {
+                    "Metric": "Prompts Visible",
+                    "Current State": str(metrics["Prompts Visible"]),
+                    "Next Benchmark Target": "Visible in at least 3 prompt categories",
+                },
+                {
+                    "Metric": "Share of Voice",
+                    "Current State": share_of_voice,
+                    "Next Benchmark Target": "At least 5%",
+                },
+            ]),
+            {},
+        ),
+        max_rows=10,
+    )
+
+    return (
+        "The next benchmark should evaluate whether the visibility gap is beginning to close.\n\n"
+        f"{measurement_df}"
+    )
+
+
+def _build_methodology_notes_md(category, prompt_categories):
+    notes = [
+        f"- The benchmark is based on fixed and AI-generated prompts designed to simulate {category} recommendation queries.",
+        "- Visibility is calculated from brand mentions, estimated ranking, and prompt-level appearance.",
+        "- Share of voice reflects the distribution of brand mentions among tracked competitors.",
+        "- Scores reflect AI answer visibility, not actual revenue, market share, product performance, customer satisfaction, or business outcomes.",
+        "- The output should be interpreted as an AI visibility benchmark, not as a consumer survey, sales performance report, or clinical evaluation.",
+        "- Results should be re-run periodically to track whether content and visibility interventions improve AI recall.",
+    ]
+
+    if prompt_categories:
+        notes.append("")
+        notes.append("Query intent coverage included:")
+        notes.extend(f"- {item}" for item in prompt_categories)
+
+    return "\n".join(notes)
 
 
 def build_executive_markdown_report(
@@ -119,6 +188,10 @@ def build_executive_markdown_report(
         target_avg_score,
         target_sov,
     )
+    metrics = get_target_metrics(summary_df, brand)
+    top_competitors = get_top_competitors(summary_df, brand, limit=3)
+    roadmap_df = create_roadmap_df(brand, category, top_competitors, metrics)
+    roadmap_md = df_to_markdown_table(roadmap_df, max_rows=10)
     competitor_leaders = get_competitor_leaders(summary_df, brand)
     top_competitor_text = build_competitor_leader_sentence(competitor_leaders)
 
@@ -140,143 +213,122 @@ def build_executive_markdown_report(
         f"with {target_mentions} total mentions, {target_avg_score} average visibility, "
         f"{target_prompts_visible} prompts visible, and {target_sov}% share of voice."
     )
+    visibility_state_noun = get_visibility_state_noun(target_visibility_status)
     query_intent_md = "\n".join(
         f"- {item}" for item in prompt_categories
     ) or "_No query intent categories available._"
-
-    brand_intelligence_md = ""
-    if brand_intelligence_done and brand_intelligence:
-        brand_intelligence_md = f"""
-
-    ---
-
-    ## Appendix: Brand Intelligence & Positioning Audit
-
-    > Diagnostic insight. Not part of visibility scoring. Tracked competitors are included in visibility scoring and share of voice. Other brands mentioned here may be AI-discovered market signals and are not included in scoring unless added as tracked competitors.
-
-    ### Recommendation Drivers
-
-    {brand_intelligence["recommendation_drivers"]}
-
-    ### AI-Inferred Target Brand Understanding
-
-    {brand_intelligence["target_brand_understanding"]}
-
-    ### Positioning Gap Analysis
-
-    {brand_intelligence["positioning_gap_analysis"]}
-    """
-
-    geo_content_roadmap_md = ""
+    visibility_gap_diagnosis = (
+        f"{strategic_issue}\n\n"
+        f"Competitive context:\n\n{top_competitor_text}"
+    )
+    geo_content_roadmap_body = None
     if geo_content_roadmap_done and geo_content_roadmap:
-        geo_content_roadmap_md = f"""
+        geo_content_roadmap_body = (
+            "> Strategic execution plan. Not part of visibility scoring or share of voice.\n\n"
+            f"{geo_content_roadmap}"
+        )
 
-    ---
+    recommended_next_step = (
+        f"Build AI-citable content that connects {display_brand} with high-intent use cases, comparison queries, local intent, "
+        f"decision-stage searches, and market-specific category queries for {display_category} in {display_market}. The next benchmark should track whether the brand "
+        f"improves from its {visibility_state_noun} toward stronger inclusion in AI-generated recommendation lists."
+    )
 
-    ## GEO Content Roadmap
+    parts = [
+        f"# {display_brand} {display_market} AI Visibility Report",
+        (
+            "## 1. Report Overview\n\n"
+            f"**Target Brand:** {display_brand}  \n"
+            f"**Market:** {display_market}  \n"
+            f"**Category:** {display_category}  \n"
+            f"**Audience:** {display_audience}  \n"
+            "**Report Type:** AI Visibility / Generative Engine Optimization Audit  \n"
+            f"**Run Mode:** {run_mode}  \n"
+            f"**Deliverable Status:** {deliverable_status}  \n\n"
+            f'{"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}\n\n'
+            f"This report evaluates how visible {display_brand} is in AI-generated {display_category} recommendations for {display_audience} in {display_market}.\n\n"
+            "### Query Intent Coverage\n\n"
+            "This benchmark covers the following AI recommendation contexts:\n\n"
+            f"{query_intent_md}"
+        ),
+        (
+            "## 2. Executive Summary\n\n"
+            f"{executive_summary_sentence}\n\n"
+            f"Key metrics for {display_brand}:\n\n"
+            "| Metric | Value |\n"
+            "|---|---:|\n"
+            f"| Total Mentions | {target_mentions} |\n"
+            f"| Average Visibility Score | {target_avg_score} |\n"
+            f"| Prompts Visible | {target_prompts_visible} |\n"
+            f"| Share of Voice | {target_sov}% |\n\n"
+            "Top visible competitors in this benchmark:\n\n"
+            f"{top_competitor_text}\n\n"
+            f"{strategic_issue}"
+        ),
+        "## 3. Competitive Benchmark\n\n"
+        "The table below summarizes brand-level AI visibility performance across all tested prompts.\n\n"
+        f"{summary_report_md}",
+        "## 4. Trigger-Level Visibility Findings\n\n"
+        "The table below shows how each tracked brand performs across AI query categories.\n\n"
+        f"{trigger_report_md}",
+        "## 5. Top Brand Winners by Query Type\n\n"
+        "The table below identifies which brand wins each query category based on visibility score.\n\n"
+        f"{top_brands_report_md}",
+        f"## 6. Visibility Gap Diagnosis\n\n{visibility_gap_diagnosis}",
+        f"## 7. Strategic Priorities\n\n{recommendations}",
+    ]
 
-    > Strategic execution plan. Not part of visibility scoring or share of voice.
+    if geo_content_roadmap_body:
+        parts.append(f"## 8. GEO Content Roadmap\n\n{geo_content_roadmap_body}")
+        roadmap_number = 9
+        measurement_number = 10
+        next_step_number = 11
+        methodology_number = 12
+    else:
+        roadmap_number = 8
+        measurement_number = 9
+        next_step_number = 10
+        methodology_number = 11
 
-    {geo_content_roadmap}
-    """
+    parts.extend([
+        f"## {roadmap_number}. 30 / 60 / 90 Day Roadmap\n\n{roadmap_md}",
+        f"## {measurement_number}. Measurement Plan\n\n{_build_measurement_plan_md(metrics)}",
+        f"## {next_step_number}. Recommended Next Step\n\n{recommended_next_step}",
+        f"## {methodology_number}. Methodology Notes\n\n{_build_methodology_notes_md(display_category, prompt_categories)}",
+    ])
 
-    return f"""
-    # {display_brand} {display_market} AI Visibility Report
+    appendix_sections = []
 
-    ## 1. Report Overview
+    if brand_intelligence_done and brand_intelligence:
+        appendix_sections.append(
+            "## Appendix A: Brand Intelligence & Positioning Audit\n\n"
+            "> Diagnostic insight. Not part of visibility scoring. Tracked competitors are included in visibility scoring and share of voice. Other brands mentioned here may be AI-discovered market signals and are not included in scoring unless added as tracked competitors.\n\n"
+            "### Recommendation Drivers\n\n"
+            f"{brand_intelligence['recommendation_drivers']}\n\n"
+            "### AI-Inferred Target Brand Understanding\n\n"
+            f"{brand_intelligence['target_brand_understanding']}\n\n"
+            "### Positioning Gap Analysis\n\n"
+            f"{brand_intelligence['positioning_gap_analysis']}"
+        )
 
-    **Target Brand:** {display_brand}  
-    **Market:** {display_market}  
-    **Category:** {display_category}  
-    **Audience:** {display_audience}  
-    **Report Type:** AI Visibility / Generative Engine Optimization Audit  
-    **Run Mode:** {run_mode}  
-    **Deliverable Status:** {deliverable_status}  
+    if plan:
+        appendix_sections.append(
+            f"## Appendix B: AI Visibility Strategy Deep Dive\n\n{plan}"
+        )
 
-    {"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}
+    if brand_win_explanation:
+        appendix_sections.append(
+            f"## Appendix C: AI Decision Explanation\n\n{brand_win_explanation}"
+        )
 
-    This report evaluates how visible {display_brand} is in AI-generated {display_category} recommendations for {display_audience} in {display_market}.
+    if replacement_strategy:
+        appendix_sections.append(
+            f"## Appendix D: Replacement Strategy\n\n{replacement_strategy}"
+        )
 
-    ### Query Intent Coverage
+    if gap_analysis:
+        appendix_sections.append(
+            f"## Appendix E: Gap Analysis\n\n{gap_analysis}"
+        )
 
-    This benchmark covers the following AI recommendation contexts:
-
-    {query_intent_md}
-
-    ---
-
-    ## 2. Executive Summary
-
-    {executive_summary_sentence}
-
-    Key metrics for {display_brand}:
-
-    | Metric | Value |
-    |---|---:|
-    | Total Mentions | {target_mentions} |
-    | Average Visibility Score | {target_avg_score} |
-    | Prompts Visible | {target_prompts_visible} |
-    | Share of Voice | {target_sov}% |
-
-    Top visible competitors in this benchmark:
-
-    {top_competitor_text}
-
-    {strategic_issue}
-
-    ---
-
-    ## 3. Competitive Benchmark
-
-    The table below summarizes brand-level AI visibility performance across all tested prompts.
-
-    {summary_report_md}
-
-    ---
-
-    ## 4. Trigger-Level Visibility Findings
-
-    The table below shows how each tracked brand performs across AI query categories.
-
-    {trigger_report_md}
-
-    ---
-
-    ## 5. Top Brand Winners by Query Type
-
-    The table below identifies which brand wins each query category based on visibility score.
-
-    {top_brands_report_md}
-
-    ---
-
-    ## 6. Strategic Diagnosis
-
-    {gap_analysis or "_AI Association Gap analysis was not generated in this run._"}
-
-    ---
-
-    ## 7. Priority Strategic Recommendations
-
-    {recommendations}
-
-    ---
-
-    ## 8. Appendix: AI Visibility Strategy Deep Dive
-
-    {plan}
-
-    ---
-
-    ## 9. Appendix: AI Decision Explanation
-
-    {brand_win_explanation or "_Brand winner explanation was not generated in this run._"}
-
-    ---
-
-    ## 10. Appendix: Replacement Strategy
-
-    {replacement_strategy or "_Replacement strategy was not generated in this run._"}
-    {brand_intelligence_md}
-    {geo_content_roadmap_md}
-    """
+    return "\n\n---\n\n".join(parts + appendix_sections)
