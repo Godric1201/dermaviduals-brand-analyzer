@@ -70,12 +70,15 @@ def test_generate_geo_content_roadmap_builds_consulting_prompt(
     assert "Expected Metric Impact" in prompt
     assert "distinct content asset" in prompt
     assert "Do not repeat" in prompt
+    assert "Every Content Asset must be a specific publishable title" in prompt
+    assert "Generic assets are forbidden" in prompt
     assert "publishable" in prompt
     assert "Do not use vague/internal strategy assets" in prompt
     assert "Evidence Needed must be concrete" in prompt
     assert "Do not claim guaranteed metric improvement" in prompt
     assert "Intended benchmark influence" in prompt
     assert "Only use clinical-study claims if substantiated and compliant" in prompt
+    assert "only where substantiated and compliant" in prompt
     assert "third-party evidence" in prompt
     assert "expert validation" in prompt
     assert "ingredient documentation" in prompt
@@ -95,3 +98,38 @@ def test_generate_geo_content_roadmap_builds_consulting_prompt(
     assert "Quick Test Mode" in prompt
     assert "directional" in prompt
     assert "Do not make unsupported performance promises" in prompt
+
+
+def test_geo_roadmap_generic_asset_and_claim_safety_sanitizers(geo_roadmap_module):
+    assert geo_roadmap_module.is_generic_content_asset(
+        "Comparison Page for Top Products"
+    ) is True
+
+    roadmap = "\n".join([
+        "| Priority | Query Intent | Content Asset | Target Association | Competitor / Market Signal | Evidence Needed | Expected Metric Impact | Suggested Timing |",
+        "|---|---|---|---|---|---|---|---|",
+        "| 1 | Local Recommendations | Comparison Page for Top Products | Ingredient transparency | SkinCeuticals | clinical trials and clinically effective proof | Intended benchmark influence: total_mentions and prompts_visible | 30 Days |",
+        "| 2 | Decision Criteria | FAQ Page on Product Benefits | Sensitive skin fit | | published studies demonstrating product effectiveness | Intended benchmark influence: target-brand association | 60 Days |",
+        "| 3 | Trust Signals | Review Collection Initiative | Review proof | | customer reviews | Intended benchmark influence: query intent visibility | 90 Days |",
+        "| 4 | Evidence | Evidence-Building Page on Ingredients | Product proof | | clinical efficacy and medical-grade claims | Intended benchmark influence: average_visibility_score | Next Benchmark Cycle |",
+    ])
+
+    sanitized = geo_roadmap_module.sanitize_geo_roadmap_markdown(
+        roadmap,
+        brand="Dermaviduals",
+        market="Hong Kong",
+        category="skincare products",
+        audience="skincare-conscious consumers",
+        tracked_competitors=["SkinCeuticals", "Environ"],
+    )
+
+    assert "Dermaviduals vs SkinCeuticals Comparison Page for Hong Kong Consumers" in sanitized
+    assert "Dermaviduals Product Benefits FAQ for Skincare-Conscious Consumers in Hong Kong" in sanitized
+    assert "Dermaviduals Hong Kong Customer Review Collection Page" in sanitized
+    assert "Dermaviduals Ingredient Evidence & Product Selection Page" in sanitized
+    assert "claims support documentation, only where substantiated and compliant" in sanitized
+    assert "evidence-supported" in sanitized
+    assert "substantiated product evidence" in sanitized
+    assert "professional-grade positioning, where substantiated" in sanitized
+    assert "Intended benchmark influence: total_mentions and prompts_visible" in sanitized
+    assert "30%" not in sanitized

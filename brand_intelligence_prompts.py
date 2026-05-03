@@ -55,6 +55,9 @@ Important:
 - The tracked competitor list is the only source of truth for Source: Tracked competitor.
 - If a brand is not in the tracked competitor list, label it as an AI-discovered market signal.
 - Never label a non-tracked brand as Source: Tracked competitor.
+- Do not list tracked competitors as AI-discovered market signals.
+- Before suggesting a brand for the next benchmark run, verify it is not already in the tracked competitor list.
+- If no non-tracked brands are available, say no additional non-tracked market signals were identified.
 - Do not place tracked competitors and non-tracked brands in the same competitor advantage list unless each item is labeled with Source: Tracked competitor or Source: AI-discovered market signal.
 - Prefer tracked competitors first when listing competitor signals.
 - If non-tracked brands are strategically relevant, add: "Consider adding these brands as tracked competitors before the benchmark run."

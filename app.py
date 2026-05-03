@@ -365,6 +365,7 @@ def run_analysis():
                 on_progress=on_progress,
                 prompt_limit=prompt_limit,
                 competitors=competitors,
+                run_mode=run_mode,
             )
 
         set_progress_phase(4)

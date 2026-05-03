@@ -77,6 +77,9 @@ def test_build_target_diagnostic_prompts_distinguish_benchmark_visibility_and_di
     assert "source: tracked competitor" in prompt_text
     assert "source: ai-discovered market signal" in prompt_text
     assert "never label a non-tracked brand as source: tracked competitor" in prompt_text
+    assert "do not list tracked competitors as ai-discovered market signals" in prompt_text
+    assert "verify it is not already in the tracked competitor list" in prompt_text
+    assert "no additional non-tracked market signals were identified" in prompt_text
     assert "selected as tracked competitors before the benchmark run" in prompt_text or "consider adding these brands as tracked competitors before the benchmark run." in prompt_text
     assert "do not call non-tracked brands competitors included in benchmark" in prompt_text
     assert "recommendation likelihood" not in prompt_text

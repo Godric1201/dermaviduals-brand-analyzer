@@ -139,6 +139,8 @@ def test_run_brand_intelligence_analysis_prompts_include_context(
     assert "AI-discovered market signals" in combined_prompts
     assert "tracked competitor list is the only source of truth" in combined_prompts.lower()
     assert "Never label a non-tracked brand as Source: Tracked competitor" in combined_prompts
+    assert "Do not list tracked competitors as AI-discovered market signals" in combined_prompts
+    assert "verify it is not already in the tracked competitor list" in combined_prompts
     assert "prefer tracked competitors first" in combined_prompts.lower()
     assert "selected as tracked competitors before the benchmark run" in combined_prompts or "Consider adding these brands as tracked competitors before the benchmark run" in combined_prompts
     assert "Do not call non-tracked brands competitors included in benchmark" in combined_prompts
@@ -260,3 +262,85 @@ def test_run_brand_intelligence_analysis_corrects_source_labels_in_outputs(
     assert "**Obagi** - Known for prescription-strength products. (Source: AI-discovered market signal)" in result["recommendation_drivers"]
     assert "**Dr. Dennis Gross** - High review trust. (Source: Tracked competitor)" in result["target_brand_understanding"]
     assert "**La Roche-Posay** - Sensitive skin trust. (Source: AI-discovered market signal)" in result["positioning_gap_analysis"]
+
+
+def test_remove_tracked_competitors_from_market_signals_filters_existing_tracked(
+    brand_intelligence_module,
+):
+    text = """
+AI-Discovered Market Signals Not Included in Scoring
+- **Obagi** - Prescription-led familiarity. (Source: AI-discovered market signal)
+- **Universkin** - Personalized skincare positioning. (Source: AI-discovered market signal)
+Consider adding non-tracked relevant brands like Universkin and Mesoestetic.
+Tracked Competitors Included in Scoring
+- **SkinCeuticals** - Antioxidant authority. (Source: Tracked competitor)
+""".strip()
+
+    cleaned = brand_intelligence_module.remove_tracked_competitors_from_market_signals(
+        text,
+        ["SkinCeuticals", "Universkin", "Mesoestetic"],
+    )
+
+    assert "**Obagi** - Prescription-led familiarity. (Source: AI-discovered market signal)" in cleaned
+    assert "**Universkin** - Personalized skincare positioning." not in cleaned
+    assert "No additional non-tracked market signals were identified in this section." in cleaned
+    assert "**SkinCeuticals** - Antioxidant authority. (Source: Tracked competitor)" in cleaned
+
+
+def test_brand_intelligence_claim_safety_rewrites_regulated_phrasing(
+    brand_intelligence_module,
+):
+    text = (
+        "Published studies demonstrating product effectiveness and clinical efficacy "
+        "can prove effectiveness through clinical validations and medical-grade claims."
+    )
+
+    sanitized = brand_intelligence_module.sanitize_claim_safety(
+        text,
+        "skincare products",
+    )
+
+    assert "substantiated evidence or consumer study documentation" in sanitized
+    assert "substantiated product evidence" in sanitized
+    assert "support product claims" in sanitized
+    assert "expert validation and claims support documentation" in sanitized
+    assert "professional-grade positioning, where substantiated" in sanitized
+
+
+def test_correct_competitor_source_labels_handles_multi_brand_lines(
+    brand_intelligence_module,
+):
+    text = """
+2. **Established Dermatological Reputation** - Brands such as La Roche-Posay and Obagi are often cited.
+   *Source: Tracked competitor*
+3. **Professional Ingredient Trust** - Brands like iS Clinical and SkinCeuticals are often cited.
+   (Source: Tracked competitor)
+4. **Mixed Comparison Set** - Brands like SkinCeuticals and Obagi appear together.
+   (Source: Tracked competitor)
+""".strip()
+
+    corrected = brand_intelligence_module.correct_competitor_source_labels(
+        text,
+        ["iS Clinical", "SkinCeuticals"],
+    )
+
+    assert "(Source: AI-discovered market signal)" in corrected
+    assert "(Source: Mixed tracked competitor / AI-discovered market signal)" in corrected
+    assert corrected.count("(Source: Tracked competitor)") == 1
+
+
+def test_claim_safety_rewrites_new_harder_phrasing(
+    brand_intelligence_module,
+):
+    text = (
+        "Clinical studies or consumer feedback validating product effectiveness. "
+        "Invest in claims support documentation, only where substantiated and compliant or studies to substantiate efficacy claims."
+    )
+
+    sanitized = brand_intelligence_module.sanitize_claim_safety(
+        text,
+        "skincare products",
+    )
+
+    assert "Claims support documentation, consumer feedback, or expert validation, only where substantiated and compliant" in sanitized
+    assert "Develop claims support documentation and consumer evidence where substantiated and compliant" in sanitized

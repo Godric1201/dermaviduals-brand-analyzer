@@ -1,4 +1,65 @@
+import re
+
 from analyzer import ask_ai
+
+
+def _get_target_brand_metrics(summary_df, brand):
+    if summary_df is None or getattr(summary_df, "empty", False):
+        return {}
+
+    if "brand" not in summary_df.columns:
+        return {}
+
+    brand_rows = summary_df[
+        summary_df["brand"].astype(str).str.lower() == str(brand).lower()
+    ]
+    if brand_rows.empty:
+        return {}
+
+    row = brand_rows.iloc[0]
+    return {
+        "total_mentions": row.get("total_mentions", 0),
+        "prompts_visible": row.get("prompts_visible", 0),
+        "share_of_voice_percent": row.get("share_of_voice_percent", 0),
+    }
+
+
+def sanitize_conservative_targets(text, run_mode=None, target_brand_metrics=None):
+    metrics = target_brand_metrics or {}
+    zero_visibility = (
+        metrics.get("total_mentions", 0) == 0
+        or metrics.get("prompts_visible", 0) == 0
+        or metrics.get("share_of_voice_percent", 0) == 0
+    )
+
+    if run_mode != "Quick Test Mode" and not zero_visibility:
+        return text
+
+    sanitized = str(text or "")
+
+    replacements = [
+        (
+            r"(?:Improve\s+)?share of voice above 10%",
+            "begin generating measurable share of voice in a full benchmark",
+        ),
+        (
+            r"SOV above 10%",
+            "begin generating measurable share of voice in a full benchmark",
+        ),
+        (
+            r"Aim for at least \d+ mentions",
+            "begin generating detectable mentions in a full benchmark",
+        ),
+        (
+            r"at least \d+ mentions",
+            "begin generating detectable mentions in a full benchmark",
+        ),
+    ]
+
+    for pattern, replacement in replacements:
+        sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
+
+    return sanitized
 
 
 def generate_action_plan(
@@ -9,7 +70,8 @@ def generate_action_plan(
     report_language="English",
     category="category",
     market="target market",
-    audience="target audience"
+    audience="target audience",
+    run_mode=None,
 ):
     summary_table = summary_df.to_string(index=False)
 
@@ -366,4 +428,8 @@ GENERAL RULES
 """
 
     result = ask_ai(prompt, report_language)
-    return result
+    return sanitize_conservative_targets(
+        result,
+        run_mode=run_mode,
+        target_brand_metrics=_get_target_brand_metrics(summary_df, brand),
+    )

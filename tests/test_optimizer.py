@@ -95,3 +95,42 @@ def test_generate_action_plan_uses_generic_category_context(monkeypatch):
     assert "prompts_visible" in prompt
     assert "share_of_voice_percent" in prompt
     assert "query intent visibility" in prompt
+
+
+def test_sanitize_conservative_targets_rewrites_quick_test_aggressive_targets():
+    text = (
+        "Improve share of voice above 10%. "
+        "Aim for at least 5 mentions. "
+        "SOV above 10% would be a good milestone."
+    )
+
+    sanitized = optimizer.sanitize_conservative_targets(
+        text,
+        run_mode="Quick Test Mode",
+        target_brand_metrics={
+            "total_mentions": 0,
+            "prompts_visible": 0,
+            "share_of_voice_percent": 0,
+        },
+    )
+
+    assert "share of voice above 10%" not in sanitized.lower()
+    assert "at least 5 mentions" not in sanitized.lower()
+    assert sanitized.count("begin generating measurable share of voice in a full benchmark") == 2
+    assert "begin generating detectable mentions in a full benchmark" in sanitized
+
+
+def test_sanitize_conservative_targets_does_not_over_sanitize_supported_full_report():
+    text = "The brand should improve comparison visibility and strengthen total mentions."
+
+    sanitized = optimizer.sanitize_conservative_targets(
+        text,
+        run_mode="Full Report Mode",
+        target_brand_metrics={
+            "total_mentions": 4,
+            "prompts_visible": 2,
+            "share_of_voice_percent": 12,
+        },
+    )
+
+    assert sanitized == text

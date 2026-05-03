@@ -12,8 +12,31 @@ VALIDATION_NOTE = (
 )
 
 SOURCE_LABEL_PATTERN = re.compile(
-    r"\(Source:\s*(Tracked competitor|AI-discovered market signal)\)",
+    r"\*?\(?\s*Source:\s*(Tracked competitor|AI-discovered market signal|Mixed tracked competitor / AI-discovered market signal)\s*\)?\*?",
     re.IGNORECASE,
+)
+SOURCE_LABEL_ONLY_PATTERN = re.compile(
+    r"^\s*\*?\(?(?:Source:\s*(Tracked competitor|AI-discovered market signal|Mixed tracked competitor / AI-discovered market signal))\)?\*?\s*$",
+    re.IGNORECASE,
+)
+MARKET_SIGNAL_HEADING_PATTERN = re.compile(
+    r"^\s*(?:#+\s*)?(?:[-*]\s*)?AI-Discovered Market Signals Not Included in Scoring\s*:?\s*$",
+    re.IGNORECASE,
+)
+TRACKED_COMPETITOR_HEADING_PATTERN = re.compile(
+    r"^\s*(?:#+\s*)?(?:[-*]\s*)?Tracked Competitors Included in Scoring\s*:?\s*$",
+    re.IGNORECASE,
+)
+HEALTH_ADJACENT_TERMS = (
+    "skin",
+    "skincare",
+    "beauty",
+    "wellness",
+    "medical",
+    "clinic",
+    "health",
+    "derma",
+    "cosmetic",
 )
 
 
@@ -62,22 +85,141 @@ def _extract_labeled_brand_name(line):
     return None
 
 
+def _extract_candidate_brands_from_phrase(text):
+    candidates = []
+
+    for part in re.split(r",|\band\b|/|;", str(text or "")):
+        candidate = part.strip(" -*:().")
+        if not candidate:
+            continue
+        if not re.search(r"[A-ZÀ-ÖØ-Þ]", candidate):
+            continue
+        if len(candidate.split()) > 6:
+            continue
+        trimmed_tokens = []
+        for token in candidate.split():
+            if trimmed_tokens and token.islower():
+                break
+            if re.search(r"[A-ZÀ-ÖØ-Þ]", token) or token.lower() in {"iS", "dr."}:
+                trimmed_tokens.append(token)
+                continue
+            if trimmed_tokens:
+                break
+        if trimmed_tokens:
+            candidates.append(" ".join(trimmed_tokens))
+
+    return candidates
+
+
+def extract_brand_mentions_from_line(
+    line,
+    known_tracked_competitors,
+    known_market_signal_brands=None,
+):
+    line_text = str(line or "")
+    detected = []
+    seen = set()
+
+    def add_brand(value):
+        normalized_value = normalize_brand_name(value)
+        if normalized_value and normalized_value not in seen:
+            seen.add(normalized_value)
+            detected.append(value.strip())
+
+    for brand in known_tracked_competitors or []:
+        if re.search(re.escape(str(brand)), line_text, flags=re.IGNORECASE):
+            add_brand(str(brand))
+
+    for brand in known_market_signal_brands or []:
+        if re.search(re.escape(str(brand)), line_text, flags=re.IGNORECASE):
+            add_brand(str(brand))
+
+    found_cue_brands = False
+    for cue in ("such as", "like", "including"):
+        cue_match = re.search(
+            rf"\b{cue}\b(?P<phrase>.*?)(?:\(|[.;]|$)",
+            line_text,
+            flags=re.IGNORECASE,
+        )
+        if cue_match:
+            found_cue_brands = True
+            for candidate in _extract_candidate_brands_from_phrase(
+                cue_match.group("phrase")
+            ):
+                add_brand(candidate)
+
+    if not found_cue_brands:
+        for match in re.findall(r"\*\*([^*]+)\*\*", line_text):
+            add_brand(match)
+
+    return detected
+
+
+def classify_line_source(
+    line,
+    tracked_competitors,
+    known_market_signal_brands=None,
+):
+    brand_mentions = extract_brand_mentions_from_line(
+        line,
+        tracked_competitors,
+        known_market_signal_brands=known_market_signal_brands,
+    )
+
+    tracked_mentions = [
+        brand_name
+        for brand_name in brand_mentions
+        if is_tracked_competitor(brand_name, tracked_competitors)
+    ]
+    non_tracked_mentions = [
+        brand_name
+        for brand_name in brand_mentions
+        if not is_tracked_competitor(brand_name, tracked_competitors)
+    ]
+
+    if tracked_mentions and non_tracked_mentions:
+        return "Mixed tracked competitor / AI-discovered market signal"
+    if tracked_mentions:
+        return "Tracked competitor"
+    if non_tracked_mentions:
+        return "AI-discovered market signal"
+
+    return None
+
+
 def correct_competitor_source_labels(text, tracked_competitors):
     corrected_lines = []
+    previous_context_line = ""
 
     for line in str(text).splitlines():
         label_match = SOURCE_LABEL_PATTERN.search(line)
-        brand_name = _extract_labeled_brand_name(line)
 
-        if not label_match or not brand_name:
+        if not label_match and "source:" not in line.lower():
+            if line.strip():
+                previous_context_line = line
             corrected_lines.append(line)
             continue
 
-        expected_label = (
-            "Tracked competitor"
-            if is_tracked_competitor(brand_name, tracked_competitors)
-            else "AI-discovered market signal"
+        source_context = (
+            previous_context_line
+            if SOURCE_LABEL_ONLY_PATTERN.match(line.strip())
+            else line
         )
+        expected_label = classify_line_source(
+            source_context,
+            tracked_competitors,
+        )
+
+        if not expected_label:
+            expected_label = (
+                "AI-discovered market signal"
+                if "tracked competitor" in line.lower()
+                else None
+            )
+
+        if not expected_label:
+            corrected_lines.append(line)
+            continue
 
         corrected_lines.append(
             SOURCE_LABEL_PATTERN.sub(
@@ -88,6 +230,169 @@ def correct_competitor_source_labels(text, tracked_competitors):
         )
 
     return "\n".join(corrected_lines)
+def _extract_labeled_brand_name(line):
+    if "(Source:" not in line:
+        return None
+
+    bold_match = re.match(
+        r"^\s*(?:[-*]|\d+[.)])\s*\*\*(?P<brand>[^*]+)\*\*",
+        line,
+    )
+    if bold_match:
+        return bold_match.group("brand").strip()
+
+    plain_match = re.match(
+        r"^\s*(?:[-*]|\d+[.)])\s*(?P<brand>[^:()\-]+?)\s*(?:-|:)",
+        line,
+    )
+    if plain_match:
+        return plain_match.group("brand").strip()
+
+    return None
+
+
+def _is_health_adjacent_category(category):
+    normalized_category = normalize_brand_name(category)
+    return any(term in normalized_category for term in HEALTH_ADJACENT_TERMS)
+
+
+def sanitize_claim_safety(text, category):
+    if not _is_health_adjacent_category(category):
+        return str(text)
+
+    replacements = [
+        (
+            r"Clinical studies or consumer feedback validating product effectiveness",
+            "Claims support documentation, consumer feedback, or expert validation, only where substantiated and compliant",
+        ),
+        (
+            r"clinical studies or consumer feedback validating product effectiveness",
+            "claims support documentation, consumer feedback, or expert validation, only where substantiated and compliant",
+        ),
+        (
+            r"Invest in claims support documentation, only where substantiated and compliant or studies to substantiate efficacy claims",
+            "Develop claims support documentation and consumer evidence where substantiated and compliant",
+        ),
+        (
+            r"published studies demonstrating product effectiveness",
+            "substantiated evidence or consumer study documentation",
+        ),
+        (
+            r"studies to substantiate efficacy claims",
+            "claims support documentation where substantiated and compliant",
+        ),
+        (
+            r"validate efficacy claims",
+            "support product claims where substantiated and compliant",
+        ),
+        (
+            r"validating product effectiveness",
+            "supporting product claims where substantiated and compliant",
+        ),
+        (
+            r"clinical validations",
+            "expert validation and claims support documentation",
+        ),
+        (
+            r"clinical trials",
+            "claims support documentation, only where substantiated and compliant",
+        ),
+        (
+            r"clinical efficacy",
+            "substantiated product evidence",
+        ),
+        (
+            r"clinically effective",
+            "evidence-supported",
+        ),
+        (
+            r"prove effectiveness",
+            "support product claims",
+        ),
+        (
+            r"medical-grade claims",
+            "professional-grade positioning, where substantiated",
+        ),
+    ]
+
+    sanitized = str(text)
+    for pattern, replacement in replacements:
+        sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
+
+    return sanitized
+
+
+def _remove_tracked_names_from_sentence(line, tracked_competitors):
+    updated_line = line
+    removed_any = False
+
+    for competitor in tracked_competitors or []:
+        pattern = re.compile(re.escape(str(competitor)), re.IGNORECASE)
+        if pattern.search(updated_line):
+            updated_line = pattern.sub("", updated_line)
+            removed_any = True
+
+    if not removed_any:
+        return line
+
+    updated_line = re.sub(r"\s*,\s*,+", ", ", updated_line)
+    updated_line = re.sub(r",\s*(and\s*)?,", ", ", updated_line, flags=re.IGNORECASE)
+    updated_line = re.sub(r"\s{2,}", " ", updated_line)
+    updated_line = re.sub(r"\blike\s*(?:,|\band\b)?\s*", "like ", updated_line, flags=re.IGNORECASE)
+    updated_line = re.sub(r"\blike\s*[.]", ".", updated_line, flags=re.IGNORECASE)
+    updated_line = re.sub(r"\blike\s*$", "", updated_line, flags=re.IGNORECASE)
+    updated_line = re.sub(r"\s+\.", ".", updated_line)
+    updated_line = re.sub(r"\s+,", ",", updated_line)
+    updated_line = updated_line.strip()
+
+    if "Consider adding" in line and not re.search(r"[A-Za-z]{2,}", updated_line.split("like")[-1] if "like" in updated_line else ""):
+        return "No additional non-tracked market signals were identified in this section."
+
+    return updated_line
+
+
+def remove_tracked_competitors_from_market_signals(text, tracked_competitors):
+    lines = str(text).splitlines()
+    cleaned_lines = []
+    in_market_signal_section = False
+
+    for line in lines:
+        stripped_line = line.strip()
+
+        if MARKET_SIGNAL_HEADING_PATTERN.match(stripped_line):
+            in_market_signal_section = True
+            cleaned_lines.append(line)
+            continue
+
+        if TRACKED_COMPETITOR_HEADING_PATTERN.match(stripped_line):
+            in_market_signal_section = False
+            cleaned_lines.append(line)
+            continue
+
+        if in_market_signal_section:
+            brand_name = _extract_labeled_brand_name(line)
+            if brand_name and is_tracked_competitor(brand_name, tracked_competitors):
+                continue
+
+            if "Consider adding" in line:
+                cleaned_lines.append(
+                    _remove_tracked_names_from_sentence(line, tracked_competitors)
+                )
+                continue
+
+        cleaned_lines.append(line)
+
+    return "\n".join(cleaned_lines)
+
+
+def _sanitize_brand_intelligence_text(text, tracked_competitors, category):
+    sanitized = correct_competitor_source_labels(text, tracked_competitors)
+    sanitized = remove_tracked_competitors_from_market_signals(
+        sanitized,
+        tracked_competitors,
+    )
+    sanitized = sanitize_claim_safety(sanitized, category)
+    return sanitized
 
 
 def _dataframe_preview(df, max_rows=40):
@@ -201,6 +506,9 @@ Rules:
 - Treat competitors listed above as tracked competitors used for benchmark scoring.
 - The tracked competitor list is the only source of truth for Source: Tracked competitor.
 - Never label a non-tracked brand as Source: Tracked competitor.
+- Do not list tracked competitors as AI-discovered market signals.
+- Before suggesting a brand for the next benchmark run, verify it is not already in the tracked competitor list.
+- If no non-tracked brands are available, say no additional non-tracked market signals were identified.
 - If other brands appear in raw answers, describe them as AI-discovered market signals only.
 - Do not imply AI-discovered market signals are included in visibility scoring unless they are tracked competitors.
 - Prefer tracked competitors first when listing competitor signals.
@@ -267,6 +575,9 @@ Rules:
 - Distinguish tracked competitors from AI-discovered market signals.
 - The tracked competitor list is the only source of truth for Source: Tracked competitor.
 - Never label a non-tracked brand as Source: Tracked competitor.
+- Do not list tracked competitors as AI-discovered market signals.
+- Before suggesting a brand for the next benchmark run, verify it is not already in the tracked competitor list.
+- If no non-tracked brands are available, say no additional non-tracked market signals were identified.
 - Do not imply AI-discovered market signals are included in visibility scoring unless they are tracked competitors.
 - Prefer tracked competitors first when listing competitor signals.
 - Consider adding these brands as tracked competitors before the benchmark run if they are strategically relevant.
@@ -334,6 +645,9 @@ Rules:
 - Distinguish tracked competitors from AI-discovered market signals.
 - The tracked competitor list is the only source of truth for Source: Tracked competitor.
 - Never label a non-tracked brand as Source: Tracked competitor.
+- Do not list tracked competitors as AI-discovered market signals.
+- Before suggesting a brand for the next benchmark run, verify it is not already in the tracked competitor list.
+- If no non-tracked brands are available, say no additional non-tracked market signals were identified.
 - Do not imply AI-discovered market signals are included in visibility scoring unless they are tracked competitors.
 - Include separate sections titled Tracked Competitors Included in Scoring and AI-Discovered Market Signals Not Included in Scoring where relevant.
 - If non-tracked brands are mentioned, label them as Source: AI-discovered market signal.
@@ -400,9 +714,10 @@ def run_brand_intelligence_analysis(
         ),
         report_language,
     )
-    recommendation_drivers = correct_competitor_source_labels(
+    recommendation_drivers = _sanitize_brand_intelligence_text(
         recommendation_drivers,
         competitors,
+        category,
     )
 
     if on_progress is not None:
@@ -422,9 +737,10 @@ def run_brand_intelligence_analysis(
         ),
         report_language,
     )
-    target_brand_understanding = correct_competitor_source_labels(
+    target_brand_understanding = _sanitize_brand_intelligence_text(
         target_brand_understanding,
         competitors,
+        category,
     )
 
     if on_progress is not None:
@@ -442,9 +758,10 @@ def run_brand_intelligence_analysis(
         ),
         report_language,
     )
-    positioning_gap_analysis = correct_competitor_source_labels(
+    positioning_gap_analysis = _sanitize_brand_intelligence_text(
         positioning_gap_analysis,
         competitors,
+        category,
     )
 
     return {

@@ -22,6 +22,7 @@ def run_visibility_analysis(
     on_progress=None,
     prompt_limit=None,
     competitors=None,
+    run_mode=None,
 ):
     if competitors is None:
         competitors = get_competitors()
@@ -94,7 +95,8 @@ def run_visibility_analysis(
         report_language=report_language,
         category=category,
         market=market,
-        audience=audience
+        audience=audience,
+        run_mode=run_mode,
     )
 
     return {
