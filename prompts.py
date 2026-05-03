@@ -74,46 +74,72 @@ FIXED_PROMPTS = [
 ]
 
 
+def _normalize_context(value):
+    return " ".join(str(value).strip().split())
+
+
+def audience_contains_market(audience, market):
+    audience_text = _normalize_context(audience).lower()
+    market_text = _normalize_context(market).lower()
+
+    return bool(market_text and market_text in audience_text)
+
+
+def format_audience_market_context(audience, market):
+    audience_text = _normalize_context(audience)
+    market_text = _normalize_context(market)
+
+    if not audience_text:
+        return f"in {market_text}" if market_text else ""
+
+    if not market_text or audience_contains_market(audience_text, market_text):
+        return audience_text
+
+    return f"{audience_text} in {market_text}"
+
+
 def build_fixed_prompts(category, market, audience):
+    audience_market_context = format_audience_market_context(audience, market)
+
     return [
         {
             "category": "Best Options",
-            "prompt": f"What are the best {category} options for {audience} in {market}?"
+            "prompt": f"What are the best {category} for {audience_market_context}?"
         },
         {
             "category": "Local Recommendations",
-            "prompt": f"Which {category} brands or providers are most recommended locally in {market}?"
+            "prompt": f"Which {category} are most recommended locally in {market}?"
         },
         {
             "category": "Audience-Specific Recommendations",
-            "prompt": f"Which {category} options are best suited for {audience} in {market}?"
+            "prompt": f"Which {category} are best suited for {audience_market_context}?"
         },
         {
             "category": "Use-Case Recommendations",
-            "prompt": f"What {category} options are recommended for common high-intent use cases among {audience}?"
+            "prompt": f"Which {category} are recommended for common high-intent use cases among {audience_market_context}?"
         },
         {
             "category": "Premium Options",
-            "prompt": f"Which premium or high-end {category} brands or providers are worth considering in {market}?"
+            "prompt": f"Which premium or high-end {category} are worth considering in {market}?"
         },
         {
             "category": "Budget-Friendly Options",
-            "prompt": f"Which accessible or budget-friendly {category} options are worth considering in {market}?"
+            "prompt": f"Which accessible or budget-friendly {category} are worth considering in {market}?"
         },
         {
             "category": "Comparison Queries",
-            "prompt": f"How do leading {category} brands or providers compare for {audience} in {market}?"
+            "prompt": f"How do leading {category} compare for {audience_market_context}?"
         },
         {
             "category": "Alternatives To Leading Competitors",
-            "prompt": f"What are good alternatives to leading {category} brands or providers in {market}?"
+            "prompt": f"What are good alternatives to leading {category} in {market}?"
         },
         {
             "category": "Trust And Review Signals",
-            "prompt": f"Which {category} options in {market} are known for strong reviews, trust signals, or customer confidence?"
+            "prompt": f"Which {category} in {market} are known for strong reviews, trust signals, or customer confidence?"
         },
         {
             "category": "Decision Criteria",
-            "prompt": f"What should {audience} consider when choosing between {category} options in {market}?"
+            "prompt": f"What should {audience_market_context} consider when choosing between {category}?"
         },
     ]

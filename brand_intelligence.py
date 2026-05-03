@@ -40,6 +40,36 @@ def _raw_answers_preview(raw_answers, max_items=10):
     return str(raw_answers[:max_items])
 
 
+def _get_target_benchmark_visibility_context(summary_df, brand):
+    if summary_df is None or getattr(summary_df, "empty", False):
+        return "No benchmark visibility summary was provided."
+
+    if "brand" not in summary_df.columns:
+        return "No benchmark visibility summary was provided."
+
+    brand_rows = summary_df[
+        summary_df["brand"].astype(str).str.lower() == str(brand).lower()
+    ]
+
+    if brand_rows.empty:
+        return f"No benchmark summary row was found for {brand}."
+
+    row = brand_rows.iloc[0]
+
+    mentions = row.get("total_mentions", 0)
+    average_visibility = row.get("average_visibility_score", 0)
+    prompts_visible = row.get("prompts_visible", 0)
+    share_of_voice = row.get("share_of_voice_percent", 0)
+
+    return (
+        f"Unbranded benchmark visibility for {brand}: "
+        f"{mentions} total mentions, "
+        f"{average_visibility} average visibility score, "
+        f"{prompts_visible} prompts visible, "
+        f"{share_of_voice}% share of voice."
+    )
+
+
 def build_recommendation_driver_prompt(
     brand,
     category,
@@ -102,6 +132,7 @@ def build_target_understanding_prompt(
     market,
     audience,
     diagnostic_answers,
+    benchmark_visibility_context,
 ):
     return f"""
 You are synthesizing target-brand diagnostic answers for Brand Intelligence and Positioning Gap Analysis.
@@ -118,6 +149,9 @@ Market:
 Audience:
 {audience}
 
+Benchmark Visibility Context:
+{benchmark_visibility_context}
+
 Diagnostic Answers:
 {diagnostic_answers}
 
@@ -129,11 +163,14 @@ Return:
 - Weak associations
 - Missing evidence
 - Uncertainties
-- Recommendation likelihood
+- Prompted Diagnostic Fit
 
 Rules:
 - AI-inferred; validate before using as client-facing fact.
 - Distinguish inferred observations from verified facts.
+- Natural benchmark visibility comes from the unbranded benchmark.
+- Prompted diagnostic fit is a target-branded diagnostic assessment requiring validation.
+- If the benchmark shows 0 mentions or 0 share of voice, describe fit as potential, prompted, or subject to validation, not as natural recommendation visibility.
 - Avoid unsupported factual claims.
 """.strip()
 
@@ -256,6 +293,10 @@ def run_brand_intelligence_analysis(
             market=market,
             audience=audience,
             diagnostic_answers=diagnostic_answers,
+            benchmark_visibility_context=_get_target_benchmark_visibility_context(
+                summary_df,
+                brand,
+            ),
         ),
         report_language,
     )

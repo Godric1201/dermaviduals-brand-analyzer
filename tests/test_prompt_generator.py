@@ -60,19 +60,20 @@ def test_generate_search_prompts_uses_generic_category_context(
 ):
     captured_prompts = []
     fake_queries = [
-        "What are the best cafes options for remote workers in Berlin?",
+        "What are the best cafes for remote workers in Berlin?",
         "Which cafes brands or providers are recommended locally in Berlin?",
-        "How do leading cafes options compare for remote workers?",
-        "What are good alternatives to leading cafes providers in Berlin?",
+        "How do leading cafes compare for remote workers in Berlin?",
+        "What are good alternatives to leading cafes in Berlin?",
         "Which cafes in Berlin are known for strong reviews and trust signals?",
-        "What should remote workers consider when choosing between cafes options in Berlin?",
-        "Which premium cafes options are worth considering in Berlin?",
-        "Which budget-friendly cafes options are worth considering in Berlin?",
-        "What cafes options fit high-intent use cases for remote workers?",
+        "What should remote workers in Berlin consider when choosing between cafes?",
+        "Which premium cafes are worth considering in Berlin?",
+        "Which budget-friendly cafes are worth considering in Berlin?",
+        "Which cafes fit high-intent use cases for remote workers in Berlin?",
         "Which cafes brands are top recommendations for remote workers in Berlin?",
-        "Is Espresso House one of the best cafes for remote workers in Berlin?",
+        "Which cafes in Berlin are most trusted by remote workers?",
+        "Is Espresso House one of the best cafes in Berlin for remote workers?",
         "How does Coffee Fellows compare with other cafes in Berlin?",
-        "What are the best cafes options for remote workers in Berlin?",
+        "What are the best cafes for remote workers in Berlin?",
     ]
 
     def fake_ask_ai(prompt, language="English"):
@@ -109,6 +110,8 @@ def test_generate_search_prompts_uses_generic_category_context(
     assert "local" in prompt.lower()
     assert "trust" in prompt.lower() or "reviews" in prompt.lower()
     assert "decision criteria" in prompt.lower()
+    assert "cafes options" not in prompt.lower()
+    assert "in berlin in berlin" not in prompt.lower()
 
     for term in blocked_terms:
         assert term.lower() not in prompt.lower()
@@ -118,6 +121,33 @@ def test_generate_search_prompts_uses_generic_category_context(
     assert all("Espresso House" not in item["prompt"] for item in result)
     assert all("Coffee Fellows" not in item["prompt"] for item in result)
     assert capsys.readouterr().out == ""
+
+
+def test_generate_search_prompts_avoids_duplicate_audience_market_context(
+    monkeypatch,
+    prompt_generator_module,
+):
+    captured_prompts = []
+
+    def fake_ask_ai(prompt, language="English"):
+        captured_prompts.append(prompt)
+        return "[]"
+
+    monkeypatch.setattr(prompt_generator_module, "ask_ai", fake_ask_ai)
+
+    prompt_generator_module.generate_search_prompts(
+        brand="Dermaviduals",
+        competitors=["Competitor A"],
+        category="skincare products",
+        market="Hong Kong",
+        audience="skincare-conscious consumers in Hong Kong",
+        output_language="English",
+    )
+
+    prompt = captured_prompts[0]
+
+    assert "skincare-conscious consumers in Hong Kong in Hong Kong" not in prompt
+    assert "skincare-conscious consumers in Hong Kong" in prompt
 
 
 def test_generate_search_prompts_returns_empty_without_debug_print(

@@ -159,6 +159,8 @@ def test_create_executive_docx_report_uses_generic_category_wording():
         "clinic-grade",
         "post-treatment",
         "Hong Kong clinic-grade skincare",
+        "clinical performance",
+        "professional third-party recommendation signals",
     ]
 
     for term in blocked_terms:
@@ -166,6 +168,8 @@ def test_create_executive_docx_report_uses_generic_category_wording():
 
     assert "cafes" in document_xml
     assert "Berlin" in document_xml
+    assert "third-party trust or recommendation signals" in document_xml
+    assert "business outcomes" in document_xml
 
 
 def test_create_executive_docx_report_handles_all_zero_visibility_without_fake_leaders():
@@ -232,7 +236,9 @@ def test_create_executive_docx_report_includes_brand_intelligence_when_provided(
                 "#### AI-Inferred Strengths\n"
                 "Test target brand understanding\n"
                 "#### Weak Associations\n"
-                "Test weak associations"
+                "Test weak associations\n"
+                "### Recommendation Likelihood\n"
+                "Legacy heading that should be normalized"
             ),
             "positioning_gap_analysis": "Test positioning gap analysis",
         }
@@ -255,6 +261,7 @@ def test_create_executive_docx_report_includes_brand_intelligence_when_provided(
         "Recurring Recommendation Drivers",
         "AI-Inferred Strengths",
         "Weak Associations",
+        "Prompted Diagnostic Fit",
         "Test recommendation drivers",
         "Test target brand understanding",
         "Test positioning gap analysis",
@@ -266,6 +273,7 @@ def test_create_executive_docx_report_includes_brand_intelligence_when_provided(
     blocked_terms = [
         "### Recurring Recommendation Drivers",
         "#### Weak Associations",
+        "### Recommendation Likelihood",
     ]
 
     for term in blocked_terms:

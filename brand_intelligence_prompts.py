@@ -44,6 +44,11 @@ User-Provided Brand Strengths: {strengths_context}
 Important:
 - Label uncertain or weakly supported claims clearly.
 - Distinguish AI-inferred observations from user-provided positioning notes.
+- Distinguish natural benchmark visibility from prompted diagnostic fit.
+- Do not imply natural AI recommendation visibility from a target-branded diagnostic prompt.
+- Natural benchmark visibility refers to unbranded benchmark results.
+- Prompted diagnostic fit is a target-branded diagnostic assessment that requires validation.
+- If the benchmark shows the target brand has 0 mentions or 0 share of voice, describe diagnostic fit as potential, prompted, or subject to validation, not as natural recommendation visibility.
 - Avoid unsupported factual claims.
 - {DIAGNOSTIC_VALIDATION_NOTE}
 """
@@ -95,18 +100,22 @@ Return:
 """.strip()
         },
         {
-            "category": "Recommendation Likelihood",
+            "category": "Prompted Diagnostic Fit",
             "prompt": f"""
 {shared_context}
 
 Diagnostic task:
-Would AI be likely to recommend {brand} as a {category} option for {audience} in {market}? Explain why, why not, and what evidence would change that recommendation.
+Assess the prompted diagnostic fit of {brand} as a {category} option for {audience} in {market}. Explain why, why not, and what evidence would change that assessment.
 
 Return:
-- Recommendation likelihood
+- Prompted Diagnostic Fit
 - Reasons for inclusion
 - Reasons for exclusion
 - Evidence gaps
+
+Rules:
+- Describe this as prompted diagnostic fit, not natural benchmark visibility.
+- If benchmark visibility is weak or absent, keep the assessment potential, prompted, and subject to validation.
 """.strip()
         },
         {

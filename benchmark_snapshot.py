@@ -54,6 +54,8 @@ def build_benchmark_snapshot(
     brand_intelligence = brand_intelligence or {}
 
     snapshot = {
+        "schema_version": "1.0",
+        "generated_at": report_date,
         "metadata": {
             "brand": brand,
             "market": market,

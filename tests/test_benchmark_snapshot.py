@@ -53,12 +53,16 @@ def test_benchmark_snapshot_has_expected_top_level_keys():
     snapshot = build_sample_snapshot()
 
     assert set(snapshot) == {
+        "schema_version",
+        "generated_at",
         "metadata",
         "summary_records",
         "detailed_records",
         "brand_intelligence",
         "notes",
     }
+    assert snapshot["schema_version"] == "1.0"
+    assert snapshot["generated_at"] == "2026-05-02"
 
 
 def test_benchmark_snapshot_metadata_includes_run_context():

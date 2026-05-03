@@ -1,6 +1,7 @@
 import ast
 
 from analyzer import ask_ai
+from prompts import format_audience_market_context
 
 
 def extract_python_list(text):
@@ -147,6 +148,8 @@ def generate_search_prompts(
     audience,
     output_language="English"
 ):
+    audience_market_context = format_audience_market_context(audience, market)
+
     prompt = f"""
 You are an AI search behavior expert specializing in generative search visibility and category recommendation behavior.
 
@@ -168,31 +171,31 @@ Important:
 Generate a balanced Prompt Matrix:
 
 1. Best Options / Top Recommendations
-- Ask for the best, top, or recommended {category} options
+- Ask for the best, top, or recommended {category}
 
 2. Local Recommendations
-- Ask which {category} options are recommended locally in {market}
+- Ask which {category} are recommended locally in {market}
 
 3. Audience-Specific Recommendations
-- Ask which options are best suited for {audience}
+- Ask which {category} are best suited for {audience_market_context}
 
 4. High-Intent Use Cases
-- Ask which {category} options fit common high-intent use cases for {audience}
+- Ask which {category} fit common high-intent use cases for {audience_market_context}
 
 5. Premium / Budget Options
 - Include premium, high-end, accessible, or budget-friendly recommendation contexts
 
 6. Comparison Queries
-- Ask how leading {category} options compare without naming any brand
+- Ask how leading {category} compare without naming any brand
 
 7. Alternatives To Leading Competitors
-- Ask for alternatives to leading {category} brands or providers without naming any brand
+- Ask for alternatives to leading {category} without naming any brand
 
 8. Trust Signals And Reviews
-- Ask which options are known for strong reviews, trust signals, credibility, or customer confidence
+- Ask which {category} are known for strong reviews, trust signals, credibility, or customer confidence
 
 9. Decision Criteria
-- Ask what {audience} should consider when choosing between {category} options in {market}
+- Ask what {audience_market_context} should consider when choosing between {category}
 
 Strict Rules:
 - Return ONLY a Python list of strings
@@ -207,11 +210,11 @@ Strict Rules:
 
 Good examples:
 [
-"What are the best {category} options for {audience} in {market}?",
+"What are the best {category} for {audience_market_context}?",
 "Which {category} brands or providers are most recommended locally in {market}?",
-"How do leading {category} options compare for {audience}?",
-"What are good alternatives to leading {category} providers in {market}?",
-"What should {audience} consider when choosing between {category} options in {market}?"
+"How do leading {category} compare for {audience_market_context}?",
+"What are good alternatives to leading {category} in {market}?",
+"What should {audience_market_context} consider when choosing between {category}?"
 ]
 """
 

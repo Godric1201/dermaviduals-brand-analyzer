@@ -145,6 +145,11 @@ def add_markdownish_text(document, text):
         if not line:
             continue
 
+        line = line.replace(
+            "Recommendation Likelihood",
+            "Prompted Diagnostic Fit",
+        )
+
         if line.startswith("#### "):
             add_subheading(document, line.removeprefix("#### ").strip())
         elif line.startswith("### "):
@@ -463,7 +468,7 @@ def get_visibility_gap_sentences(
                 "Semantic association with high-intent use cases, comparison queries, local intent, and decision-stage searches is not measurable in the tested answers."
             ),
             "third_party_signals": (
-                "No tested AI answers provided professional third-party recommendation signals for the brand."
+                "No tested AI answers provided measurable third-party trust or recommendation signals for the brand."
             ),
             "comparison_footprint": (
                 "No visible comparison footprint was detected against higher-performing benchmark brands or providers."
@@ -481,7 +486,7 @@ def get_visibility_gap_sentences(
             f"Semantic association should be expanded from the current {avg_visibility} average visibility score into high-intent use cases, comparison queries, local intent, and decision-stage searches."
         ),
         "third_party_signals": (
-            f"Professional third-party recommendation signals should be strengthened to improve from the current {share_of_voice}% share of voice."
+            f"Measurable third-party trust or recommendation signals should be strengthened to improve from the current {share_of_voice}% share of voice."
         ),
         "comparison_footprint": (
             f"Comparison footprint remains limited relative to higher-performing benchmark brands or providers at {avg_visibility} average visibility."
@@ -1172,7 +1177,7 @@ def add_methodology_notes(
     f"The benchmark is based on fixed and AI-generated prompts designed to simulate {category} recommendation queries.",
     "Visibility is calculated from brand mentions, estimated ranking, and prompt-level appearance.",
     "Share of voice reflects the distribution of brand mentions among tracked competitors.",
-    "Scores reflect AI answer visibility, not actual brand revenue, market share, product efficacy, or clinical performance.",
+    "Scores reflect AI answer visibility, not actual revenue, market share, product performance, customer satisfaction, or business outcomes.",
     "The output should be interpreted as an AI visibility benchmark, not as a consumer survey, sales performance report, or clinical evaluation.",
     "Results should be re-run periodically to track whether content and visibility interventions improve AI recall."
 ]

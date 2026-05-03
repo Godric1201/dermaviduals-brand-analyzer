@@ -18,7 +18,7 @@ def test_build_target_diagnostic_prompts_returns_expected_shape():
         "Brand Knowledge",
         "Category Association",
         "Strengths And Weaknesses",
-        "Recommendation Likelihood",
+        "Prompted Diagnostic Fit",
         "Competitive Comparison",
         "Evidence And Trust Signals",
     ]
@@ -50,7 +50,7 @@ def test_build_target_diagnostic_prompts_include_context_and_validation_wording(
         assert "remote workers" in prompt
 
 
-def test_build_target_diagnostic_prompts_avoid_visibility_metric_wording():
+def test_build_target_diagnostic_prompts_distinguish_benchmark_visibility_and_diagnostic_fit():
     prompts = build_target_diagnostic_prompts(
         brand="Espresso House",
         category="cafes",
@@ -60,14 +60,11 @@ def test_build_target_diagnostic_prompts_avoid_visibility_metric_wording():
 
     prompt_text = " ".join(item["prompt"] for item in prompts).lower()
 
-    blocked_terms = [
-        "sov",
-        "share of voice",
-        "visibility score",
-    ]
-
-    for term in blocked_terms:
-        assert term not in prompt_text
+    assert "prompted diagnostic fit" in prompt_text
+    assert "natural benchmark visibility" in prompt_text
+    assert "unbranded benchmark results" in prompt_text
+    assert "0 mentions or 0 share of voice" in prompt_text
+    assert "recommendation likelihood" not in prompt_text
 
 
 def test_build_target_diagnostic_prompts_can_include_competitors_and_user_strengths():

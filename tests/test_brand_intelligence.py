@@ -125,6 +125,13 @@ def test_run_brand_intelligence_analysis_prompts_include_context(
         assert "Berlin" in prompt
         assert "remote workers" in prompt
 
+    combined_prompts = "\n".join(captured_prompts)
+
+    assert "Prompted Diagnostic Fit" in combined_prompts
+    assert "Natural benchmark visibility" in combined_prompts
+    assert "target-branded diagnostic assessment requiring validation" in combined_prompts
+    assert "Recommendation likelihood" not in combined_prompts
+
 
 def test_run_brand_intelligence_analysis_tracks_progress(
     monkeypatch,
