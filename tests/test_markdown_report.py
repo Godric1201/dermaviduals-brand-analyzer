@@ -137,6 +137,24 @@ def test_build_executive_markdown_report_includes_optional_appendices():
 
     assert "Appendix A: Brand Intelligence & Positioning Audit" in report
     assert "GEO Content Roadmap" in report
+    assert "Tracked competitors are included in visibility scoring and share of voice." in report
+    assert "AI-discovered market signals are diagnostic references only" in report
+
+
+def test_build_executive_markdown_report_avoids_duplicate_market_in_intro():
+    inputs = create_markdown_inputs()
+    inputs["display_brand"] = "Dermaviduals"
+    inputs["display_category"] = "Professional Skincare Products"
+    inputs["display_market"] = "Hong Kong"
+    inputs["display_audience"] = "skincare-conscious consumers in Hong Kong"
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert "in Hong Kong in Hong Kong" not in report
+    assert (
+        "recommendations for skincare-conscious consumers in Hong Kong."
+        in report
+    )
 
 
 def test_build_executive_markdown_report_omits_optional_appendices_when_absent():

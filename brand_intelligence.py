@@ -113,14 +113,28 @@ Task:
 Extract the recurring recommendation drivers that appear in the benchmark answers.
 
 Return:
-- Recurring recommendation drivers
-- Competitor advantage signals
+- Top 5 recurring recommendation drivers
+- Top 5 competitor advantage signals
 - Evidence patterns from benchmark answers
 - Unmet query intents
+- Tracked Competitors Included in Scoring
+- AI-Discovered Market Signals Not Included in Scoring
+- If listing competitor advantage signals, label each item with Source: Tracked competitor or Source: AI-discovered market signal
+
+Format:
+- Prefer compact tables or bullet lists over long paragraphs.
+- Clearly label each signal as Benchmark-derived, AI-inferred, or User-provided where relevant.
 
 Rules:
 - Do not treat this as a scoring calculation.
 - Do not create visibility scores, share of voice, or rankings.
+- Treat competitors listed above as tracked competitors used for benchmark scoring.
+- If other brands appear in raw answers, describe them as AI-discovered market signals only.
+- Do not imply AI-discovered market signals are included in visibility scoring unless they are tracked competitors.
+- Prefer tracked competitors first when listing competitor signals.
+- Consider adding these brands as tracked competitors before the benchmark run if they are strategically relevant.
+- Do not call non-tracked brands competitors included in benchmark.
+- Avoid generic advice unless it is tied to a benchmark driver, competitor signal, or evidence gap.
 - Avoid unsupported factual claims.
 - Label uncertain observations clearly.
 """.strip()
@@ -164,12 +178,25 @@ Return:
 - Missing evidence
 - Uncertainties
 - Prompted Diagnostic Fit
+- Top competitor-owned associations
+- Tracked Competitors Included in Scoring
+- AI-Discovered Market Signals Not Included in Scoring
+- Action implications
+
+Format:
+- Prefer compact tables or bullet lists over long paragraphs.
+- Clearly label signals as Benchmark-derived, AI-inferred, or User-provided where relevant.
 
 Rules:
 - AI-inferred; validate before using as client-facing fact.
 - Distinguish inferred observations from verified facts.
 - Natural benchmark visibility comes from the unbranded benchmark.
 - Prompted diagnostic fit is a target-branded diagnostic assessment requiring validation.
+- Distinguish tracked competitors from AI-discovered market signals.
+- Do not imply AI-discovered market signals are included in visibility scoring unless they are tracked competitors.
+- Prefer tracked competitors first when listing competitor signals.
+- Consider adding these brands as tracked competitors before the benchmark run if they are strategically relevant.
+- Avoid generic advice unless it is tied to a benchmark driver, competitor signal, or evidence gap.
 - If the benchmark shows 0 mentions or 0 share of voice, describe fit as potential, prompted, or subject to validation, not as natural recommendation visibility.
 - Avoid unsupported factual claims.
 """.strip()
@@ -213,17 +240,32 @@ Compare category recommendation drivers, competitor advantage signals, AI-inferr
 
 Return:
 - Missing associations
+- For each missing association include:
+  - Association
+  - Source: benchmark-derived / AI-inferred / user-provided
+  - Why It Matters
+  - Evidence Needed
+  - Recommended Action
 - Strongest opportunity territories
+- Review / Trust Signal Gaps
 - Content priorities
 - PR / trust signal priorities
-- Competitor attack angles
-- Evidence gaps
 - Recommended next steps
 
 Rules:
+- Prefer compact tables or bullet lists over long paragraphs.
 - Do not produce unsupported factual claims.
 - Label AI-inferred findings clearly.
+- Clearly label each signal as Benchmark-derived, AI-inferred, or User-provided.
+- Distinguish tracked competitors from AI-discovered market signals.
+- Do not imply AI-discovered market signals are included in visibility scoring unless they are tracked competitors.
+- Include separate sections titled Tracked Competitors Included in Scoring and AI-Discovered Market Signals Not Included in Scoring where relevant.
+- If non-tracked brands are mentioned, label them as Source: AI-discovered market signal.
+- Prefer tracked competitors first when listing competitor signals.
+- Consider adding these brands as tracked competitors before the benchmark run if they are strategically relevant.
+- Do not call non-tracked brands competitors included in benchmark.
 - Treat user-provided strengths as client-provided notes that still need evidence.
+- Avoid generic advice unless it is tied to a benchmark driver, competitor signal, or evidence gap.
 - Do not create or modify visibility scores, share of voice, or rankings.
 """.strip()
 

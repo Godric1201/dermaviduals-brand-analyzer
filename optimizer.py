@@ -91,6 +91,12 @@ Important competitor rule:
 - If non-summary-table brands appear in raw AI answers, mention them only once in a short note called "Secondary Market Signals."
 - Do NOT include La Roche-Posay, CeraVe, Avène, EltaMD, Obagi, SkinCeuticals, or SkinMedica as dominant competitors unless they appear in the Summary Table.
 - The strategic focus must remain on {brand} versus the benchmark competitors in the Summary Table.
+- Do not repeat the GEO Content Roadmap.
+- Do not repeat the Strategic Priorities table.
+- Focus on interpretation, diagnosis, and prioritization logic rather than another generic action list.
+- Every recommendation must reference at least one of: a benchmark metric, a query intent category, a tracked competitor signal, or a missing evidence gap.
+- Replace generic recommendations with specific recommendations that name the content asset, target query, evidence required, competitor territory challenged, and expected benchmark metric influenced.
+- Avoid generic phrases such as "increase online presence", "build awareness", "create content", or "engage community" unless they are made specific with benchmark evidence.
 
 ========================
 OUTPUT STRUCTURE
@@ -274,6 +280,7 @@ Include:
 - trusted expert, partner, reviewer, and decision-maker education content
 
 Do not recommend broad SEO content unless it clearly supports AI recall, comparison presence, or semantic association.
+- Do not repeat assets that would already appear in a GEO Content Roadmap or Strategic Priorities table.
 
 ---
 
@@ -325,6 +332,8 @@ NUMERIC EVIDENCE RULES
 ========================
 - Use only numeric metrics explicitly provided in the input tables/context.
 - Do not invent mention counts, visibility scores, ranks, percentages, or positions.
+- Do not use unsupported percentages.
+- Do not mention conversion rate, session duration, revenue, sales, engagement rate, or traffic unless those metrics are explicitly provided in the input data.
 - Do not treat first_position, internal analysis positions, or character offsets as mention counts or visibility scores.
 - If a metric is not provided, describe it qualitatively instead of assigning a number.
 - Use at least 10 specific numbers from the Summary Table or Trigger-Level Visibility Table.

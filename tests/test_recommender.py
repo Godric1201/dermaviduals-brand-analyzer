@@ -39,3 +39,19 @@ def test_generate_recommendations_uses_generic_category_context(monkeypatch):
     prompt_lower = prompt.lower()
     for term in blocked_terms:
         assert term not in prompt_lower
+
+    assert "Recommendations should be non-overlapping" in prompt
+    assert "priority level" in prompt
+    assert "query territory" in prompt
+    assert "competitor challenged" in prompt
+    assert "content asset or evidence asset" in prompt
+    assert "intended benchmark metric impact" in prompt
+    assert "validated in Full Report Mode" in prompt
+    assert "Do not use unsupported percentages" in prompt
+    assert "Do not mention conversion rate" in prompt
+    assert "session duration" in prompt
+    assert "total_mentions" in prompt
+    assert "average_visibility_score" in prompt
+    assert "prompts_visible" in prompt
+    assert "share_of_voice_percent" in prompt
+    assert "query intent visibility" in prompt

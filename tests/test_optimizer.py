@@ -79,3 +79,19 @@ def test_generate_action_plan_uses_generic_category_context(monkeypatch):
     assert "Do not invent mention counts" in prompt
     assert "Do not treat first_position" in prompt
     assert "If a metric is not provided, describe it qualitatively" in prompt
+    assert "Do not repeat the GEO Content Roadmap" in prompt
+    assert "Do not repeat the Strategic Priorities table" in prompt
+    assert "Every recommendation must reference" in prompt
+    assert "benchmark metric" in prompt
+    assert "query intent category" in prompt
+    assert "tracked competitor signal" in prompt
+    assert "missing evidence gap" in prompt
+    assert "Avoid generic phrases" in prompt
+    assert "Do not use unsupported percentages" in prompt
+    assert "Do not mention conversion rate" in prompt
+    assert "session duration" in prompt
+    assert "total_mentions" in prompt
+    assert "average_visibility_score" in prompt
+    assert "prompts_visible" in prompt
+    assert "share_of_voice_percent" in prompt
+    assert "query intent visibility" in prompt

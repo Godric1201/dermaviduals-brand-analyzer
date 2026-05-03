@@ -40,6 +40,8 @@ Market: {market}
 Audience: {audience}
 Competitor Context: {competitor_context}
 User-Provided Brand Strengths: {strengths_context}
+Tracked Competitors Included in Scoring: {competitor_context}
+AI-Discovered Market Signals Not Included in Scoring: Identify only if they appear in diagnostic analysis or benchmark raw answers and label them clearly.
 
 Important:
 - Label uncertain or weakly supported claims clearly.
@@ -48,6 +50,16 @@ Important:
 - Do not imply natural AI recommendation visibility from a target-branded diagnostic prompt.
 - Natural benchmark visibility refers to unbranded benchmark results.
 - Prompted diagnostic fit is a target-branded diagnostic assessment that requires validation.
+- Tracked competitors are the benchmark competitors included in visibility scoring.
+- AI-discovered market signals are diagnostic only and must not be described as included in scoring unless they are tracked competitors.
+- If a brand is not in the tracked competitor list, label it as an AI-discovered market signal.
+- Do not place tracked competitors and non-tracked brands in the same competitor advantage list unless each item is labeled with Source: Tracked competitor or Source: AI-discovered market signal.
+- Prefer tracked competitors first when listing competitor signals.
+- If non-tracked brands are strategically relevant, add: "Consider adding these brands as tracked competitors before the benchmark run."
+- Do not call non-tracked brands competitors included in benchmark scoring.
+- Clearly label signals as Benchmark-derived, AI-inferred, or User-provided where relevant.
+- Prefer compact tables or bullet lists over long paragraphs.
+- Avoid generic advice unless it is tied to a benchmark driver, competitor signal, or evidence gap.
 - If the benchmark shows the target brand has 0 mentions or 0 share of voice, describe diagnostic fit as potential, prompted, or subject to validation, not as natural recommendation visibility.
 - Avoid unsupported factual claims.
 - {DIAGNOSTIC_VALIDATION_NOTE}
@@ -67,6 +79,7 @@ Return:
 - Weak or uncertain associations
 - Missing context
 - Evidence that would need validation
+- Compact bullet points only
 """.strip()
         },
         {
@@ -82,6 +95,7 @@ Return:
 - Weak category associations
 - Missing use-case associations
 - Uncertainty notes
+- Benchmark-derived / AI-inferred labels where relevant
 """.strip()
         },
         {
@@ -97,6 +111,7 @@ Return:
 - AI-inferred weaknesses
 - User-provided strengths that appear unsupported or under-evidenced
 - Validation needs
+- Compact bullet points only
 """.strip()
         },
         {
@@ -112,6 +127,7 @@ Return:
 - Reasons for inclusion
 - Reasons for exclusion
 - Evidence gaps
+- Action implications
 
 Rules:
 - Describe this as prompted diagnostic fit, not natural benchmark visibility.
@@ -131,6 +147,7 @@ Return:
 - Target brand advantages
 - Comparison gaps
 - Positioning opportunities
+- Distinguish tracked competitors from AI-discovered market signals
 """.strip()
         },
         {
@@ -146,6 +163,7 @@ Return:
 - Missing trust signals
 - Evidence-building opportunities
 - Validation notes
+- Concrete evidence gaps and recommended action types
 """.strip()
         },
     ]

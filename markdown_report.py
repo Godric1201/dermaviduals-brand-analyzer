@@ -10,6 +10,7 @@ from report_generator import (
     get_visibility_status,
     get_visibility_state_noun,
 )
+from prompts import format_audience_market_context
 
 
 def _normalize_markdown_table_headers(df, column_map):
@@ -217,6 +218,10 @@ def build_executive_markdown_report(
     query_intent_md = "\n".join(
         f"- {item}" for item in prompt_categories
     ) or "_No query intent categories available._"
+    report_audience_context = format_audience_market_context(
+        display_audience,
+        display_market,
+    )
     visibility_gap_diagnosis = (
         f"{strategic_issue}\n\n"
         f"Competitive context:\n\n{top_competitor_text}"
@@ -246,7 +251,7 @@ def build_executive_markdown_report(
             f"**Run Mode:** {run_mode}  \n"
             f"**Deliverable Status:** {deliverable_status}  \n\n"
             f'{"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}\n\n'
-            f"This report evaluates how visible {display_brand} is in AI-generated {display_category} recommendations for {display_audience} in {display_market}.\n\n"
+            f"This report evaluates how visible {display_brand} is in AI-generated {display_category} recommendations for {report_audience_context}.\n\n"
             "### Query Intent Coverage\n\n"
             "This benchmark covers the following AI recommendation contexts:\n\n"
             f"{query_intent_md}"
@@ -302,7 +307,7 @@ def build_executive_markdown_report(
     if brand_intelligence_done and brand_intelligence:
         appendix_sections.append(
             "## Appendix A: Brand Intelligence & Positioning Audit\n\n"
-            "> Diagnostic insight. Not part of visibility scoring. Tracked competitors are included in visibility scoring and share of voice. Other brands mentioned here may be AI-discovered market signals and are not included in scoring unless added as tracked competitors.\n\n"
+            "> Diagnostic insight. Tracked competitors are included in visibility scoring and share of voice. AI-discovered market signals are diagnostic references only and are not included in scoring unless selected as tracked competitors before the benchmark run.\n\n"
             "### Recommendation Drivers\n\n"
             f"{brand_intelligence['recommendation_drivers']}\n\n"
             "### AI-Inferred Target Brand Understanding\n\n"

@@ -1036,9 +1036,8 @@ def add_brand_intelligence(
     add_callout_box(
         document,
         "Diagnostic Insight",
-        "Diagnostic insight. Not part of visibility scoring. "
-        "Tracked competitors are included in visibility scoring and share of voice. "
-        "Other brands mentioned in this diagnostic section may be AI-discovered market signals and are not included in scoring unless added as tracked competitors.",
+        "Diagnostic insight. Tracked competitors are included in visibility scoring and share of voice. "
+        "AI-discovered market signals are diagnostic references only and are not included in scoring unless selected as tracked competitors before the benchmark run.",
         fill=LIGHT_BLUE
     )
 

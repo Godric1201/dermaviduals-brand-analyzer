@@ -130,6 +130,18 @@ def test_run_brand_intelligence_analysis_prompts_include_context(
     assert "Prompted Diagnostic Fit" in combined_prompts
     assert "Natural benchmark visibility" in combined_prompts
     assert "target-branded diagnostic assessment requiring validation" in combined_prompts
+    assert "Benchmark-derived" in combined_prompts
+    assert "AI-inferred" in combined_prompts
+    assert "User-provided" in combined_prompts
+    assert "Tracked Competitors Included in Scoring" in combined_prompts
+    assert "AI-Discovered Market Signals Not Included in Scoring" in combined_prompts
+    assert "tracked competitors" in combined_prompts
+    assert "AI-discovered market signals" in combined_prompts
+    assert "prefer tracked competitors first" in combined_prompts.lower()
+    assert "selected as tracked competitors before the benchmark run" in combined_prompts or "Consider adding these brands as tracked competitors before the benchmark run" in combined_prompts
+    assert "Do not call non-tracked brands competitors included in benchmark" in combined_prompts
+    assert "Prefer compact tables or bullet lists" in combined_prompts
+    assert "Avoid generic advice" in combined_prompts
     assert "Recommendation likelihood" not in combined_prompts
 
 

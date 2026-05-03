@@ -48,6 +48,8 @@ def test_build_target_diagnostic_prompts_include_context_and_validation_wording(
         assert "cafes" in prompt
         assert "Berlin" in prompt
         assert "remote workers" in prompt
+        assert "Prefer compact tables or bullet lists" in prompt
+        assert "Avoid generic advice" in prompt
 
 
 def test_build_target_diagnostic_prompts_distinguish_benchmark_visibility_and_diagnostic_fit():
@@ -64,6 +66,17 @@ def test_build_target_diagnostic_prompts_distinguish_benchmark_visibility_and_di
     assert "natural benchmark visibility" in prompt_text
     assert "unbranded benchmark results" in prompt_text
     assert "0 mentions or 0 share of voice" in prompt_text
+    assert "benchmark-derived" in prompt_text
+    assert "ai-inferred" in prompt_text
+    assert "user-provided" in prompt_text
+    assert "tracked competitors included in scoring" in prompt_text
+    assert "ai-discovered market signals not included in scoring" in prompt_text
+    assert "tracked competitors" in prompt_text
+    assert "ai-discovered market signals" in prompt_text
+    assert "source: tracked competitor" in prompt_text
+    assert "source: ai-discovered market signal" in prompt_text
+    assert "selected as tracked competitors before the benchmark run" in prompt_text or "consider adding these brands as tracked competitors before the benchmark run." in prompt_text
+    assert "do not call non-tracked brands competitors included in benchmark" in prompt_text
     assert "recommendation likelihood" not in prompt_text
 
 

@@ -95,14 +95,25 @@ Return only a markdown table with these exact columns:
 
 Rules:
 - Use concise consulting-ready wording.
-- Include 5 to 8 roadmap rows.
+- Include 6 to 8 roadmap rows maximum.
 - Tie each row to a query intent or strategic opportunity.
-- Content Asset should name a concrete, execution-oriented asset, page, PR angle, review initiative, comparison page, FAQ, or evidence-building item.
-- Evidence Needed should describe proof points, trust signals, reviews, third-party references, expert input, or AI-citable sources.
+- Every row must have a distinct content asset.
+- Do not repeat the same asset under different wording.
+- Every Content Asset must be a publishable page, article, guide, landing page, comparison page, FAQ, evidence page, review program page, event recap, or resource hub.
+- Content Asset should name a distinct content asset that is concrete, execution-oriented, and publishable, such as a landing page, comparison page, FAQ, review collection initiative, event recap page, or evidence-building page.
+- Avoid vague assets such as marketing campaign, online engagement, or brand awareness campaign unless paired with a specific page or content asset.
+- Do not use vague/internal strategy assets such as "Luxury branding strategy page", "comparison page for top products", or "landing page for local clinics" unless rewritten as a concrete publishable asset.
+- Evidence Needed must be concrete and should describe proof points such as customer reviews, Wi-Fi speed proof, outlet availability, location photos, customer survey quotes, local press mentions, Google reviews, comparison table data, expert input, or AI-citable sources.
 - Expected Metric Impact must reference one or more benchmark metrics: total mentions, average visibility score, prompts visible, share of voice, query intent visibility, or target-brand association.
+- Intended benchmark influence should use benchmark metrics such as total_mentions, average_visibility_score, prompts_visible, share_of_voice_percent, query intent visibility, or target-brand association.
+- Do not claim guaranteed metric improvement. Phrase impact as intended benchmark influence.
 - Suggested Timing must use only these values: 30 Days, 60 Days, 90 Days, or Next Benchmark Cycle.
 - No calendar quarters, past dates, or specific years. Do not use timing such as Q2 2024, Q3 2024, 2025, or 2026.
 - If query intent coverage is limited, such as a Quick Test Mode run or a small number of query intent categories, make the roadmap directional and avoid implying broad market coverage beyond what was tested.
+- For skincare, health-adjacent, or regulated-ish categories, avoid recommending unsupported clinical or medical claims.
+- Do not tell the brand to conduct clinical trials as a default action.
+- Prefer third-party evidence, expert validation, professional review, ingredient documentation, consumer study, substantiated before/after evidence, or clinic partner testimonial.
+- Only use clinical-study claims if substantiated and compliant.
 - Do not invent unsupported facts.
 - Do not make unsupported performance promises.
 - Do not create or modify scores.

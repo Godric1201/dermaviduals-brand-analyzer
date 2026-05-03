@@ -86,6 +86,14 @@ Rules:
 - Be concise.
 - Be data-driven.
 - Do not give generic SEO advice.
+- Do not use unsupported percentages.
+- Do not mention conversion rate, session duration, revenue, sales, engagement rate, or traffic unless those metrics are explicitly provided in the input data.
+- Intended Benchmark Metric Impact must only reference benchmark metrics: total_mentions, average_visibility_score, prompts_visible, share_of_voice_percent, query intent visibility, or target-brand association.
+- Use directional benchmark language such as "Intended Benchmark Metric Impact: increase total_mentions" or "Intended Benchmark Metric Impact: improve prompts_visible."
+- Recommendations should be non-overlapping.
+- Each recommendation should include a priority level, query territory, competitor challenged, content asset or evidence asset, and intended benchmark metric impact.
+- Avoid repeating the same recommendation already likely to appear in a GEO Content Roadmap.
+- If the benchmark input reflects limited prompt coverage, state that recommendations are directional and should be validated in Full Report Mode.
 - Avoid broad marketing actions such as influencer campaigns or email campaigns unless clearly tied to AI visibility.
 - Focus on AI recall, semantic association, comparison content, query territory ownership, and third-party trust signals.
 - Write in {report_language}.

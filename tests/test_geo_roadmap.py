@@ -68,6 +68,17 @@ def test_generate_geo_content_roadmap_builds_consulting_prompt(
     assert "Content Asset" in prompt
     assert "Evidence Needed" in prompt
     assert "Expected Metric Impact" in prompt
+    assert "distinct content asset" in prompt
+    assert "Do not repeat" in prompt
+    assert "publishable" in prompt
+    assert "Do not use vague/internal strategy assets" in prompt
+    assert "Evidence Needed must be concrete" in prompt
+    assert "Do not claim guaranteed metric improvement" in prompt
+    assert "Intended benchmark influence" in prompt
+    assert "Only use clinical-study claims if substantiated and compliant" in prompt
+    assert "third-party evidence" in prompt
+    assert "expert validation" in prompt
+    assert "ingredient documentation" in prompt
     assert "not part of visibility scoring" in prompt
     assert "30 Days" in prompt
     assert "60 Days" in prompt
