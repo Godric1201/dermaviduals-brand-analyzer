@@ -1,3 +1,5 @@
+import re
+
 from analyzer import ask_ai
 from brand_intelligence_prompts import (
     build_target_diagnostic_prompts,
@@ -9,6 +11,11 @@ VALIDATION_NOTE = (
     "AI-inferred diagnostic output. Validate before using as client-facing fact."
 )
 
+SOURCE_LABEL_PATTERN = re.compile(
+    r"\(Source:\s*(Tracked competitor|AI-discovered market signal)\)",
+    re.IGNORECASE,
+)
+
 
 def _normalize_user_brand_strengths(user_brand_strengths):
     if user_brand_strengths is None:
@@ -18,6 +25,69 @@ def _normalize_user_brand_strengths(user_brand_strengths):
         return parse_user_brand_strengths(user_brand_strengths)
 
     return list(user_brand_strengths)
+
+
+def normalize_brand_name(value):
+    return " ".join(str(value or "").strip().lower().split())
+
+
+def is_tracked_competitor(brand_name, tracked_competitors):
+    normalized_brand = normalize_brand_name(brand_name)
+    normalized_tracked = {
+        normalize_brand_name(item)
+        for item in (tracked_competitors or [])
+        if normalize_brand_name(item)
+    }
+    return normalized_brand in normalized_tracked
+
+
+def _extract_labeled_brand_name(line):
+    if "(Source:" not in line:
+        return None
+
+    bold_match = re.match(
+        r"^\s*(?:[-*]|\d+[.)])\s*\*\*(?P<brand>[^*]+)\*\*",
+        line,
+    )
+    if bold_match:
+        return bold_match.group("brand").strip()
+
+    plain_match = re.match(
+        r"^\s*(?:[-*]|\d+[.)])\s*(?P<brand>[^–—:\-()]+?)\s*(?:[–—:-])",
+        line,
+    )
+    if plain_match:
+        return plain_match.group("brand").strip()
+
+    return None
+
+
+def correct_competitor_source_labels(text, tracked_competitors):
+    corrected_lines = []
+
+    for line in str(text).splitlines():
+        label_match = SOURCE_LABEL_PATTERN.search(line)
+        brand_name = _extract_labeled_brand_name(line)
+
+        if not label_match or not brand_name:
+            corrected_lines.append(line)
+            continue
+
+        expected_label = (
+            "Tracked competitor"
+            if is_tracked_competitor(brand_name, tracked_competitors)
+            else "AI-discovered market signal"
+        )
+
+        corrected_lines.append(
+            SOURCE_LABEL_PATTERN.sub(
+                f"(Source: {expected_label})",
+                line,
+                count=1,
+            )
+        )
+
+    return "\n".join(corrected_lines)
 
 
 def _dataframe_preview(df, max_rows=40):
@@ -129,6 +199,8 @@ Rules:
 - Do not treat this as a scoring calculation.
 - Do not create visibility scores, share of voice, or rankings.
 - Treat competitors listed above as tracked competitors used for benchmark scoring.
+- The tracked competitor list is the only source of truth for Source: Tracked competitor.
+- Never label a non-tracked brand as Source: Tracked competitor.
 - If other brands appear in raw answers, describe them as AI-discovered market signals only.
 - Do not imply AI-discovered market signals are included in visibility scoring unless they are tracked competitors.
 - Prefer tracked competitors first when listing competitor signals.
@@ -193,6 +265,8 @@ Rules:
 - Natural benchmark visibility comes from the unbranded benchmark.
 - Prompted diagnostic fit is a target-branded diagnostic assessment requiring validation.
 - Distinguish tracked competitors from AI-discovered market signals.
+- The tracked competitor list is the only source of truth for Source: Tracked competitor.
+- Never label a non-tracked brand as Source: Tracked competitor.
 - Do not imply AI-discovered market signals are included in visibility scoring unless they are tracked competitors.
 - Prefer tracked competitors first when listing competitor signals.
 - Consider adding these brands as tracked competitors before the benchmark run if they are strategically relevant.
@@ -258,6 +332,8 @@ Rules:
 - Label AI-inferred findings clearly.
 - Clearly label each signal as Benchmark-derived, AI-inferred, or User-provided.
 - Distinguish tracked competitors from AI-discovered market signals.
+- The tracked competitor list is the only source of truth for Source: Tracked competitor.
+- Never label a non-tracked brand as Source: Tracked competitor.
 - Do not imply AI-discovered market signals are included in visibility scoring unless they are tracked competitors.
 - Include separate sections titled Tracked Competitors Included in Scoring and AI-Discovered Market Signals Not Included in Scoring where relevant.
 - If non-tracked brands are mentioned, label them as Source: AI-discovered market signal.
@@ -324,6 +400,10 @@ def run_brand_intelligence_analysis(
         ),
         report_language,
     )
+    recommendation_drivers = correct_competitor_source_labels(
+        recommendation_drivers,
+        competitors,
+    )
 
     if on_progress is not None:
         on_progress("target_understanding")
@@ -342,6 +422,10 @@ def run_brand_intelligence_analysis(
         ),
         report_language,
     )
+    target_brand_understanding = correct_competitor_source_labels(
+        target_brand_understanding,
+        competitors,
+    )
 
     if on_progress is not None:
         on_progress("positioning_gap")
@@ -357,6 +441,10 @@ def run_brand_intelligence_analysis(
             user_brand_strengths=user_brand_strengths,
         ),
         report_language,
+    )
+    positioning_gap_analysis = correct_competitor_source_labels(
+        positioning_gap_analysis,
+        competitors,
     )
 
     return {

@@ -52,7 +52,9 @@ Important:
 - Prompted diagnostic fit is a target-branded diagnostic assessment that requires validation.
 - Tracked competitors are the benchmark competitors included in visibility scoring.
 - AI-discovered market signals are diagnostic only and must not be described as included in scoring unless they are tracked competitors.
+- The tracked competitor list is the only source of truth for Source: Tracked competitor.
 - If a brand is not in the tracked competitor list, label it as an AI-discovered market signal.
+- Never label a non-tracked brand as Source: Tracked competitor.
 - Do not place tracked competitors and non-tracked brands in the same competitor advantage list unless each item is labeled with Source: Tracked competitor or Source: AI-discovered market signal.
 - Prefer tracked competitors first when listing competitor signals.
 - If non-tracked brands are strategically relevant, add: "Consider adding these brands as tracked competitors before the benchmark run."

@@ -137,6 +137,8 @@ def test_run_brand_intelligence_analysis_prompts_include_context(
     assert "AI-Discovered Market Signals Not Included in Scoring" in combined_prompts
     assert "tracked competitors" in combined_prompts
     assert "AI-discovered market signals" in combined_prompts
+    assert "tracked competitor list is the only source of truth" in combined_prompts.lower()
+    assert "Never label a non-tracked brand as Source: Tracked competitor" in combined_prompts
     assert "prefer tracked competitors first" in combined_prompts.lower()
     assert "selected as tracked competitors before the benchmark run" in combined_prompts or "Consider adding these brands as tracked competitors before the benchmark run" in combined_prompts
     assert "Do not call non-tracked brands competitors included in benchmark" in combined_prompts
@@ -182,3 +184,79 @@ def test_brand_intelligence_does_not_import_scoring(brand_intelligence_module):
     assert "analyze_answer" not in brand_intelligence_module.__dict__
     assert "summarize_results" not in brand_intelligence_module.__dict__
     assert "calculate_share_of_voice" not in brand_intelligence_module.__dict__
+
+
+def test_correct_competitor_source_labels_rewrites_non_tracked_brands(
+    brand_intelligence_module,
+):
+    text = """
+1. **SkinCeuticals** - Strong antioxidant authority. (Source: Tracked competitor)
+2. **Obagi** - Known for prescription-strength products. (Source: Tracked competitor)
+3. **La Roche-Posay** - Sensitive skin trust. (Source: Tracked competitor)
+""".strip()
+
+    corrected = brand_intelligence_module.correct_competitor_source_labels(
+        text,
+        ["SkinCeuticals", "Dr. Dennis Gross", "iS Clinical"],
+    )
+
+    assert "**SkinCeuticals** - Strong antioxidant authority. (Source: Tracked competitor)" in corrected
+    assert "**Obagi** - Known for prescription-strength products. (Source: AI-discovered market signal)" in corrected
+    assert "**La Roche-Posay** - Sensitive skin trust. (Source: AI-discovered market signal)" in corrected
+
+
+def test_correct_competitor_source_labels_matches_case_insensitively(
+    brand_intelligence_module,
+):
+    text = """
+- **dr. dennis gross** - Review-led authority. (Source: AI-discovered market signal)
+- **La Roche-Posay** - Sensitive skin trust. (Source: Tracked competitor)
+""".strip()
+
+    corrected = brand_intelligence_module.correct_competitor_source_labels(
+        text,
+        ["Dr. Dennis Gross", "SkinCeuticals"],
+    )
+
+    assert "- **dr. dennis gross** - Review-led authority. (Source: Tracked competitor)" in corrected
+    assert "- **La Roche-Posay** - Sensitive skin trust. (Source: AI-discovered market signal)" in corrected
+
+
+def test_run_brand_intelligence_analysis_corrects_source_labels_in_outputs(
+    monkeypatch,
+    brand_intelligence_module,
+):
+    summary_df, detailed_df, raw_answers = create_fake_inputs()
+    responses = iter([
+        "diagnostic 1",
+        "diagnostic 2",
+        "diagnostic 3",
+        "diagnostic 4",
+        "diagnostic 5",
+        "diagnostic 6",
+        "1. **SkinCeuticals** - Strong antioxidant authority. (Source: Tracked competitor)\n2. **Obagi** - Known for prescription-strength products. (Source: Tracked competitor)",
+        "- **Dr. Dennis Gross** - High review trust. (Source: AI-discovered market signal)",
+        "- **La Roche-Posay** - Sensitive skin trust. (Source: Tracked competitor)",
+    ])
+
+    monkeypatch.setattr(
+        brand_intelligence_module,
+        "ask_ai",
+        lambda prompt, language="English": next(responses),
+    )
+
+    result = brand_intelligence_module.run_brand_intelligence_analysis(
+        brand="Dermaviduals",
+        category="skincare products",
+        market="Hong Kong",
+        audience="skincare-conscious consumers",
+        competitors=["SkinCeuticals", "Dr. Dennis Gross", "iS Clinical"],
+        raw_answers=raw_answers,
+        summary_df=summary_df,
+        detailed_df=detailed_df,
+    )
+
+    assert "(Source: AI-discovered market signal)" in result["recommendation_drivers"]
+    assert "**Obagi** - Known for prescription-strength products. (Source: AI-discovered market signal)" in result["recommendation_drivers"]
+    assert "**Dr. Dennis Gross** - High review trust. (Source: Tracked competitor)" in result["target_brand_understanding"]
+    assert "**La Roche-Posay** - Sensitive skin trust. (Source: AI-discovered market signal)" in result["positioning_gap_analysis"]

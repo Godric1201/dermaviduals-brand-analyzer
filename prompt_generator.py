@@ -1,4 +1,5 @@
 import ast
+import re
 
 from analyzer import ask_ai
 from prompts import format_audience_market_context
@@ -140,6 +141,79 @@ def contains_blocked_brand(query, brand, competitors):
     )
 
 
+def _replace_case_insensitive(text, old, new):
+    return re.sub(
+        re.escape(old),
+        new,
+        text,
+        flags=re.IGNORECASE,
+    )
+
+
+def clean_generated_prompt_text(prompt, category=None, market=None):
+    cleaned = " ".join(str(prompt or "").split())
+
+    if not cleaned:
+        return ""
+
+    if category:
+        normalized_category = " ".join(str(category).split())
+        category_lower = normalized_category.lower()
+
+        if category_lower.endswith("products"):
+            singular_category = normalized_category[:-1]
+            cleaned = _replace_case_insensitive(
+                cleaned,
+                f"{normalized_category} brands or providers",
+                f"{singular_category} brands",
+            )
+            cleaned = _replace_case_insensitive(
+                cleaned,
+                f"{normalized_category} brands",
+                f"{singular_category} brands",
+            )
+
+        if category_lower.endswith("services"):
+            singular_category = normalized_category[:-1]
+            cleaned = _replace_case_insensitive(
+                cleaned,
+                f"{normalized_category} providers",
+                f"{singular_category} providers",
+            )
+
+        if category_lower.endswith(("cafes", "restaurants", "tools")):
+            cleaned = _replace_case_insensitive(
+                cleaned,
+                f"{normalized_category} brands or providers",
+                normalized_category,
+            )
+            cleaned = _replace_case_insensitive(
+                cleaned,
+                f"{normalized_category} options",
+                normalized_category,
+            )
+
+    generic_replacements = {
+        "products brands or providers": "product brands",
+        "products brands": "product brands",
+        "services providers": "service providers",
+        "software tools tools": "software tools",
+    }
+
+    for old, new in generic_replacements.items():
+        cleaned = _replace_case_insensitive(cleaned, old, new)
+
+    if market:
+        normalized_market = " ".join(str(market).split())
+        cleaned = _replace_case_insensitive(
+            cleaned,
+            f"in {normalized_market} in {normalized_market}",
+            f"in {normalized_market}",
+        )
+
+    return " ".join(cleaned.split())
+
+
 def generate_search_prompts(
     brand,
     competitors,
@@ -211,7 +285,7 @@ Strict Rules:
 Good examples:
 [
 "What are the best {category} for {audience_market_context}?",
-"Which {category} brands or providers are most recommended locally in {market}?",
+"Which {category} are most recommended locally in {market}?",
 "How do leading {category} compare for {audience_market_context}?",
 "What are good alternatives to leading {category} in {market}?",
 "What should {audience_market_context} consider when choosing between {category}?"
@@ -228,7 +302,11 @@ Good examples:
         if not isinstance(q, str):
             continue
 
-        query = q.strip()
+        query = clean_generated_prompt_text(
+            q.strip(),
+            category=category,
+            market=market,
+        )
         if (
             query
             and is_valid_prompt(query)

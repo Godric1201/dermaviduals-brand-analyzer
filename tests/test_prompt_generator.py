@@ -120,6 +120,8 @@ def test_generate_search_prompts_uses_generic_category_context(
     assert all(set(item) == {"category", "prompt"} for item in result)
     assert all("Espresso House" not in item["prompt"] for item in result)
     assert all("Coffee Fellows" not in item["prompt"] for item in result)
+    assert all("cafes brands or providers" not in item["prompt"].lower() for item in result)
+    assert all("in berlin in berlin" not in item["prompt"].lower() for item in result)
     assert capsys.readouterr().out == ""
 
 
@@ -171,3 +173,43 @@ def test_generate_search_prompts_returns_empty_without_debug_print(
 
     assert result == []
     assert capsys.readouterr().out == ""
+
+
+def test_clean_generated_prompt_text_fixes_product_brand_grammar(
+    prompt_generator_module,
+):
+    cleaned = prompt_generator_module.clean_generated_prompt_text(
+        "Which skincare products brands or providers are most recommended locally in Hong Kong?",
+        category="skincare products",
+        market="Hong Kong",
+    )
+
+    assert cleaned == (
+        "Which skincare product brands are most recommended locally in Hong Kong?"
+    )
+
+
+def test_clean_generated_prompt_text_fixes_cafes_options_and_market_duplication(
+    prompt_generator_module,
+):
+    cleaned = prompt_generator_module.clean_generated_prompt_text(
+        "What are the best cafes options in Berlin in Berlin?",
+        category="cafes",
+        market="Berlin",
+    )
+
+    assert cleaned == "What are the best cafes in Berlin?"
+
+
+def test_clean_generated_prompt_text_keeps_valid_prompt_stable(
+    prompt_generator_module,
+):
+    prompt = "How do leading cafes compare for remote workers in Berlin?"
+
+    cleaned = prompt_generator_module.clean_generated_prompt_text(
+        prompt,
+        category="cafes",
+        market="Berlin",
+    )
+
+    assert cleaned == prompt

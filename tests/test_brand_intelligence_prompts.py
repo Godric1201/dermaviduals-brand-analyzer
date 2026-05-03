@@ -71,10 +71,12 @@ def test_build_target_diagnostic_prompts_distinguish_benchmark_visibility_and_di
     assert "user-provided" in prompt_text
     assert "tracked competitors included in scoring" in prompt_text
     assert "ai-discovered market signals not included in scoring" in prompt_text
+    assert "tracked competitor list is the only source of truth" in prompt_text
     assert "tracked competitors" in prompt_text
     assert "ai-discovered market signals" in prompt_text
     assert "source: tracked competitor" in prompt_text
     assert "source: ai-discovered market signal" in prompt_text
+    assert "never label a non-tracked brand as source: tracked competitor" in prompt_text
     assert "selected as tracked competitors before the benchmark run" in prompt_text or "consider adding these brands as tracked competitors before the benchmark run." in prompt_text
     assert "do not call non-tracked brands competitors included in benchmark" in prompt_text
     assert "recommendation likelihood" not in prompt_text
