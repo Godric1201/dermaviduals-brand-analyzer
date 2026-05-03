@@ -30,10 +30,10 @@ from benchmark_comparison import (
 )
 from competitor_suggestions import suggest_competitors_with_ai
 from geo_roadmap import generate_geo_content_roadmap
+from markdown_report import build_executive_markdown_report
 from prompts import build_fixed_prompts
 from ui_formatters import (
     build_export_filename,
-    df_to_markdown_table,
     format_display_text,
     format_brand_names_for_display,
     replace_target_brand_for_display,
@@ -43,10 +43,7 @@ from ui_formatters import (
 from analyzer import ask_ai
 from content_generator import generate_level_2_content_pack
 from report_generator import (
-    build_competitor_leader_sentence,
     create_executive_docx_report,
-    get_competitor_leaders,
-    get_visibility_status,
 )
 from utils import convert_df_to_csv
 
@@ -991,242 +988,59 @@ def display_results():
     # =========================
     st.subheader(t["exports"])
 
-    # Build clean executive report tables
-    summary_report_df = summary_display_df.copy()
-
-    summary_columns = [
-        "brand",
-        "total_mentions",
-        "average_visibility_score",
-        "prompts_visible",
-        "share_of_voice_percent"
-    ]
-
-    summary_columns = [
-        col for col in summary_columns
-        if col in summary_report_df.columns
-    ]
-
-    summary_report_df = summary_report_df[summary_columns].sort_values(
-        by="average_visibility_score",
-        ascending=False
-    )
-
-    summary_report_md = df_to_markdown_table(
-        translate_dataframe_columns(summary_report_df),
-        max_rows=15
-    )
-
-    trigger_report_md = df_to_markdown_table(
-        pivot.reset_index(),
-        max_rows=25
-    )
-
-    top_brands_report_md = df_to_markdown_table(
+    top_brands_display_df = (
         replace_target_brand_for_display(
             format_brand_names_for_display(
                 top_brands[["prompt_category", "brand", "visibility_score"]]
             ),
             raw_brand=brand,
             display_brand=display_brand
-        ),
-        max_rows=25
-    ) if not top_brands.empty else "_No positive brand winners detected._"
-
-    target_summary = summary_df[
-        summary_df["brand"].str.lower() == brand.lower()
-    ]
-
-    if not target_summary.empty:
-        target_mentions = target_summary.iloc[0].get("total_mentions", 0)
-        target_avg_score = target_summary.iloc[0].get("average_visibility_score", 0)
-        target_prompts_visible = target_summary.iloc[0].get("prompts_visible", 0)
-        target_sov = target_summary.iloc[0].get("share_of_voice_percent", 0)
-    else:
-        target_mentions = 0
-        target_avg_score = 0
-        target_prompts_visible = 0
-        target_sov = 0
-
-    target_visibility_status = get_visibility_status(
-        target_mentions,
-        target_avg_score,
-        target_sov
-    )
-
-    competitor_leaders = get_competitor_leaders(summary_df, brand)
-    top_competitor_text = build_competitor_leader_sentence(
-        competitor_leaders
-    )
-
-    if target_mentions == 0:
-        strategic_issue = (
-            f"The main strategic issue is that AI systems have not produced measurable mentions for {brand} "
-            f"in this benchmark, leaving the brand at {target_sov}% share of voice."
         )
-    else:
-        strategic_issue = (
-            f"The main strategic issue is to improve from {target_mentions} mentions, "
-            f"{target_avg_score} average visibility, and {target_sov}% share of voice by strengthening association "
-            f"with high-intent use cases, comparison queries, local intent, decision-stage searches, "
-            f"and market-specific category questions for {display_category} in {display_market}."
-        )
-
-    executive_summary_sentence = (
-        f"{brand} is {target_visibility_status} across the tested AI search prompts, "
-        f"with {target_mentions} total mentions, {target_avg_score} average visibility, "
-        f"{target_prompts_visible} prompts visible, and {target_sov}% share of voice."
+        if not top_brands.empty
+        else pd.DataFrame(columns=["prompt_category", "brand", "visibility_score"])
     )
-    query_intent_md = "\n".join(
-        f"- {item}" for item in prompt_categories
-    ) or "_No query intent categories available._"
-    brand_intelligence_md = ""
-    brand_intelligence = st.session_state.get("brand_intelligence")
-    if st.session_state.get("brand_intelligence_done", False) and brand_intelligence:
-        brand_intelligence_md = f"""
 
-    ---
-
-    ## Appendix: Brand Intelligence & Positioning Audit
-
-    > Diagnostic insight. Not part of visibility scoring. Tracked competitors are included in visibility scoring and share of voice. Other brands mentioned here may be AI-discovered market signals and are not included in scoring unless added as tracked competitors.
-
-    ### Recommendation Drivers
-
-    {brand_intelligence["recommendation_drivers"]}
-
-    ### AI-Inferred Target Brand Understanding
-
-    {brand_intelligence["target_brand_understanding"]}
-
-    ### Positioning Gap Analysis
-
-    {brand_intelligence["positioning_gap_analysis"]}
-    """
-
-    geo_content_roadmap_md = ""
-    if st.session_state.get("geo_content_roadmap_done", False):
-        geo_content_roadmap_md = f"""
-
-    ---
-
-    ## GEO Content Roadmap
-
-    > Strategic execution plan. Not part of visibility scoring or share of voice.
-
-    {st.session_state["geo_content_roadmap"]}
-    """
-
-    executive_report = f"""
-    # {display_brand} {display_market} AI Visibility Report
-
-    ## 1. Report Overview
-
-    **Target Brand:** {display_brand}  
-    **Market:** {display_market}  
-    **Category:** {display_category}  
-    **Audience:** {display_audience}  
-    **Report Type:** AI Visibility / Generative Engine Optimization Audit  
-    **Run Mode:** {run_mode}  
-    **Deliverable Status:** {deliverable_status}  
-
-    {"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}
-
-    This report evaluates how visible {display_brand} is in AI-generated {display_category} recommendations for {display_audience} in {display_market}.
-
-    ### Query Intent Coverage
-
-    This benchmark covers the following AI recommendation contexts:
-
-    {query_intent_md}
-
-    ---
-
-    ## 2. Executive Summary
-
-    {executive_summary_sentence}
-
-    Key metrics for {display_brand}:
-
-    | Metric | Value |
-    |---|---:|
-    | Total Mentions | {target_mentions} |
-    | Average Visibility Score | {target_avg_score} |
-    | Prompts Visible | {target_prompts_visible} |
-    | Share of Voice | {target_sov}% |
-
-    Top visible competitors in this benchmark:
-
-    {top_competitor_text}
-
-    {strategic_issue}
-
-    ---
-
-    ## 3. Competitive Benchmark
-
-    The table below summarizes brand-level AI visibility performance across all tested prompts.
-
-    {summary_report_md}
-
-    ---
-
-    ## 4. Trigger-Level Visibility Findings
-
-    The table below shows how each tracked brand performs across AI query categories.
-
-    {trigger_report_md}
-
-    ---
-
-    ## 5. Top Brand Winners by Query Type
-
-    The table below identifies which brand wins each query category based on visibility score.
-
-    {top_brands_report_md}
-
-    ---
-
-    ## 6. Strategic Diagnosis
-
-    {st.session_state.get("gap_analysis", "_AI Association Gap analysis was not generated in this run._")}
-
-    ---
-
-    ## 7. Priority Strategic Recommendations
-
-    {recommendations}
-
-    ---
-
-    ## 8. AI Visibility Strategy Report
-
-    {plan}
-
-    ---
-
-    ## 9. Appendix: AI Decision Explanation
-
-    {st.session_state.get("brand_win_explanation", "_Brand winner explanation was not generated in this run._")}
-
-    ---
-
-    ## 10. Appendix: Replacement Strategy
-
-    {st.session_state.get("replacement_strategy", "_Replacement strategy was not generated in this run._")}
-    {brand_intelligence_md}
-    {geo_content_roadmap_md}
-    """
+    executive_report = build_executive_markdown_report(
+        brand=brand,
+        display_brand=display_brand,
+        category=category,
+        display_category=display_category,
+        market=market,
+        display_market=display_market,
+        audience=audience,
+        display_audience=display_audience,
+        run_mode=run_mode,
+        prompt_limit=prompt_limit,
+        deliverable_status=deliverable_status,
+        summary_df=summary_df,
+        summary_display_df=summary_display_df,
+        detailed_pivot_df=pivot.reset_index(),
+        top_brands_df=top_brands_display_df,
+        recommendations=recommendations,
+        plan=plan,
+        gap_analysis=st.session_state.get("gap_analysis"),
+        brand_win_explanation=st.session_state.get("brand_win_explanation"),
+        replacement_strategy=st.session_state.get("replacement_strategy"),
+        brand_intelligence=st.session_state.get("brand_intelligence"),
+        brand_intelligence_done=st.session_state.get("brand_intelligence_done", False),
+        geo_content_roadmap=st.session_state.get("geo_content_roadmap"),
+        geo_content_roadmap_done=st.session_state.get("geo_content_roadmap_done", False),
+        prompt_categories=prompt_categories,
+    )
     executive_docx = create_executive_docx_report(
         brand=display_brand,
         market=display_market,
         category=display_category,
         audience=display_audience,
         summary_df=summary_display_df,
-        top_brands_df=replace_target_brand_for_display(
-            format_brand_names_for_display(top_brands),
-            raw_brand=brand,
-            display_brand=display_brand
+        top_brands_df=(
+            replace_target_brand_for_display(
+                format_brand_names_for_display(top_brands),
+                raw_brand=brand,
+                display_brand=display_brand
+            )
+            if not top_brands.empty
+            else top_brands
         ),
         recommendations=recommendations,
         strategy_report=plan,

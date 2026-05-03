@@ -1,0 +1,158 @@
+import pandas as pd
+
+from markdown_report import build_executive_markdown_report
+
+
+def create_markdown_inputs():
+    summary_df = pd.DataFrame([
+        {
+            "brand": "espresso house",
+            "total_mentions": 2,
+            "average_visibility_score": 3.5,
+            "prompts_visible": 2,
+            "share_of_voice_percent": 20.0,
+        },
+        {
+            "brand": "Coffee Fellows",
+            "total_mentions": 8,
+            "average_visibility_score": 7.2,
+            "prompts_visible": 4,
+            "share_of_voice_percent": 80.0,
+        },
+    ])
+    summary_display_df = pd.DataFrame([
+        {
+            "brand": "Espresso House",
+            "total_mentions": 2,
+            "average_visibility_score": 3.5,
+            "prompts_visible": 2,
+            "share_of_voice_percent": 20.0,
+        },
+        {
+            "brand": "Coffee Fellows",
+            "total_mentions": 8,
+            "average_visibility_score": 7.2,
+            "prompts_visible": 4,
+            "share_of_voice_percent": 80.0,
+        },
+    ])
+    detailed_pivot_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "Espresso House": 2.0,
+            "Coffee Fellows": 7.0,
+        }
+    ])
+    top_brands_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Coffee Fellows",
+            "visibility_score": 7.0,
+        }
+    ])
+
+    return {
+        "brand": "espresso house",
+        "display_brand": "Espresso House",
+        "category": "cafes",
+        "display_category": "Cafes",
+        "market": "Berlin",
+        "display_market": "Berlin",
+        "audience": "remote workers",
+        "display_audience": "Remote Workers",
+        "run_mode": "Full Report Mode",
+        "prompt_limit": None,
+        "deliverable_status": "Client Deliverable",
+        "summary_df": summary_df,
+        "summary_display_df": summary_display_df,
+        "detailed_pivot_df": detailed_pivot_df,
+        "top_brands_df": top_brands_df,
+        "recommendations": "Test recommendations",
+        "plan": "Test strategy plan",
+        "gap_analysis": "Test gap analysis",
+        "brand_win_explanation": "Test brand win explanation",
+        "replacement_strategy": "Test replacement strategy",
+        "brand_intelligence": {
+            "recommendation_drivers": "Test recommendation drivers",
+            "target_brand_understanding": "Test target brand understanding",
+            "positioning_gap_analysis": "Test positioning gap analysis",
+        },
+        "brand_intelligence_done": True,
+        "geo_content_roadmap": "| Priority | Query Intent |\n|---|---|\n| 1 | Best Options |",
+        "geo_content_roadmap_done": True,
+        "prompt_categories": ["Best Options", "Local Recommendations"],
+    }
+
+
+def test_build_executive_markdown_report_returns_string_with_core_sections():
+    report = build_executive_markdown_report(**create_markdown_inputs())
+
+    assert isinstance(report, str)
+    assert "Report Overview" in report
+    assert "Executive Summary" in report
+    assert "Competitive Benchmark" in report
+    assert "Query Intent Coverage" in report
+    assert "Espresso House" in report
+    assert "Berlin" in report
+    assert "Cafes" in report
+    assert "Remote Workers" in report
+
+
+def test_build_executive_markdown_report_includes_quick_test_warning():
+    inputs = create_markdown_inputs()
+    inputs["run_mode"] = "Quick Test Mode"
+    inputs["prompt_limit"] = 1
+    inputs["deliverable_status"] = "Not Client Deliverable"
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert "TEST VERSION ONLY" in report
+    assert "Not Client Deliverable" in report
+
+
+def test_build_executive_markdown_report_includes_optional_appendices():
+    report = build_executive_markdown_report(**create_markdown_inputs())
+
+    assert "Brand Intelligence & Positioning Audit" in report
+    assert "GEO Content Roadmap" in report
+
+
+def test_build_executive_markdown_report_omits_optional_appendices_when_absent():
+    inputs = create_markdown_inputs()
+    inputs["brand_intelligence"] = None
+    inputs["brand_intelligence_done"] = False
+    inputs["geo_content_roadmap"] = None
+    inputs["geo_content_roadmap_done"] = False
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert "Brand Intelligence & Positioning Audit" not in report
+    assert "GEO Content Roadmap" not in report
+
+
+def test_build_executive_markdown_report_avoids_blocked_skincare_terms_for_generic_case():
+    report = build_executive_markdown_report(**create_markdown_inputs())
+
+    blocked_terms = [
+        "professional skincare",
+        "clinic-grade",
+        "barrier repair",
+        "post-treatment",
+        "Hong Kong professional skincare",
+    ]
+
+    report_lower = report.lower()
+    for term in blocked_terms:
+        assert term.lower() not in report_lower
+
+
+def test_build_executive_markdown_report_handles_missing_target_row_without_crashing():
+    inputs = create_markdown_inputs()
+    inputs["brand"] = "missing brand"
+    inputs["display_brand"] = "Missing Brand"
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert isinstance(report, str)
+    assert "Missing Brand" in report
+    assert "0 total mentions" in report

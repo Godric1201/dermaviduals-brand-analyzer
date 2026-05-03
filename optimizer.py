@@ -329,6 +329,15 @@ NUMERIC EVIDENCE RULES
 - In Competitor Attack Strategy, include each competitor's relevant visibility score, total mentions, prompts visible, or share of voice.
 - Do not write broad claims like "dominates", "strong", "weak", or "absent" unless supported by a number.
 - If a trigger has all zero scores, say that clearly instead of inventing a winner.
+- Do not make aggressive numeric performance promises.
+- Numeric targets must be framed as directional next-benchmark goals, not guaranteed outcomes.
+- Expected metric impact should reference total mentions, average visibility score, prompts visible, share of voice, or query intent visibility.
+- Avoid claims that content will guarantee metric movement.
+- If the target brand has 0 mentions, 0 prompts visible, or 0% share of voice:
+  - use conservative next-benchmark targets
+  - prefer "begin generating detectable mentions" over large numeric claims
+  - prefer "visible in 1-3 relevant prompt categories" over broad visibility claims
+  - avoid promising share of voice above 10% unless the benchmark data strongly supports it
 
 ========================
 GENERAL RULES

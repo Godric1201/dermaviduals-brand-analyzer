@@ -70,3 +70,8 @@ def test_generate_action_plan_uses_generic_category_context(monkeypatch):
     prompt_lower = prompt.lower()
     for term in blocked_terms:
         assert term not in prompt_lower
+
+    assert "Do not make aggressive numeric performance promises" in prompt
+    assert "0 mentions" in prompt
+    assert "1-3 relevant prompt categories" in prompt
+    assert "directional next-benchmark goals" in prompt

@@ -701,7 +701,7 @@ def create_strategy_priorities_df(brand, category, market, audience, top_competi
         {
             "Level": "High",
             "Priority": "Decision-Stage Visibility",
-            "Target Query Territory": f"best {category} options for decision-stage searches",
+            "Target Query Territory": f"decision-stage {category} searches",
             "Competitor Focus": secondary,
             "Recommended Action": "Develop decision-stage pages and recommendation content for buyers, evaluators, and decision-makers."
         },

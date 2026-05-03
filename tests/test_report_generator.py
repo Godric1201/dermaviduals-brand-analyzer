@@ -166,10 +166,14 @@ def test_create_executive_docx_report_uses_generic_category_wording():
     for term in blocked_terms:
         assert term not in document_xml
 
-    assert "cafes" in document_xml
-    assert "Berlin" in document_xml
-    assert "third-party trust or recommendation signals" in document_xml
-    assert "business outcomes" in document_xml
+    document_xml_lower = document_xml.lower()
+
+    assert "cafes" in document_xml_lower
+    assert "berlin" in document_xml_lower
+    assert "best cafes options" not in document_xml_lower
+    assert "decision-stage cafes searches" in document_xml_lower
+    assert "third-party trust or recommendation signals" in document_xml_lower
+    assert "business outcomes" in document_xml_lower
 
 
 def test_create_executive_docx_report_handles_all_zero_visibility_without_fake_leaders():
