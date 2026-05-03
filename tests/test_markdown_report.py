@@ -92,10 +92,28 @@ def test_build_executive_markdown_report_returns_string_with_core_sections():
     assert "Executive Summary" in report
     assert "Competitive Benchmark" in report
     assert "Query Intent Coverage" in report
+    assert "Brand" in report
+    assert "Total Mentions" in report
+    assert "Average Visibility Score" in report
+    assert "Prompts Visible" in report
+    assert "Share of Voice %" in report
     assert "Espresso House" in report
     assert "Berlin" in report
     assert "Cafes" in report
     assert "Remote Workers" in report
+    assert "AI Visibility Strategy Deep Dive" in report
+    assert "Test strategy plan" in report
+
+
+def test_build_executive_markdown_report_uses_client_facing_table_headers():
+    report = build_executive_markdown_report(**create_markdown_inputs())
+
+    assert "total_mentions" not in report
+    assert "average_visibility_score" not in report
+    assert "share_of_voice_percent" not in report
+    assert "Query Type" in report
+    assert "Brand" in report
+    assert "Visibility Score" in report
 
 
 def test_build_executive_markdown_report_includes_quick_test_warning():

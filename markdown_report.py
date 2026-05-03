@@ -6,6 +6,17 @@ from report_generator import (
 )
 
 
+def _normalize_markdown_table_headers(df, column_map):
+    if df is None:
+        return df
+
+    return df.copy().rename(columns={
+        column: label
+        for column, label in column_map.items()
+        if column in df.columns
+    })
+
+
 def build_executive_markdown_report(
     brand,
     display_brand,
@@ -52,10 +63,38 @@ def build_executive_markdown_report(
         by="average_visibility_score",
         ascending=False,
     )
+    summary_report_df = _normalize_markdown_table_headers(
+        summary_report_df,
+        {
+            "brand": "Brand",
+            "total_mentions": "Total Mentions",
+            "average_visibility_score": "Average Visibility Score",
+            "prompts_visible": "Prompts Visible",
+            "share_of_voice_percent": "Share of Voice %",
+        },
+    )
     summary_report_md = df_to_markdown_table(summary_report_df, max_rows=15)
-    trigger_report_md = df_to_markdown_table(detailed_pivot_df, max_rows=25)
+    trigger_report_md = df_to_markdown_table(
+        _normalize_markdown_table_headers(
+            detailed_pivot_df,
+            {
+                "prompt_category": "Query Type",
+            },
+        ),
+        max_rows=25,
+    )
     top_brands_report_md = (
-        df_to_markdown_table(top_brands_df, max_rows=25)
+        df_to_markdown_table(
+            _normalize_markdown_table_headers(
+                top_brands_df,
+                {
+                    "prompt_category": "Query Type",
+                    "brand": "Brand",
+                    "visibility_score": "Visibility Score",
+                },
+            ),
+            max_rows=25,
+        )
         if top_brands_df is not None and not top_brands_df.empty
         else "_No positive brand winners detected._"
     )
@@ -223,7 +262,7 @@ def build_executive_markdown_report(
 
     ---
 
-    ## 8. AI Visibility Strategy Report
+    ## 8. Appendix: AI Visibility Strategy Deep Dive
 
     {plan}
 
