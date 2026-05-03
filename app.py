@@ -31,6 +31,11 @@ from benchmark_comparison import (
 from competitor_suggestions import suggest_competitors_with_ai
 from geo_roadmap import generate_geo_content_roadmap
 from markdown_report import build_executive_markdown_report
+from narrative_prompts import (
+    build_ai_decision_explanation_prompt,
+    build_gap_analysis_prompt,
+    build_replacement_strategy_prompt,
+)
 from prompts import build_fixed_prompts
 from ui_formatters import (
     build_export_filename,
@@ -609,32 +614,13 @@ def display_results():
         if top_brands.empty:
             st.warning("No top brands to explain.")
         else:
-            explain_prompt = f"""
-    You are analyzing AI-generated {category} brand or provider recommendations in {market}.
-
-    Based on the data below, explain WHY each top brand is selected by AI.
-
-    Focus on:
-    - What signal triggers the brand
-    - What authority the brand has
-    - What makes it preferred over others
-    - What query type it wins
-    - Whether it is associated with high-intent use cases, comparison queries, local intent, decision-stage searches, or trust signals
-
-    Top brands per category:
-    {top_brands.to_string(index=False)}
-
-    Detailed data:
-    {detailed_df.head(50).to_string(index=False)}
-
-    Explain in this format:
-
-    - Category: X
-    - Winning Brand: Y
-    - Why AI selects it:
-    - What signal it owns:
-    - Strategic implication for {brand}:
-    """
+            explain_prompt = build_ai_decision_explanation_prompt(
+                brand=brand,
+                category=category,
+                market=market,
+                top_brands_df=top_brands,
+                detailed_df=detailed_df,
+            )
 
             if "brand_win_explanation" not in st.session_state:
                 st.session_state["brand_win_explanation"] = ask_ai(explain_prompt)
@@ -648,57 +634,16 @@ def display_results():
         if top_brands.empty:
             st.warning("No replacement strategy available because no positive brand winners were detected.")
         else:
-            replace_prompt = f"""
-    You are a senior GEO strategist.
-
-    Based on the AI visibility data below, explain how {brand} can replace the currently dominant brands in AI-generated {category} recommendations in {market}.
-
-    Target brand:
-    {brand}
-
-    Category:
-    {category}
-
-    Market:
-    {market}
-
-    Audience:
-    {audience}
-
-    Dominant brands per category:
-    {top_brands.to_string(index=False)}
-
-    Summary data:
-    {summary_df.to_string(index=False)}
-
-    Detailed data:
-    {detailed_df.head(50).to_string(index=False)}
-
-    Raw AI answers:
-    {str(raw_answers[:10])}
-
-    For each major dominant brand, explain:
-
-    1. What the competitor currently owns in AI perception
-    2. Why AI recommends that competitor
-    3. What {brand} should do to compete
-    4. What content should be created
-    5. What query or keyword cluster {brand} should target
-
-    Use this format:
-
-    ## Competitor: [Brand Name]
-
-    - AI-owned territory:
-    - Why it wins:
-    - Weakness or opening:
-    - {brand} replacement strategy:
-    - Content to create:
-    - Target queries:
-
-    Focus on generic GEO territories such as high-intent use cases, comparison queries, local intent, decision-stage searches, and trust signals.
-    Be specific. Avoid generic SEO advice.
-    """
+            replace_prompt = build_replacement_strategy_prompt(
+                brand=brand,
+                category=category,
+                market=market,
+                audience=audience,
+                top_brands_df=top_brands,
+                summary_df=summary_df,
+                detailed_df=detailed_df,
+                raw_answers=raw_answers,
+            )
 
             if "replacement_strategy" not in st.session_state:
                 st.session_state["replacement_strategy"] = ask_ai(replace_prompt)
@@ -778,37 +723,15 @@ def display_results():
     # 12. AI Association Gap
     # =========================
     with st.expander("AI Association Gap (Why You Are Not Recommended)", expanded=False):
-        gap_prompt = f"""
-    You are analyzing AI brand association patterns.
-
-    Based on the data below, explain:
-
-    1. What concepts each competitor is associated with
-    2. What concepts {brand} is missing
-    3. Why AI does not recommend {brand}
-
-    Category:
-    {category}
-
-    Market:
-    {market}
-
-    Audience:
-    {audience}
-
-    Focus on generic GEO concepts such as high-intent use cases, comparison queries, local intent, decision-stage searches, and trust signals.
-
-    Competitors:
-    {", ".join(competitors)}
-
-    Summary:
-    {summary_df.to_string(index=False)}
-
-    Detailed:
-    {detailed_df.head(50).to_string(index=False)}
-
-    Answer in structured bullet points.
-    """
+        gap_prompt = build_gap_analysis_prompt(
+            brand=brand,
+            category=category,
+            market=market,
+            audience=audience,
+            competitors=competitors,
+            summary_df=summary_df,
+            detailed_df=detailed_df,
+        )
 
         if "gap_analysis" not in st.session_state:
             st.session_state["gap_analysis"] = ask_ai(gap_prompt)

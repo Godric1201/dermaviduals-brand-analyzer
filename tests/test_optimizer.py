@@ -75,3 +75,7 @@ def test_generate_action_plan_uses_generic_category_context(monkeypatch):
     assert "0 mentions" in prompt
     assert "1-3 relevant prompt categories" in prompt
     assert "directional next-benchmark goals" in prompt
+    assert "Use only numeric metrics explicitly provided" in prompt
+    assert "Do not invent mention counts" in prompt
+    assert "Do not treat first_position" in prompt
+    assert "If a metric is not provided, describe it qualitatively" in prompt

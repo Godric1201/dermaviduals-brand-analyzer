@@ -91,6 +91,10 @@ def test_build_executive_markdown_report_returns_string_with_core_sections():
     assert "Report Overview" in report
     assert "Executive Summary" in report
     assert "Competitive Benchmark" in report
+    assert "Trigger-Level Visibility Findings" in report
+    assert "Top Brand Winners by Query Type" in report
+    assert "GEO Content Roadmap" in report
+    assert "Measurement Plan" in report
     assert "Query Intent Coverage" in report
     assert "Brand" in report
     assert "Total Mentions" in report
@@ -101,7 +105,7 @@ def test_build_executive_markdown_report_returns_string_with_core_sections():
     assert "Berlin" in report
     assert "Cafes" in report
     assert "Remote Workers" in report
-    assert "AI Visibility Strategy Deep Dive" in report
+    assert "Appendix B: AI Visibility Strategy Deep Dive" in report
     assert "Test strategy plan" in report
 
 
@@ -131,7 +135,7 @@ def test_build_executive_markdown_report_includes_quick_test_warning():
 def test_build_executive_markdown_report_includes_optional_appendices():
     report = build_executive_markdown_report(**create_markdown_inputs())
 
-    assert "Brand Intelligence & Positioning Audit" in report
+    assert "Appendix A: Brand Intelligence & Positioning Audit" in report
     assert "GEO Content Roadmap" in report
 
 
@@ -141,11 +145,18 @@ def test_build_executive_markdown_report_omits_optional_appendices_when_absent()
     inputs["brand_intelligence_done"] = False
     inputs["geo_content_roadmap"] = None
     inputs["geo_content_roadmap_done"] = False
+    inputs["brand_win_explanation"] = None
+    inputs["replacement_strategy"] = None
+    inputs["gap_analysis"] = None
 
     report = build_executive_markdown_report(**inputs)
 
     assert "Brand Intelligence & Positioning Audit" not in report
     assert "GEO Content Roadmap" not in report
+    assert "Appendix A:" not in report
+    assert "Appendix C:" not in report
+    assert "Appendix D:" not in report
+    assert "Appendix E:" not in report
 
 
 def test_build_executive_markdown_report_avoids_blocked_skincare_terms_for_generic_case():
@@ -174,3 +185,19 @@ def test_build_executive_markdown_report_handles_missing_target_row_without_cras
     assert isinstance(report, str)
     assert "Missing Brand" in report
     assert "0 total mentions" in report
+
+
+def test_build_executive_markdown_report_uses_compressed_appendix_structure():
+    report = build_executive_markdown_report(**create_markdown_inputs())
+
+    assert "## 8. GEO Content Roadmap" in report
+    assert "## 9. 30 / 60 / 90 Day Roadmap" in report
+    assert "## 10. Measurement Plan" in report
+    assert "## 11. Recommended Next Step" in report
+    assert "## 12. Methodology Notes" in report
+    assert "## Appendix A: Brand Intelligence & Positioning Audit" in report
+    assert "## Appendix B: AI Visibility Strategy Deep Dive" in report
+    assert "## Appendix C: AI Decision Explanation" in report
+    assert "## Appendix D: Replacement Strategy" in report
+    assert "## Appendix E: Gap Analysis" in report
+    assert "## 9. Appendix" not in report

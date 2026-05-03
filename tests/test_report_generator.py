@@ -253,6 +253,7 @@ def test_create_executive_docx_report_includes_brand_intelligence_when_provided(
     document_xml = read_document_xml(report_bytes)
 
     expected_terms = [
+        "Appendix",
         "Brand Intelligence",
         "Recommendation Drivers",
         "AI-Inferred Target Brand Understanding",
@@ -282,6 +283,12 @@ def test_create_executive_docx_report_includes_brand_intelligence_when_provided(
 
     for term in blocked_terms:
         assert term not in document_xml
+
+    document_text = read_document_text(report_bytes)
+    assert (
+        document_text.find("Methodology Notes")
+        < document_text.find("Appendix: Brand Intelligence & Positioning Audit")
+    )
 
 
 def test_create_executive_docx_report_includes_query_intent_coverage_when_provided():
@@ -363,7 +370,8 @@ def test_create_executive_docx_report_includes_geo_content_roadmap_when_provided
     assert "| Priority |" not in document_text
 
     assert (
-        document_text.find("Brand Intelligence")
-        < document_text.find("GEO Content Roadmap")
+        document_text.find("GEO Content Roadmap")
         < document_text.find("30 / 60 / 90 Day Roadmap")
+        < document_text.find("Methodology Notes")
+        < document_text.find("Appendix: Brand Intelligence & Positioning Audit")
     )

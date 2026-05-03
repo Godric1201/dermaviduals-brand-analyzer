@@ -323,6 +323,10 @@ End with:
 ========================
 NUMERIC EVIDENCE RULES
 ========================
+- Use only numeric metrics explicitly provided in the input tables/context.
+- Do not invent mention counts, visibility scores, ranks, percentages, or positions.
+- Do not treat first_position, internal analysis positions, or character offsets as mention counts or visibility scores.
+- If a metric is not provided, describe it qualitatively instead of assigning a number.
 - Use at least 10 specific numbers from the Summary Table or Trigger-Level Visibility Table.
 - Every major section must include at least one concrete number when data is available.
 - In Trigger-Level Mapping, include actual visibility scores for dominant brands.
