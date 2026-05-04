@@ -719,6 +719,34 @@ def sanitize_claim_safety_text(
 
     cleanup_replacements = [
         (
+            r"Professional,\s*professional-grade Formulations",
+            "Professional Skincare Formulations",
+        ),
+        (
+            r"medical or professionally recommended products",
+            "professionally recommended skincare products",
+        ),
+        (
+            r"quality and Evidence Support among dermatologists and skincare professionals",
+            "quality, supporting evidence, and professional trust signals",
+        ),
+        (
+            r"quality and Evidence Support",
+            "quality and supporting evidence",
+        ),
+        (
+            r"benchmark for Evidence Support",
+            "benchmark for evidence support",
+        ),
+        (
+            r"established a clear benchmark for Evidence Support",
+            "established a clear evidence benchmark",
+        ),
+        (
+            r"claims support documentation, consumer feedback, or expert validation supporting product claims",
+            "claims support documentation, consumer feedback, or expert validation",
+        ),
+        (
             r"claims support documentation, consumer feedback, or expert validation supporting product claims",
             "claims support documentation, consumer feedback, or expert validation",
         ),
@@ -1760,6 +1788,7 @@ def sanitize_empty_secondary_market_signals_section(text: str) -> str:
     lines = str(text or "").splitlines()
     result = []
     index = 0
+    removed_empty_section = False
 
     while index < len(lines):
         line = lines[index]
@@ -1771,6 +1800,7 @@ def sanitize_empty_secondary_market_signals_section(text: str) -> str:
 
         section_lines = [line]
         index += 1
+
         while index < len(lines) and not re.match(r"^\s*#{1,6}\s+", lines[index]):
             section_lines.append(lines[index])
             index += 1
@@ -1782,14 +1812,27 @@ def sanitize_empty_secondary_market_signals_section(text: str) -> str:
         ]
         body = "\n".join(body_lines).strip()
         normalized_body = normalize_text(body)
+
         if normalized_body in EMPTY_SECONDARY_MARKET_SIGNALS:
+            removed_empty_section = True
+
             while result and not result[-1].strip():
                 result.pop()
+
             continue
 
         result.extend(section_lines)
 
-    return "\n".join(result)
+    sanitized = "\n".join(result)
+
+    if removed_empty_section:
+        sanitized = re.sub(
+            r"(?m)^(#{1,6}\s*)11\.\s+Final Strategic Conclusion\s*$",
+            r"\g<1>10. Final Strategic Conclusion",
+            sanitized,
+        )
+
+    return sanitized
 
 
 def sanitize_geo_roadmap_text(

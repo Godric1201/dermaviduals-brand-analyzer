@@ -185,6 +185,68 @@ Focus on the primary visibility gap.
     assert "Secondary Market Signals" not in sanitized
     assert "Final Strategic Conclusion" in sanitized
 
+def test_final_report_removes_empty_secondary_market_signals_from_appendix():
+    dirty = """
+## Appendix B: AI Visibility Strategy Deep Dive
+
+## 10. Secondary Market Signals
+No major secondary market signals detected.
+
+## 11. Final Strategic Conclusion
+Focus on the primary visibility gap.
+""".strip()
+
+    sanitized = sanitize_report_text(dirty, skincare_context())
+
+    assert "No major secondary market signals detected." not in sanitized
+    assert "Secondary Market Signals" not in sanitized
+    assert "Final Strategic Conclusion" in sanitized
+
+def test_claim_safety_cleans_final_health_wording_artifacts():
+    dirty = """
+1. **Professional, professional-grade Formulations** – Emphasis on brands that offer medical or professionally recommended products.
+4. **Reputation and Trust** – Preference for brands recognized for their quality and Evidence Support among dermatologists and skincare professionals.
+The brand established a clear benchmark for Evidence Support.
+""".strip()
+
+    clean = sanitize_report_text(dirty, skincare_context())
+
+    assert "Professional, professional-grade Formulations" not in clean
+    assert "medical or professionally recommended products" not in clean
+    assert "quality and Evidence Support" not in clean
+    assert "benchmark for Evidence Support" not in clean
+
+    assert "Professional Skincare Formulations" in clean
+    assert "professionally recommended skincare products" in clean
+    assert "quality, supporting evidence, and professional trust signals" in clean
+    assert "clear evidence benchmark" in clean
+
+
+def test_empty_secondary_market_signals_removal_renumbers_final_conclusion():
+    dirty = """
+## 9. 30 / 60 / 90 Day Execution Roadmap
+
+Content here.
+
+---
+
+## 10. Secondary Market Signals
+
+No major secondary market signals detected.
+
+---
+
+## 11. Final Strategic Conclusion
+
+Final content here.
+""".strip()
+
+    clean = sanitize_report_text(dirty, skincare_context())
+
+    assert "Secondary Market Signals" not in clean
+    assert "No major secondary market signals detected" not in clean
+    assert "## 11. Final Strategic Conclusion" not in clean
+    assert "## 10. Final Strategic Conclusion" in clean
 
 def test_ai_discovered_brands_section_keeps_only_non_tracked_brand_bullets():
     dirty = """
