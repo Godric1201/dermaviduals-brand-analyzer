@@ -1,0 +1,1086 @@
+warning: in the working copy of 'markdown_report.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'output_quality.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'report_generator.py', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/markdown_report.py b/markdown_report.py[m
+[1mindex 0171961..4cf2ffe 100644[m
+[1m--- a/markdown_report.py[m
+[1m+++ b/markdown_report.py[m
+[36m@@ -11,7 +11,12 @@[m [mfrom report_generator import ([m
+     get_visibility_state_noun,[m
+ )[m
+ from prompts import format_audience_market_context[m
+[31m-from output_quality import OutputQualityContext, sanitize_report_text, validate_output_quality[m
+[32m+[m[32mfrom output_quality import ([m
+[32m+[m[32m    OutputQualityContext,[m
+[32m+[m[32m    guard_generated_section_text,[m
+[32m+[m[32m    sanitize_report_text,[m
+[32m+[m[32m    validate_output_quality,[m
+[32m+[m[32m)[m
+ [m
+ [m
+ def _normalize_markdown_table_headers(df, column_map):[m
+[36m@@ -119,6 +124,64 @@[m [mdef build_executive_markdown_report([m
+     is_quick_test_mode = run_mode == "Quick Test Mode"[m
+     prompt_categories = prompt_categories or [][m
+     brand_intelligence = brand_intelligence or {}[m
+[32m+[m[32m    if tracked_competitors is None and summary_df is not None and "brand" in summary_df.columns:[m
+[32m+[m[32m        tracked_competitors = [[m
+[32m+[m[32m            str(item)[m
+[32m+[m[32m            for item in summary_df["brand"].dropna().tolist()[m
+[32m+[m[32m            if str(item).strip().lower() != str(brand).strip().lower()[m
+[32m+[m[32m        ][m
+[32m+[m[32m    context = OutputQualityContext([m
+[32m+[m[32m        category=display_category or category,[m
+[32m+[m[32m        run_mode=run_mode,[m
+[32m+[m[32m        brand=display_brand or brand,[m
+[32m+[m[32m        market=display_market or market,[m
+[32m+[m[32m        audience=display_audience or audience,[m
+[32m+[m[32m        tracked_competitors=tracked_competitors,[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    recommendations = guard_generated_section_text([m
+[32m+[m[32m        recommendations,[m
+[32m+[m[32m        context,[m
+[32m+[m[32m        "Strategic Priorities",[m
+[32m+[m[32m    )[m
+[32m+[m[32m    plan = guard_generated_section_text([m
+[32m+[m[32m        plan,[m
+[32m+[m[32m        context,[m
+[32m+[m[32m        "AI Visibility Strategy Deep Dive",[m
+[32m+[m[32m    )[m
+[32m+[m[32m    geo_content_roadmap = guard_generated_section_text([m
+[32m+[m[32m        geo_content_roadmap,[m
+[32m+[m[32m        context,[m
+[32m+[m[32m        "GEO Content Roadmap",[m
+[32m+[m[32m    )[m
+[32m+[m[32m    gap_analysis = guard_generated_section_text([m
+[32m+[m[32m        gap_analysis,[m
+[32m+[m[32m        context,[m
+[32m+[m[32m        "Gap Analysis",[m
+[32m+[m[32m    )[m
+[32m+[m[32m    brand_win_explanation = guard_generated_section_text([m
+[32m+[m[32m        brand_win_explanation,[m
+[32m+[m[32m        context,[m
+[32m+[m[32m        "AI Decision Explanation",[m
+[32m+[m[32m    )[m
+[32m+[m[32m    replacement_strategy = guard_generated_section_text([m
+[32m+[m[32m        replacement_strategy,[m
+[32m+[m[32m        context,[m
+[32m+[m[32m        "Replacement Strategy",[m
+[32m+[m[32m    )[m
+[32m+[m[32m    if brand_intelligence:[m
+[32m+[m[32m        brand_intelligence = {[m
+[32m+[m[32m            key: ([m
+[32m+[m[32m                guard_generated_section_text([m
+[32m+[m[32m                    value,[m
+[32m+[m[32m                    context,[m
+[32m+[m[32m                    f"Brand Intelligence {key}",[m
+[32m+[m[32m                )[m
+[32m+[m[32m                if isinstance(value, str)[m
+[32m+[m[32m                else value[m
+[32m+[m[32m            )[m
+[32m+[m[32m            for key, value in brand_intelligence.items()[m
+[32m+[m[32m        }[m
+ [m
+     summary_columns = [[m
+         "brand",[m
+[36m@@ -339,20 +402,6 @@[m [mdef build_executive_markdown_report([m
+         )[m
+ [m
+     final_report = "\n\n---\n\n".join(parts + appendix_sections)[m
+[31m-    if tracked_competitors is None and summary_df is not None and "brand" in summary_df.columns:[m
+[31m-        tracked_competitors = [[m
+[31m-            str(item)[m
+[31m-            for item in summary_df["brand"].dropna().tolist()[m
+[31m-            if str(item).strip().lower() != str(brand).strip().lower()[m
+[31m-        ][m
+[31m-    context = OutputQualityContext([m
+[31m-        category=display_category or category,[m
+[31m-        run_mode=run_mode,[m
+[31m-        brand=display_brand or brand,[m
+[31m-        market=display_market or market,[m
+[31m-        audience=display_audience or audience,[m
+[31m-        tracked_competitors=tracked_competitors,[m
+[31m-    )[m
+     final_report = sanitize_report_text(final_report, context)[m
+     validate_output_quality([m
+         final_report,[m
+[1mdiff --git a/output_quality.py b/output_quality.py[m
+[1mindex 54aa9e6..3c239e8 100644[m
+[1m--- a/output_quality.py[m
+[1m+++ b/output_quality.py[m
+[36m@@ -23,6 +23,23 @@[m [mclass OutputQualityIssue:[m
+     phrase: str | None = None[m
+ [m
+ [m
+[32m+[m[32mFAILED_LLM_SECTION_PLACEHOLDER = ([m
+[32m+[m[32m    "This section could not be generated because the LLM request failed. Re-run the report."[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mRAW_ERROR_OUTPUT_PATTERNS = ([m
+[32m+[m[32m    r"^\s*ERROR\s*:",[m
+[32m+[m[32m    r"\bConnection error\.?\b",[m
+[32m+[m[32m    r"\bAPIConnectionError\b",[m
+[32m+[m[32m    r"\bRateLimitError\b",[m
+[32m+[m[32m    r"\bAuthenticationError\b",[m
+[32m+[m[32m    r"\bTraceback\b",[m
+[32m+[m[32m    r"\bException\s*:",[m
+[32m+[m[32m    r"\bNoneType\b",[m
+[32m+[m[32m    r"\bOpenAI\b",[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m
+ HEALTH_ADJACENT_CATEGORY_TERMS = ([m
+     "skincare",[m
+     "skin care",[m
+[36m@@ -89,7 +106,12 @@[m [mFORBIDDEN_BUSINESS_KPI_PATTERNS = ([m
+     r"share of voice over \d+(?:\.\d+)?%?",[m
+     r"SOV above \d+(?:\.\d+)?%?",[m
+     r"aim for at least \d+\s*(?:-\s*\d+)? mentions",[m
+[32m+[m[32m    r"at least \d+\s*(?:-\s*\d+)? detectable mentions",[m
+     r"at least \d+\s*(?:-\s*\d+)? mentions",[m
+[32m+[m[32m    r"visible in at least \d+\s*(?:-\s*\d+)? prompt categories",[m
+[32m+[m[32m    r"move toward being visible in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m    r"achieve visibility in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m    r"achieve initial mentions",[m
+     r"visibility score above \d+(?:\.\d+)?%?",[m
+     r"average visibility score above \d+(?:\.\d+)?%?",[m
+     r"increase average visibility score to above \d+(?:\.\d+)?%?",[m
+[36m@@ -158,6 +180,104 @@[m [mINVALID_AI_DISCOVERED_BRAND_BULLET_PATTERNS = ([m
+     r"\bprogram\b",[m
+     r"\bsystem\b",[m
+     r"\bprocess\b",[m
+[32m+[m[32m    r"\bmonitor competitors?\b",[m
+[32m+[m[32m    r"\bmonitoring competitors?\b",[m
+[32m+[m[32m    r"\bcompetitor monitoring\b",[m
+[32m+[m[32m    r"\bbrand positioning\b",[m
+[32m+[m[32m    r"\bpositioning\b",[m
+[32m+[m[32m    r"\bmarketing strategies?\b",[m
+[32m+[m[32m    r"\benhance marketing strategies?\b",[m
+[32m+[m[32m    r"\badditional brands\b",[m
+[32m+[m[32m    r"\bconsider adding brands\b",[m
+[32m+[m[32m    r"\bbrands like\b",[m
+[32m+[m[32m    r"\bhighlight amenities\b",[m
+[32m+[m[32m    r"\bamenities\b",[m
+[32m+[m[32m    r"\bcommunicate wi-?fi quality\b",[m
+[32m+[m[32m    r"\bwork-friendly features\b",[m
+[32m+[m[32m    r"\bmarketing materials\b",[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mACTION_ENTITY_START_RE = re.compile([m
+[32m+[m[32m    r"^(?:add|assess|audit|benchmark|build|collect|communicate|compare|conduct|"[m
+[32m+[m[32m    r"consider|create|develop|educate|engage|enhance|evaluate|expand|explore|"[m
+[32m+[m[32m    r"feature|gather|highlight|identify|improve|increase|launch|monitor|"[m
+[32m+[m[32m    r"optimize|optimise|partner|promote|publish|review|showcase|support|"[m
+[32m+[m[32m    r"track|validate)\b",[m
+[32m+[m[32m    re.IGNORECASE,[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mGENERIC_ACTION_ENTITY_NOUN_RE = re.compile([m
+[32m+[m[32m    r"\b(?:action|actions|advantage|advantages|amenities|analysis|associations|"[m
+[32m+[m[32m    r"awareness|benchmark|campaign|campaigns|collection|community|competitor|"[m
+[32m+[m[32m    r"competitors|content|documentation|education|effort|efforts|engagement|"[m
+[32m+[m[32m    r"evidence|feedback|initiative|initiatives|marketing|materials|monitoring|"[m
+[32m+[m[32m    r"partnership|partnerships|positioning|program|recommendation|"[m
+[32m+[m[32m    r"recommendations|research|roadmap|strategy|strategies|survey|system|task|"[m
+[32m+[m[32m    r"testimonial|testimonials|validation|visibility)\b",[m
+[32m+[m[32m    re.IGNORECASE,[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mWRAPPER_ENTITY_RE = re.compile([m
+[32m+[m[32m    r"\b(?:additional brands|other brands|non-tracked brands|market signals|"[m
+[32m+[m[32m    r"brand examples|example brands|benchmark brands)\b",[m
+[32m+[m[32m    re.IGNORECASE,[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mACTION_TASK_LINE_RE = re.compile([m
+[32m+[m[32m    r"\b(?:consider adding|gain deeper insights|competitive advantages|"[m
+[32m+[m[32m    r"marketing materials|work-friendly features|clearly communicate|keep an eye|"[m
+[32m+[m[32m    r"gather feedback|collect testimonials|build trust|enhance marketing|"[m
+[32m+[m[32m    r"benchmark against|monitor competitors)\b",[m
+[32m+[m[32m    re.IGNORECASE,[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mBRAND_LEGAL_SUFFIX_RE = re.compile([m
+[32m+[m[32m    r"\b(?:gmbh|inc\.?|ltd\.?|llc|co\.?|corp\.?|company|group|plc)\b",[m
+[32m+[m[32m    re.IGNORECASE,[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mBRAND_SYMBOL_RE = re.compile(r"(?:&|\+|\.com\b|\.io\b|\.ai\b|\.)", re.IGNORECASE)[m
+[32m+[m
+[32m+[m[32mQUICK_TEST_TARGET_LANGUAGE_RE = re.compile([m
+[32m+[m[32m    r"\b(?:aim|aiming|target|goal|benchmark target|achieve|reach|increase|improve|"[m
+[32m+[m[32m    r"raise|lift|move from|generate|gain|establish|capture|visible in|"[m
+[32m+[m[32m    r"visibility in|mentions from|conservative targets?|expected ai visibility effect|"[m
+[32m+[m[32m    r"expected visibility effect|next benchmark target|should improve|should increase|"[m
+[32m+[m[32m    r"designed to improve|to improve|to increase|expected metric impact|begin to capture)\b",[m
+[32m+[m[32m    re.IGNORECASE,[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mQUICK_TEST_NUMERIC_TARGET_RE = re.compile([m
+[32m+[m[32m    r"(?:\d+(?:\.\d+)?%|\b\d+\s*-\s*\d+\b|\b\d+\.\d+\b|"[m
+[32m+[m[32m    r"\bat least\s+\d+|\babove\s+\d+|\bfrom\s+\d+(?:\.\d+)?\s+to\s+\d+)",[m
+[32m+[m[32m    re.IGNORECASE,[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mBUSINESS_TARGET_RE = re.compile([m
+[32m+[m[32m    r"\b(?:revenue|sales|conversion|conversion rate|session duration|engagement rate|traffic)\b",[m
+[32m+[m[32m    re.IGNORECASE,[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mCURRENT_STATE_DIAGNOSTIC_RE = re.compile([m
+[32m+[m[32m    r"\b(?:currently|records|with 0 total mentions|has 0 mentions|0 total mentions|"[m
+[32m+[m[32m    r"0\.0 average visibility|0 prompts visible|0% share of voice|"[m
+[32m+[m[32m    r"leaving the brand at 0% share of voice|currently not visible|"[m
+[32m+[m[32m    r"not visible across the tested|no benchmark competitor generated measurable visibility)\b",[m
+[32m+[m[32m    re.IGNORECASE,[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mEXPLICIT_FUTURE_TARGET_RE = re.compile([m
+[32m+[m[32m    r"\b(?:aim|aiming|target|goal|expected|next benchmark|conservative targets?|"[m
+[32m+[m[32m    r"should improve|should increase|designed to improve|to improve|to increase|"[m
+[32m+[m[32m    r"achieve|reach|gain|generate|establish|capture|move from|increase from|"[m
+[32m+[m[32m    r"begin to capture)\b",[m
+[32m+[m[32m    re.IGNORECASE,[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mKNOWN_TARGET_ARTIFACT_RE = re.compile([m
+[32m+[m[32m    r"\b(?:aim for begin generating|aiming for begin generating|increase begin generating|"[m
+[32m+[m[32m    r"improve begin generating|a begin generating)\b",[m
+[32m+[m[32m    re.IGNORECASE,[m
+ )[m
+ [m
+ AI_DISCOVERED_BRANDS_HEADING_RE = re.compile([m
+[36m@@ -185,6 +305,20 @@[m [mdef normalize_text(value: str | None) -> str:[m
+     return " ".join(str(value or "").strip().lower().split())[m
+ [m
+ [m
+[32m+[m[32mdef is_raw_error_output(value: str | None) -> bool:[m
+[32m+[m[32m    if value is None:[m
+[32m+[m[32m        return False[m
+[32m+[m
+[32m+[m[32m    text = str(value)[m
+[32m+[m[32m    if not text.strip():[m
+[32m+[m[32m        return False[m
+[32m+[m
+[32m+[m[32m    return any([m
+[32m+[m[32m        re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)[m
+[32m+[m[32m        for pattern in RAW_ERROR_OUTPUT_PATTERNS[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m
+ def is_quick_test_mode(run_mode: str | None) -> bool:[m
+     normalized = normalize_text(run_mode)[m
+     return normalized in {[m
+[36m@@ -195,6 +329,24 @@[m [mdef is_quick_test_mode(run_mode: str | None) -> bool:[m
+     }[m
+ [m
+ [m
+[32m+[m[32mdef guard_generated_section_text([m
+[32m+[m[32m    value: str | None,[m
+[32m+[m[32m    context: OutputQualityContext | None = None,[m
+[32m+[m[32m    module_name: str = "Generated section",[m
+[32m+[m[32m) -> str | None:[m
+[32m+[m[32m    if not is_raw_error_output(value):[m
+[32m+[m[32m        return value[m
+[32m+[m
+[32m+[m[32m    context = context or OutputQualityContext()[m
+[32m+[m[32m    if is_quick_test_mode(context.run_mode):[m
+[32m+[m[32m        return FAILED_LLM_SECTION_PLACEHOLDER[m
+[32m+[m
+[32m+[m[32m    raise ValueError([m
+[32m+[m[32m        f"{module_name} could not be generated because the LLM request failed. "[m
+[32m+[m[32m        "Re-run the report."[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m
+ def _tracked_set(tracked_competitors):[m
+     return {[m
+         normalize_text(item)[m
+[36m@@ -454,7 +606,8 @@[m [mdef sanitize_claim_safety_text([m
+         (r"clinic-grade", "professional-grade"),[m
+         (r"clinical-grade", "professional-grade"),[m
+         (r"medical-grade claims", "professional-grade positioning, where substantiated"),[m
+[31m-        (r"strong clinical backing", "Strong evidence-supported positioning"),      [m
+[32m+[m[32m        (r"medical-grade", "professional-grade"),[m
+[32m+[m[32m        (r"strong clinical backing", "Strong evidence-supported positioning"),[m
+         (r"clinical backing", "evidence-supported positioning"),[m
+         (r"clinical results", "documented outcomes, where substantiated and compliant"),[m
+         (r"clinically backed", "evidence-supported"),[m
+[36m@@ -605,14 +758,203 @@[m [mdef sanitize_claim_safety_text([m
+     return sanitized.strip()[m
+ [m
+ [m
+[32m+[m[32mdef _is_quick_test_numeric_target_statement(value: str) -> bool:[m
+[32m+[m[32m    text = str(value or "")[m
+[32m+[m[32m    if KNOWN_TARGET_ARTIFACT_RE.search(text):[m
+[32m+[m[32m        return True[m
+[32m+[m[32m    if CURRENT_STATE_DIAGNOSTIC_RE.search(text) and not EXPLICIT_FUTURE_TARGET_RE.search(text):[m
+[32m+[m[32m        return False[m
+[32m+[m[32m    return bool(QUICK_TEST_TARGET_LANGUAGE_RE.search(text) and QUICK_TEST_NUMERIC_TARGET_RE.search(text))[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef _directional_quick_test_replacement(value: str) -> str | None:[m
+[32m+[m[32m    text = str(value or "")[m
+[32m+[m[32m    lowered = normalize_text(text)[m
+[32m+[m
+[32m+[m[32m    if ([m
+[32m+[m[32m        ("total mentions" in lowered and "average visibility" in lowered and "prompts visible" in lowered)[m
+[32m+[m[32m        or ("conservative targets" in lowered and "mention" in lowered and ("visible" in lowered or "prompt categor" in lowered))[m
+[32m+[m[32m    ):[m
+[32m+[m[32m        return "Total mentions, average visibility score, and prompts visible should improve directionally in a future full benchmark."[m
+[32m+[m
+[32m+[m[32m    if "total mentions" in lowered and "average visibility" in lowered and "share of voice" in lowered:[m
+[32m+[m[32m        return ([m
+[32m+[m[32m            "Total mentions: begin generating detectable mentions in a future full benchmark. "[m
+[32m+[m[32m            "Average visibility score: begin improving average visibility score in a future full benchmark. "[m
+[32m+[m[32m            "Share of voice: Begin generating measurable share of voice in a future full benchmark."[m
+[32m+[m[32m        )[m
+[32m+[m
+[32m+[m[32m    if "share of voice" in lowered or re.search(r"\bsov\b", text, flags=re.IGNORECASE) or "capture share" in lowered:[m
+[32m+[m[32m        return "Begin generating measurable share of voice in a future full benchmark."[m
+[32m+[m
+[32m+[m[32m    if ([m
+[32m+[m[32m        "average visibility" in lowered[m
+[32m+[m[32m        or "visibility score" in lowered[m
+[32m+[m[32m        or re.search(r"\bvisibility\s+to\s+\d+(?:\.\d+)?", text, flags=re.IGNORECASE)[m
+[32m+[m[32m    ):[m
+[32m+[m[32m        return "Begin improving average visibility score in a future full benchmark."[m
+[32m+[m
+[32m+[m[32m    if "mention" in lowered or "mention count" in lowered:[m
+[32m+[m[32m        return "Begin generating detectable mentions in a future full benchmark."[m
+[32m+[m
+[32m+[m[32m    if ([m
+[32m+[m[32m        "prompt categor" in lowered[m
+[32m+[m[32m        or "prompts visible" in lowered[m
+[32m+[m[32m        or "visible in" in lowered[m
+[32m+[m[32m        or "visibility in" in lowered[m
+[32m+[m[32m        or "visibility" in lowered[m
+[32m+[m[32m    ):[m
+[32m+[m[32m        return "Begin generating prompt-level visibility in relevant prompt categories."[m
+[32m+[m
+[32m+[m[32m    if BUSINESS_TARGET_RE.search(text):[m
+[32m+[m[32m        return "Improve the relevant benchmark metric directionally."[m
+[32m+[m
+[32m+[m[32m    return None[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef _sanitize_quick_test_target_unit(unit: str) -> str:[m
+[32m+[m[32m    text = str(unit or "")[m
+[32m+[m
+[32m+[m[32m    grammar_replacements = [[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\b(?:Aim for|aiming for|Increase|Improve)\s+(Begin generating .+)",[m
+[32m+[m[32m            r"\1",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\ba begin generating\b",[m
+[32m+[m[32m            "begin generating",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m    ][m
+[32m+[m[32m    text = _apply_replacements(text, grammar_replacements)[m
+[32m+[m
+[32m+[m[32m    if not _is_quick_test_numeric_target_statement(text):[m
+[32m+[m[32m        return text[m
+[32m+[m
+[32m+[m[32m    replacement = _directional_quick_test_replacement(text)[m
+[32m+[m[32m    if not replacement:[m
+[32m+[m[32m        return text[m
+[32m+[m
+[32m+[m[32m    prefix_match = re.match(r"^(?P<prefix>\s*(?:[-*]\s+|\d+[.)]\s*)?)", text)[m
+[32m+[m[32m    prefix = prefix_match.group("prefix") if prefix_match else ""[m
+[32m+[m[32m    trailing_space = " " if text.endswith(" ") else ""[m
+[32m+[m[32m    return f"{prefix}{replacement}{trailing_space}"[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef _sanitize_quick_test_numeric_targets(text: str, context: OutputQualityContext) -> str:[m
+[32m+[m[32m    if not is_quick_test_mode(context.run_mode):[m
+[32m+[m[32m        return str(text or "")[m
+[32m+[m
+[32m+[m[32m    sanitized_lines = [][m
+[32m+[m[32m    for line in str(text or "").splitlines():[m
+[32m+[m[32m        if "|" in line and line.strip().startswith("|"):[m
+[32m+[m[32m            cells = line.split("|")[m
+[32m+[m[32m            sanitized_cells = [[m
+[32m+[m[32m                _sanitize_quick_test_target_unit(cell)[m
+[32m+[m[32m                for cell in cells[m
+[32m+[m[32m            ][m
+[32m+[m[32m            sanitized_lines.append("|".join(sanitized_cells))[m
+[32m+[m[32m            continue[m
+[32m+[m
+[32m+[m[32m        parts = re.split(r"(?<=[.!?])(\s+)", line)[m
+[32m+[m[32m        if len(parts) == 1:[m
+[32m+[m[32m            sanitized_lines.append(_sanitize_quick_test_target_unit(line))[m
+[32m+[m[32m            continue[m
+[32m+[m
+[32m+[m[32m        rebuilt = [][m
+[32m+[m[32m        index = 0[m
+[32m+[m[32m        while index < len(parts):[m
+[32m+[m[32m            sentence = parts[index][m
+[32m+[m[32m            separator = parts[index + 1] if index + 1 < len(parts) else ""[m
+[32m+[m[32m            rebuilt.append(_sanitize_quick_test_target_unit(sentence))[m
+[32m+[m[32m            rebuilt.append(separator)[m
+[32m+[m[32m            index += 2[m
+[32m+[m[32m        sanitized_lines.append("".join(rebuilt).rstrip())[m
+[32m+[m
+[32m+[m[32m    return "\n".join(sanitized_lines)[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef _iter_text_quality_units(text: str):[m
+[32m+[m[32m    for line in str(text or "").splitlines():[m
+[32m+[m[32m        if "|" in line and line.strip().startswith("|"):[m
+[32m+[m[32m            for cell in line.split("|"):[m
+[32m+[m[32m                if cell.strip():[m
+[32m+[m[32m                    yield cell[m
+[32m+[m[32m            continue[m
+[32m+[m
+[32m+[m[32m        parts = re.split(r"(?<=[.!?])\s+", line)[m
+[32m+[m[32m        for part in parts:[m
+[32m+[m[32m            if part.strip():[m
+[32m+[m[32m                yield part[m
+[32m+[m
+[32m+[m
+ def sanitize_business_kpi_text([m
+     text: str,[m
+     context: OutputQualityContext | None = None,[m
+ ) -> str:[m
+     context = context or OutputQualityContext()[m
+[31m-    sanitized = str(text or "")[m
+[32m+[m[32m    sanitized = _sanitize_quick_test_numeric_targets(str(text or ""), context)[m
+ [m
+     target_replacements = [[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\bIncrease mentions from \d+(?:\.\d+)? to \d+\s*-\s*\d+\.?",[m
+[32m+[m[32m            "Begin generating detectable mentions in a future full benchmark.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\bMove from \d+(?:\.\d+)? visibility to \d+(?:\.\d+)? or more\.?",[m
+[32m+[m[32m            "Begin improving average visibility score in a future full benchmark.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\bEstablish presence in \d+\s*-\s*\d+ relevant prompt categories\.?",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in relevant prompt categories.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\bAchieve visibility in at least \d+\s*-\s*\d+ relevant prompt categories\.?",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in relevant prompt categories.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\bGain visibility in \d+\s*-\s*\d+ prompt categories\.?",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in relevant prompt categories.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\bGenerate \d+\s*-\s*\d+ mentions(?: from [^.]+)?\.?",[m
+[32m+[m[32m            "Begin generating detectable mentions in a future full benchmark.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\bEstablish a recognizable presence in local searches and begin to capture share of voice\.?",[m
+[32m+[m[32m            "Begin generating measurable share of voice in a future full benchmark.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\bTotal mentions, average visibility score, and prompts visible should each aim to increase from \d+(?:\.\d+)? to at least \d+\s*-\s*\d+\.?",[m
+[32m+[m[32m            "Total mentions, average visibility score, and prompts visible should improve directionally in a future full benchmark.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"target a benchmark of \d+(?:\.\d+)?% share of voice(?: in [^.]+)?\.?",[m
+[32m+[m[32m            "Begin generating measurable share of voice in a future full benchmark.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"total mentions\s*\(aim to reach at least \d+\s*(?:-\s*\d+)?\)",[m
+[32m+[m[32m            "Total mentions (begin generating detectable mentions in a future full benchmark)",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"average visibility score\s*\(target \d+(?:\.\d+)?\)",[m
+[32m+[m[32m            "average visibility score (begin improving average visibility score in a future full benchmark)",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"share of voice\s*\(aim for \d+(?:\.\d+)?%\)",[m
+[32m+[m[32m            "share of voice (begin generating measurable share of voice in a future full benchmark)",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"aim to reach at least \d+\s*(?:-\s*\d+)?",[m
+[32m+[m[32m            "begin generating detectable mentions in a future full benchmark",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"target \d+(?:\.\d+)?\)",[m
+[32m+[m[32m            "begin improving average visibility score in a future full benchmark)",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"aim for \d+(?:\.\d+)?%\)",[m
+[32m+[m[32m            "begin generating measurable share of voice in a future full benchmark)",[m
+[32m+[m[32m        ),[m
+         ([m
+             r"(?:Reach|Achieve|Target|Capture)\s+(?:at least\s+)?\d+(?:\.\d+)?%?\s+share of voice(?: in [^.]+)?\.?",[m
+             "Begin generating measurable share of voice in a future full benchmark.",[m
+[36m@@ -637,18 +979,90 @@[m [mdef sanitize_business_kpi_text([m
+             r"(?:Increase|Improve|Raise|Lift)\s+(?:average\s+)?visibility score\s+(?:to\s+)?(?:above|over|at least)\s+\d+(?:\.\d+)?%?\.?",[m
+             "Begin improving average visibility score in a future full benchmark.",[m
+         ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"(?:Increase|Improve|Raise|Lift)\s+(?:average\s+)?visibility score\s+to\s+\d+(?:\.\d+)?%?\.?",[m
+[32m+[m[32m            "Begin improving average visibility score in a future full benchmark.",[m
+[32m+[m[32m        ),[m
+         ([m
+             r"(?:average\s+)?visibility score\s+(?:to\s+)?(?:above|over|at least)\s+\d+(?:\.\d+)?%?",[m
+             "measurable visibility improvement in a future full benchmark",[m
+         ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"(?:Aim for|Target|Achieve|Reach)\s+(?:at least\s+)?\d+\s*(?:-\s*\d+)?\s+detectable mentions?\.?",[m
+[32m+[m[32m            "Begin generating detectable mentions in a future full benchmark.",[m
+[32m+[m[32m        ),[m
+         ([m
+             r"(?:Aim for|Target|Achieve|Reach)\s+(?:at least\s+)?\d+\s*(?:-\s*\d+)?\s+mentions?\.?",[m
+             "Begin generating detectable mentions in a future full benchmark.",[m
+         ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"(?:at least|above|over)\s+\d+\s*(?:-\s*\d+)?\s+detectable mentions?",[m
+[32m+[m[32m            "detectable mentions in a future full benchmark",[m
+[32m+[m[32m        ),[m
+         ([m
+             r"(?:at least|above|over)\s+\d+\s*(?:-\s*\d+)?\s+mentions?",[m
+             "detectable mentions in a future full benchmark",[m
+         ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"Visible in at least \d+\s*(?:-\s*\d+)? prompt categories",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in a future full benchmark",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"visible in at least \d+\s*(?:-\s*\d+)? prompt categories",[m
+[32m+[m[32m            "begin generating prompt-level visibility in a future full benchmark",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"Move toward being visible in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in relevant prompt categories",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"move toward being visible in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m            "begin generating prompt-level visibility in relevant prompt categories",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"Achieve visibility in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in relevant prompt categories",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"achieve visibility in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m            "begin generating prompt-level visibility in relevant prompt categories",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"visibility in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in relevant prompt categories",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"(?<!prompt-level )\bvisibility in relevant prompt categories\b",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in relevant prompt categories",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"Gain initial mentions and recognition among target queries",[m
+[32m+[m[32m            "Begin generating detectable mentions in relevant target queries",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"Achieve initial mentions",[m
+[32m+[m[32m            "Begin generating detectable mentions",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"achieve initial mentions",[m
+[32m+[m[32m            "begin generating detectable mentions",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"Above \d+(?:\.\d+)?",[m
+[32m+[m[32m            "Begin improving average visibility score in a future full benchmark",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"above \d+(?:\.\d+)?",[m
+[32m+[m[32m            "begin improving average visibility score in a future full benchmark",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"At least \d+(?:\.\d+)?%",[m
+[32m+[m[32m            "Begin generating measurable share of voice in a future full benchmark",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"at least \d+(?:\.\d+)?%",[m
+[32m+[m[32m            "begin generating measurable share of voice in a future full benchmark",[m
+[32m+[m[32m        ),[m
+     ][m
+ [m
+     for pattern, replacement in target_replacements:[m
+[36m@@ -688,6 +1102,18 @@[m [mdef sanitize_business_kpi_text([m
+         sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)[m
+ [m
+     grammar_replacements = [[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\b(?:Increase|Improve) Begin generating prompt-level visibility in relevant prompt categories\.?",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in relevant prompt categories.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\bAchieve initial visibility in at least \d+\s*-\s*\d+ relevant prompt categories\.?",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in relevant prompt categories.",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\binitial visibility in at least \d+\s*-\s*\d+ relevant prompt categories\b",[m
+[32m+[m[32m            "Begin generating prompt-level visibility in relevant prompt categories",[m
+[32m+[m[32m        ),[m
+         ([m
+             r"Achieve a begin generating measurable share of voice in a future full benchmark(?: in targeted comparisons| in targeted categories)?\.?",[m
+             "Begin generating measurable share of voice in a future full benchmark.",[m
+[36m@@ -736,6 +1162,14 @@[m [mdef sanitize_business_kpi_text([m
+             r"Aim for a measurable share of voice in a future full benchmark(?: in targeted categories)?\.?",[m
+             "Begin generating measurable share of voice in a future full benchmark.",[m
+         ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\ba begin generating measurable share of voice in a future full benchmark\b",[m
+[32m+[m[32m            "begin generating measurable share of voice in a future full benchmark",[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        ([m
+[32m+[m[32m            r"\baiming for begin generating detectable mentions in a future full benchmark\b",[m
+[32m+[m[32m            "Begin generating detectable mentions in a future full benchmark",[m
+[32m+[m[32m        ),[m
+         ([m
+             r"goal of achieving begin generating detectable mentions",[m
+             "goal of beginning to generate detectable mentions",[m
+[36m@@ -794,76 +1228,112 @@[m [mdef _contains_invalid_brand_item(value):[m
+     )[m
+ [m
+ [m
+[31m-def is_likely_brand_bullet(line: str) -> bool:[m
+[31m-    stripped = str(line or "").strip()[m
+[32m+[m[32mdef _is_wrapper_entity(value: str) -> bool:[m
+[32m+[m[32m    return bool(WRAPPER_ENTITY_RE.search(str(value or "")))[m
+ [m
+[31m-    if not re.match(r"^\s*(?:[-*]\s+|\d+[.)]\s*)", stripped):[m
+[31m-        return False[m
+ [m
+[31m-    entity = _extract_bullet_entity(stripped)[m
+[31m-    if not entity:[m
+[32m+[m[32mdef _entity_has_action_language(value: str) -> bool:[m
+[32m+[m[32m    entity = str(value or "").strip()[m
+[32m+[m[32m    return bool([m
+[32m+[m[32m        ACTION_ENTITY_START_RE.search(entity)[m
+[32m+[m[32m        or GENERIC_ACTION_ENTITY_NOUN_RE.search(entity)[m
+[32m+[m[32m        or WRAPPER_ENTITY_RE.search(entity)[m
+[32m+[m[32m        or _contains_invalid_brand_item(entity)[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef _line_indicates_action_task(value: str) -> bool:[m
+[32m+[m[32m    line = str(value or "")[m
+[32m+[m[32m    return bool(ACTION_TASK_LINE_RE.search(line) or _contains_invalid_brand_item(line))[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef _is_brand_like_entity(value: str) -> bool:[m
+[32m+[m[32m    entity = str(value or "").strip(" -*:().")[m
+[32m+[m[32m    if not entity or len(entity) < 2:[m
+[32m+[m[32m        return False[m
+[32m+[m[32m    if _entity_has_action_language(entity):[m
+         return False[m
+ [m
+[31m-    if _contains_invalid_brand_item(entity) or _contains_invalid_brand_item(stripped):[m
+[32m+[m[32m    words = [word for word in re.split(r"\s+", entity) if word][m
+[32m+[m[32m    if not words or len(words) > 6:[m
+         return False[m
+ [m
+[31m-    normalized_entity = normalize_text(entity)[m
+[31m-[m
+[31m-    generic_entities = {[m
+[31m-        "consumer education",[m
+[31m-        "user education",[m
+[31m-        "consumer feedback",[m
+[31m-        "user feedback",[m
+[31m-        "user feedback collection",[m
+[31m-        "user-generated content",[m
+[31m-        "user generated content",[m
+[31m-        "validation efforts",[m
+[31m-        "validation effort",[m
+[31m-        "collect testimonials",[m
+[31m-        "customer testimonials",[m
+[31m-        "consumer testimonials",[m
+[31m-        "market research",[m
+[31m-        "content strategy",[m
+[31m-        "marketing campaign",[m
+[31m-        "marketing campaigns",[m
+[31m-        "partnerships",[m
+[31m-        "local partnerships",[m
+[31m-        "research studies",[m
+[31m-        "evidence support",[m
+[31m-        "claims support",[m
+[31m-        "claims support documentation",[m
+[31m-        "influencer engagement",[m
+[31m-        "consumer engagement",[m
+[31m-    }[m
+[32m+[m[32m    if BRAND_LEGAL_SUFFIX_RE.search(entity) or BRAND_SYMBOL_RE.search(entity):[m
+[32m+[m[32m        return bool(re.search(r"[A-Za-z0-9]", entity))[m
+ [m
+[31m-    if normalized_entity in generic_entities:[m
+[32m+[m[32m    connector_words = {"the", "a", "an", "and", "or", "of", "de", "der", "la", "le", "van", "von"}[m
+[32m+[m[32m    meaningful_words = [[m
+[32m+[m[32m        word.strip("'’")[m
+[32m+[m[32m        for word in words[m
+[32m+[m[32m        if normalize_text(word.strip("'’")) not in connector_words[m
+[32m+[m[32m    ][m
+[32m+[m[32m    if not meaningful_words:[m
+         return False[m
+ [m
+[31m-    if len(entity.split()) > 5:[m
+[31m-        return False[m
+[32m+[m[32m    brandish_words = [[m
+[32m+[m[32m        word[m
+[32m+[m[32m        for word in meaningful_words[m
+[32m+[m[32m        if re.search(r"[A-Z]", word) or word[:1].isupper()[m
+[32m+[m[32m    ][m
+ [m
+[31m-    if len(entity.strip()) < 2:[m
+[32m+[m[32m    if len(words) > 1:[m
+[32m+[m[32m        return len(brandish_words) >= max(1, (len(meaningful_words) + 1) // 2)[m
+[32m+[m
+[32m+[m[32m    single = meaningful_words[0][m
+[32m+[m[32m    if len(single) <= 2:[m
+         return False[m
+[32m+[m[32m    return bool([m
+[32m+[m[32m        re.search(r"[A-Z]", single)[m
+[32m+[m[32m        and not normalize_text(single) in connector_words[m
+[32m+[m[32m    )[m
+ [m
+[31m-    if re.match([m
+[31m-        r"^(collect|build|create|develop|improve|increase|launch|conduct|publish|promote|"[m
+[31m-        r"support|validate|educate|engage|partner|optimize|optimise|analyze|analyse)\b",[m
+[31m-        entity.strip(),[m
+[32m+[m
+[32m+[m[32mdef _extract_embedded_brand_bullets([m
+[32m+[m[32m    line: str,[m
+[32m+[m[32m    context: OutputQualityContext | None = None,[m
+[32m+[m[32m) -> list[str]:[m
+[32m+[m[32m    context = context or OutputQualityContext()[m
+[32m+[m[32m    text = str(line or "")[m
+[32m+[m[32m    if not re.search([m
+[32m+[m[32m        r"\b(additional brands|other brands|brands like|consider adding brands like|"[m
+[32m+[m[32m        r"consider adding brands|such as|including)\b",[m
+[32m+[m[32m        text,[m
+         flags=re.IGNORECASE,[m
+     ):[m
+[32m+[m[32m        return [][m
+[32m+[m
+[32m+[m[32m    wrapper_entity = normalize_text(_extract_bullet_entity(text))[m
+[32m+[m[32m    extracted = [][m
+[32m+[m[32m    seen = set()[m
+[32m+[m[32m    for name in re.findall(r"\*\*([^*]+)\*\*", text):[m
+[32m+[m[32m        candidate = str(name).strip()[m
+[32m+[m[32m        normalized = normalize_text(candidate)[m
+[32m+[m[32m        if not normalized or normalized == wrapper_entity or normalized in seen:[m
+[32m+[m[32m            continue[m
+[32m+[m[32m        if _is_tracked_brand(candidate, context.tracked_competitors):[m
+[32m+[m[32m            continue[m
+[32m+[m[32m        if not _is_brand_like_entity(candidate):[m
+[32m+[m[32m            continue[m
+[32m+[m[32m        bullet = f"- **{candidate}**"[m
+[32m+[m[32m        extracted.append(bullet)[m
+[32m+[m[32m        seen.add(normalized)[m
+[32m+[m[32m    return extracted[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef is_likely_brand_bullet(line: str) -> bool:[m
+[32m+[m[32m    stripped = str(line or "").strip()[m
+[32m+[m
+[32m+[m[32m    if not re.match(r"^\s*(?:[-*]\s+|\d+[.)]\s*)", stripped):[m
+         return False[m
+ [m
+[31m-    if re.search([m
+[31m-        r"\b(to|for|with|about|through|campaigns?|strategy|research|analysis|documentation|"[m
+[31m-        r"engagement|partnerships?|awareness|collaboration|marketing|distribution|"[m
+[31m-        r"content|collection|initiative|program|system|process|feedback|validation|"[m
+[31m-        r"efforts?|education|testimonials?|workshops?|webinars?|roadmap|recommendations?)\b",[m
+[31m-        entity,[m
+[31m-        flags=re.IGNORECASE,[m
+[31m-    ):[m
+[32m+[m[32m    entity = _extract_bullet_entity(stripped)[m
+[32m+[m[32m    if not entity:[m
+[32m+[m[32m        return False[m
+[32m+[m
+[32m+[m[32m    if _line_indicates_action_task(stripped):[m
+         return False[m
+ [m
+[31m-    return bool(re.search(r"[A-Z0-9&+]", entity))[m
+[32m+[m[32m    return _is_brand_like_entity(entity)[m
+ [m
+ [m
+ def _is_section_boundary(stripped_line):[m
+[36m@@ -1096,6 +1566,7 @@[m [mdef sanitize_ai_discovered_brands_section([m
+                 continue[m
+ [m
+             if not is_likely_brand_bullet(item):[m
+[32m+[m[32m                valid.extend(_extract_embedded_brand_bullets(item, context))[m
+                 continue[m
+ [m
+             entity = _extract_bullet_entity(item)[m
+[36m@@ -1393,6 +1864,16 @@[m [mdef validate_output_quality([m
+     text = _text_from_payload(text_or_payload)[m
+     issues = [][m
+ [m
+[32m+[m[32m    if is_raw_error_output(text):[m
+[32m+[m[32m        issues.append([m
+[32m+[m[32m            OutputQualityIssue([m
+[32m+[m[32m                code="raw_error_output",[m
+[32m+[m[32m                message="Raw LLM/client error output remains in generated content.",[m
+[32m+[m[32m                section=content_type,[m
+[32m+[m[32m                phrase="ERROR:",[m
+[32m+[m[32m            )[m
+[32m+[m[32m        )[m
+[32m+[m
+     if is_health_adjacent_category(context.category):[m
+         lowered = normalize_text(text)[m
+         for phrase in FORBIDDEN_CLAIM_PHRASES:[m
+[36m@@ -1421,6 +1902,7 @@[m [mdef validate_output_quality([m
+         r"target a detectable begin generating measurable share of voice",[m
+         r"target begin generating measurable share of voice",[m
+         r"aim for a begin generating",[m
+[32m+[m[32m        r"increase begin generating prompt-level visibility",[m
+         r"achieve a begin generating",[m
+         r"achieve begin generating",[m
+         r"achieving a begin generating",[m
+[36m@@ -1428,15 +1910,43 @@[m [mdef validate_output_quality([m
+         r"visibility score above \d+",[m
+         r"average visibility score above \d+",[m
+         r"increase average visibility score to above \d+",[m
+[32m+[m[32m        r"increase mentions from \d+(?:\.\d+)? to \d+\s*-\s*\d+",[m
+[32m+[m[32m        r"move from \d+(?:\.\d+)? visibility to \d+(?:\.\d+)? or more",[m
+[32m+[m[32m        r"establish presence in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m        r"achieve visibility in at least \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m        r"gain visibility in \d+\s*-\s*\d+ prompt categories",[m
+[32m+[m[32m        r"generate \d+\s*-\s*\d+ mentions",[m
+[32m+[m[32m        r"establish a recognizable presence in local searches and begin to capture share of voice",[m
+[32m+[m[32m        r"should each aim to increase from \d+(?:\.\d+)? to at least \d+\s*-\s*\d+",[m
+         r"goal of achieving at least \d+(?:\.\d+)?% share of voice",[m
+         r"goal of achieving \d+(?:\.\d+)?% share of voice",[m
+         r"reach \d+(?:\.\d+)?% share of voice",[m
+         r"achieve \d+(?:\.\d+)?% share of voice",[m
+         r"target \d+(?:\.\d+)?% share of voice",[m
+[32m+[m[32m        r"target a benchmark of \d+(?:\.\d+)?% share of voice(?: in [^.]+)?",[m
+         r"capture \d+(?:\.\d+)?% share of voice",[m
+         r"at least \d+(?:\.\d+)?% share of voice",[m
+[32m+[m[32m        r"aim to reach at least \d+\s*(?:-\s*\d+)?",[m
+[32m+[m[32m        r"average visibility score \(target \d+(?:\.\d+)?\)",[m
+[32m+[m[32m        r"share of voice \(aim for \d+(?:\.\d+)?%\)",[m
+[32m+[m[32m        r"total mentions \(aim to reach at least \d+\s*(?:-\s*\d+)?\)",[m
+[32m+[m[32m        r"target \d+(?:\.\d+)?\)",[m
+[32m+[m[32m        r"aim for \d+(?:\.\d+)?%\)",[m
+         r"aim for at least \d+\s*(?:-\s*\d+)? mentions",[m
+[32m+[m[32m        r"at least \d+\s*(?:-\s*\d+)? detectable mentions",[m
+         r"at least \d+\s*(?:-\s*\d+)? mentions",[m
+[32m+[m[32m        r"visible in at least \d+\s*(?:-\s*\d+)? prompt categories",[m
+[32m+[m[32m        r"move toward being visible in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m        r"achieve visibility in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m        r"achieve initial visibility in at least \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m        r"initial visibility in at least \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m        r"a begin generating measurable share of voice",[m
+[32m+[m[32m        r"visibility in \d+\s*-\s*\d+ relevant prompt categories",[m
+[32m+[m[32m        r"gain initial mentions",[m
+[32m+[m[32m        r"aiming for begin generating",[m
+[32m+[m[32m        r"achieve initial mentions",[m
+[32m+[m[32m        r"above \d+(?:\.\d+)?",[m
+[32m+[m[32m        r"at least \d+(?:\.\d+)?%",[m
+     ][m
+ [m
+     for pattern in malformed_target_patterns:[m
+[36m@@ -1450,6 +1960,18 @@[m [mdef validate_output_quality([m
+                 )[m
+             )[m
+ [m
+[32m+[m[32m    if is_quick_test_mode(context.run_mode):[m
+[32m+[m[32m        for unit in _iter_text_quality_units(text):[m
+[32m+[m[32m            if _is_quick_test_numeric_target_statement(unit):[m
+[32m+[m[32m                issues.append([m
+[32m+[m[32m                    OutputQualityIssue([m
+[32m+[m[32m                        code="quick_test_numeric_target",[m
+[32m+[m[32m                        message="Quick Test output contains concrete numeric target language.",[m
+[32m+[m[32m                        section=content_type,[m
+[32m+[m[32m                        phrase=unit.strip(),[m
+[32m+[m[32m                    )[m
+[32m+[m[32m                )[m
+[32m+[m
+     artifact_phrases = [[m
+         "where substantiated and compliant showing",[m
+         "where substantiated and compliant product claims",[m
+[36m@@ -1549,4 +2071,4 @@[m [mdef format_quality_issues(issues: list[OutputQualityIssue]) -> str:[m
+         f"- [{issue.severity}] {issue.code}: {issue.message}"[m
+         + (f" ({issue.phrase})" if issue.phrase else "")[m
+         for issue in issues[m
+[31m-    )[m
+\ No newline at end of file[m
+[32m+[m[32m    )[m
+[1mdiff --git a/report_generator.py b/report_generator.py[m
+[1mindex 5c8568c..4ed1082 100644[m
+[1m--- a/report_generator.py[m
+[1m+++ b/report_generator.py[m
+[36m@@ -15,7 +15,9 @@[m [mfrom docx.oxml import OxmlElement[m
+ from docx.oxml.ns import qn[m
+ from output_quality import ([m
+     OutputQualityContext,[m
+[32m+[m[32m    guard_generated_section_text,[m
+     sanitize_brand_intelligence_text,[m
+[32m+[m[32m    sanitize_business_kpi_text,[m
+     sanitize_geo_roadmap_text,[m
+     sanitize_narrative_appendix_text,[m
+ )[m
+[36m@@ -406,6 +408,23 @@[m [mdef create_share_of_voice_chart(summary_df, brand):[m
+ # =========================================================[m
+ # Data helpers[m
+ # =========================================================[m
+[32m+[m[32mdef sanitize_dataframe_text(df, context):[m
+[32m+[m[32m    if df is None or df.empty:[m
+[32m+[m[32m        return df[m
+[32m+[m
+[32m+[m[32m    sanitized_df = df.copy()[m
+[32m+[m
+[32m+[m[32m    for column in sanitized_df.columns:[m
+[32m+[m[32m        sanitized_df[column] = sanitized_df[column].map([m
+[32m+[m[32m            lambda value: ([m
+[32m+[m[32m                sanitize_narrative_appendix_text(value, context)[m
+[32m+[m[32m                if isinstance(value, str)[m
+[32m+[m[32m                else value[m
+[32m+[m[32m            )[m
+[32m+[m[32m        )[m
+[32m+[m
+[32m+[m[32m    return sanitized_df[m
+[32m+[m
+ [m
+ def get_target_metrics(summary_df, brand):[m
+     target_row = summary_df[[m
+[36m@@ -1095,7 +1114,13 @@[m [mdef add_roadmap(document, roadmap_df, section_number="8"):[m
+     add_styled_table(document, roadmap_df, max_rows=10, font_size=8)[m
+ [m
+ [m
+[31m-def add_measurement_plan(document, brand, metrics, section_number="9"):[m
+[32m+[m[32mdef add_measurement_plan([m
+[32m+[m[32m    document,[m
+[32m+[m[32m    brand,[m
+[32m+[m[32m    metrics,[m
+[32m+[m[32m    section_number="9",[m
+[32m+[m[32m    quality_context=None,[m
+[32m+[m[32m):[m
+     add_section_heading(document, "Measurement Plan", section_number)[m
+ [m
+     add_paragraph_text([m
+[36m@@ -1107,25 +1132,28 @@[m [mdef add_measurement_plan(document, brand, metrics, section_number="9"):[m
+         {[m
+             "Metric": "Total Mentions",[m
+             "Current State": str(metrics["Total Mentions"]),[m
+[31m-            "Next Benchmark Target": "At least 5 detectable mentions"[m
+[32m+[m[32m            "Next Benchmark Target": "Begin generating detectable mentions in a future full benchmark."[m
+         },[m
+         {[m
+             "Metric": "Average Visibility Score",[m
+             "Current State": str(metrics["Avg. Visibility"]),[m
+[31m-            "Next Benchmark Target": "Above 5.0"[m
+[32m+[m[32m            "Next Benchmark Target": "Begin improving average visibility score in a future full benchmark."[m
+         },[m
+         {[m
+             "Metric": "Prompts Visible",[m
+             "Current State": str(metrics["Prompts Visible"]),[m
+[31m-            "Next Benchmark Target": "Visible in at least 3 prompt categories"[m
+[32m+[m[32m            "Next Benchmark Target": "Begin generating prompt-level visibility in a future full benchmark."[m
+         },[m
+         {[m
+             "Metric": "Share of Voice",[m
+             "Current State": metrics["Share of Voice"],[m
+[31m-            "Next Benchmark Target": "At least 5%"[m
+[32m+[m[32m            "Next Benchmark Target": "Begin generating measurable share of voice in a future full benchmark."[m
+         }[m
+     ])[m
+ [m
+[32m+[m[32m    if quality_context is not None:[m
+[32m+[m[32m        measurement_df = sanitize_dataframe_text(measurement_df, quality_context)[m
+[32m+[m
+     add_styled_table(document, measurement_df, max_rows=10, font_size=8)[m
+ [m
+ [m
+[36m@@ -1263,21 +1291,43 @@[m [mdef create_executive_docx_report([m
+     if brand_intelligence:[m
+         brand_intelligence = {[m
+             key: ([m
+[31m-                sanitize_brand_intelligence_text(value, quality_context)[m
+[32m+[m[32m                sanitize_brand_intelligence_text([m
+[32m+[m[32m                    guard_generated_section_text([m
+[32m+[m[32m                        value,[m
+[32m+[m[32m                        quality_context,[m
+[32m+[m[32m                        f"Brand Intelligence {key}",[m
+[32m+[m[32m                    ),[m
+[32m+[m[32m                    quality_context,[m
+[32m+[m[32m                )[m
+                 if isinstance(value, str)[m
+                 else value[m
+             )[m
+             for key, value in brand_intelligence.items()[m
+         }[m
+     if geo_content_roadmap:[m
+[32m+[m[32m        geo_content_roadmap = guard_generated_section_text([m
+[32m+[m[32m            geo_content_roadmap,[m
+[32m+[m[32m            quality_context,[m
+[32m+[m[32m            "GEO Content Roadmap",[m
+[32m+[m[32m        )[m
+         geo_content_roadmap = sanitize_geo_roadmap_text([m
+             geo_content_roadmap,[m
+             quality_context,[m
+         )[m
+[32m+[m[32m    strategy_report = guard_generated_section_text([m
+[32m+[m[32m        strategy_report,[m
+[32m+[m[32m        quality_context,[m
+[32m+[m[32m        "AI Visibility Strategy Deep Dive",[m
+[32m+[m[32m    )[m
+     strategy_report = sanitize_narrative_appendix_text([m
+         strategy_report,[m
+         quality_context,[m
+     )[m
+[32m+[m[32m    gap_analysis = guard_generated_section_text([m
+[32m+[m[32m        gap_analysis,[m
+[32m+[m[32m        quality_context,[m
+[32m+[m[32m        "Gap Analysis",[m
+[32m+[m[32m    )[m
+     gap_analysis = sanitize_narrative_appendix_text([m
+         gap_analysis,[m
+         quality_context,[m
+[36m@@ -1287,13 +1337,17 @@[m [mdef create_executive_docx_report([m
+     benchmark_df = build_benchmark_df(summary_df, brand)[m
+     winners_df = build_winners_df(top_brands_df, max_rows=12)[m
+     priorities_df = create_strategy_priorities_df([m
+[31m-        brand,[m
+[31m-        category,[m
+[31m-        market,[m
+[31m-        audience,[m
+[31m-        top_competitors[m
+[31m-    )[m
+[32m+[m[32m    brand,[m
+[32m+[m[32m    category,[m
+[32m+[m[32m    market,[m
+[32m+[m[32m    audience,[m
+[32m+[m[32m    top_competitors[m
+[32m+[m[32m)[m
+[32m+[m[32m    priorities_df = sanitize_dataframe_text(priorities_df, quality_context)[m
+[32m+[m
+     roadmap_df = create_roadmap_df(brand, category, top_competitors, metrics)[m
+[32m+[m[32m    roadmap_df = sanitize_dataframe_text(roadmap_df, quality_context)[m
+[32m+[m
+     add_cover_page(document, brand, market, report_date)[m
+     add_report_overview([m
+         document,[m
+[36m@@ -1328,16 +1382,13 @@[m [mdef create_executive_docx_report([m
+ [m
+     add_roadmap(document, roadmap_df, str(next_section_number))[m
+     next_section_number += 1[m
+[31m-    add_measurement_plan(document, brand, metrics, str(next_section_number))[m
+[31m-    next_section_number += 1[m
+[31m-    add_recommended_next_step([m
+[31m-        document,[m
+[31m-        brand,[m
+[31m-        category,[m
+[31m-        market,[m
+[31m-        metrics,[m
+[31m-        str(next_section_number)[m
+[31m-    )[m
+[32m+[m[32m    add_measurement_plan([m
+[32m+[m[32m    document,[m
+[32m+[m[32m    brand,[m
+[32m+[m[32m    metrics,[m
+[32m+[m[32m    str(next_section_number),[m
+[32m+[m[32m    quality_context=quality_context,[m
+[32m+[m[32m)[m
+     next_section_number += 1[m
+     add_methodology_notes([m
+         document,[m

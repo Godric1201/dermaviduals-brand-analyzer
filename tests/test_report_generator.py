@@ -195,7 +195,8 @@ def test_create_executive_docx_report_uses_generic_category_wording():
     assert "best cafes options" not in document_xml_lower
     assert "decision-stage cafes searches" in document_xml_lower
     assert "third-party trust or recommendation signals" in document_xml_lower
-    assert "business outcomes" in document_xml_lower
+    assert "business performance outcomes" in document_xml_lower
+    assert "brands or providers" not in document_xml_lower
 
 
 def test_create_executive_docx_report_handles_all_zero_visibility_without_fake_leaders():
@@ -249,6 +250,52 @@ def test_create_executive_docx_report_handles_all_zero_visibility_without_fake_l
     assert "Category baseline" in roadmap_text
     assert "Market visibility baseline" in roadmap_text
     assert "Tracked competitor set" in roadmap_text
+
+
+def test_create_executive_docx_report_uses_clean_measurement_targets_and_next_step():
+    report_bytes = create_test_report()
+    document_text = read_document_text(report_bytes)
+
+    expected_targets = [
+        "Begin generating detectable mentions in the next benchmark cycle.",
+        "Begin improving average visibility score in the next benchmark cycle.",
+        "Begin generating prompt-level visibility in relevant query categories.",
+        "Begin generating measurable share of voice in the next benchmark cycle.",
+    ]
+    blocked_targets = [
+        "At least 5 detectable mentions",
+        "Above 5.0",
+        "Visible in at least 3 prompt categories",
+        "At least 5%",
+        "detectable mentions in a future full benchmark",
+    ]
+
+    for target in expected_targets:
+        assert target in document_text
+
+    for target in blocked_targets:
+        assert target not in document_text
+
+    assert "Recommended Next Step" in document_text
+    assert (
+        document_text.find("Measurement Plan")
+        < document_text.find("Recommended Next Step")
+        < document_text.find("Methodology Notes")
+    )
+
+
+def test_create_executive_docx_report_avoids_brands_or_providers_in_priorities():
+    report_bytes = create_test_report(
+        brand="Espresso House",
+        category="cafes",
+        market="Berlin",
+        audience="remote workers",
+    )
+    document_text = read_document_text(report_bytes)
+
+    assert "brands or providers" not in document_text.lower()
+    assert "cafes recommendations in Berlin" in document_text
+    assert "Espresso House vs benchmark alternatives" in document_text
 
 
 def test_create_executive_docx_report_includes_brand_intelligence_when_provided():
