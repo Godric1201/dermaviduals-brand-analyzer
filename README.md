@@ -102,6 +102,7 @@ This tool can be used for:
 ├── output_quality.py              # Output sanitation and validation layer
 └── tests/                         # Regression and unit tests
 ```
+
 ---
 
 ## How It Works
@@ -207,6 +208,23 @@ The tool can generate:
 - Brand Intelligence analysis
 - GEO Content Roadmap
 - AI Visibility Strategy Deep Dive
+
+---
+
+## Demo / Example Output
+
+The project can export a complete AI visibility audit report in Markdown and DOCX format. A typical report includes:
+
+- Executive Summary
+- Competitive Benchmark
+- Trigger-Level Visibility Findings
+- Strategic Priorities
+- GEO Content Roadmap
+- Measurement Plan
+- Brand Intelligence appendix
+- AI Visibility Strategy Deep Dive
+
+For portfolio review, exported reports should be treated as example diagnostic outputs rather than client-confidential deliverables.
 
 ---
 
