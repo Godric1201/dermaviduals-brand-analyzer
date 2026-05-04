@@ -147,10 +147,35 @@ def add_paragraph_text(document, text, size=10.5, bold=False, color=None):
 
 
 def add_markdownish_text(document, text):
-    for line in str(text).splitlines():
-        line = line.strip()
+    lines = str(text).splitlines()
+    index = 0
+
+    while index < len(lines):
+        raw_line = lines[index]
+        line = raw_line.strip()
 
         if not line:
+            index += 1
+            continue
+
+        if line.startswith("|") and line.endswith("|"):
+            table_lines = []
+            while index < len(lines):
+                candidate = lines[index].strip()
+                if not candidate or not (candidate.startswith("|") and candidate.endswith("|")):
+                    break
+                table_lines.append(candidate)
+                index += 1
+
+            table_text = "\n".join(table_lines)
+            table_df = parse_markdown_table(table_text)
+            if not table_df.empty:
+                add_styled_table(document, table_df, max_rows=20, font_size=8)
+            else:
+                for table_line in table_lines:
+                    if is_markdown_separator_row(split_markdown_table_row(table_line)):
+                        continue
+                    add_paragraph_text(document, table_line)
             continue
 
         line = line.replace(
@@ -164,6 +189,8 @@ def add_markdownish_text(document, text):
             add_subheading(document, line.removeprefix("### ").strip())
         else:
             add_paragraph_text(document, line)
+
+        index += 1
 
 
 def split_markdown_table_row(line):

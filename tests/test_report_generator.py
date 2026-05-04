@@ -400,6 +400,27 @@ def test_parse_markdown_table_returns_dataframe():
     ]
 
 
+def test_create_executive_docx_report_renders_markdown_tables_without_separator_rows():
+    report_bytes = create_test_report(
+        brand_intelligence={
+            "recommendation_drivers": (
+                "| Advantage Signal | Evidence Source | Example Brands | Source Type |\n"
+                "|---|---|---|---|\n"
+                "| Remote-work amenities | Benchmark answers | Espresso House | Tracked competitors |"
+            ),
+            "target_brand_understanding": "Test target brand understanding",
+            "positioning_gap_analysis": "Test positioning gap analysis",
+        }
+    )
+
+    document_text = read_document_text(report_bytes)
+
+    assert "Advantage Signal" in document_text
+    assert "Remote-work amenities" in document_text
+    assert "|---|---|---|---|" not in document_text
+    assert "| Advantage Signal | Evidence Source | Example Brands | Source Type |" not in document_text
+
+
 def test_create_executive_docx_report_includes_geo_content_roadmap_when_provided():
     geo_content_roadmap = """
 | Priority | Query Intent | Content Asset | Target Association | Competitor / Market Signal | Evidence Needed | Expected Metric Impact | Suggested Timing |
