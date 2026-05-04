@@ -292,6 +292,17 @@ MARKET_TRENDS_HEADING_RE = re.compile(
     re.IGNORECASE,
 )
 
+SECONDARY_MARKET_SIGNALS_HEADING_RE = re.compile(
+    r"^\s*#{1,6}\s*(?:\d+[.)]?\s*)?Secondary Market Signals\s*:?\s*$",
+    re.IGNORECASE,
+)
+
+EMPTY_SECONDARY_MARKET_SIGNALS = {
+    "no major secondary market signals detected.",
+    "no significant secondary market signals detected.",
+    "no additional secondary market signals detected.",
+}
+
 TRACKED_COMPETITORS_HEADING_RE = re.compile(
     r"^\s*(?:#{1,6}\s*)?(?:[-*]\s*)?Tracked Competitors Included in Scoring\s*:?\s*$",
     re.IGNORECASE,
@@ -525,9 +536,50 @@ def sanitize_claim_safety_text(
         return str(text or "")
 
     sanitized = _sanitize_malformed_claim_sentences(str(text or ""))
+    exact_replacements = [
+        ("Clinical product claims", "Claims support documentation"),
+        ("clinical product claims", "claims support documentation"),
+        ("High Evidence Support", "Strong evidence support"),
+        ("high Evidence Support", "strong evidence support"),
+        (
+            "Evidence Support through user experiences",
+            "evidence support through user experiences",
+        ),
+        (
+            "product claims of Active Ingredients",
+            "Claims support documentation for active ingredients",
+        ),
+        (
+            "evidence-supported positioning and Testing",
+            "Evidence-supported positioning and testing",
+        ),
+        (
+            "tested for Evidence Support",
+            "supported by evidence documentation",
+        ),
+        (
+            "Clinical testing and results-driven",
+            "Evidence documentation and outcomes-oriented",
+        ),
+        (
+            "Evidence Support for local concerns",
+            "evidence documentation for local concerns",
+        ),
+    ]
+
+    for old, new in exact_replacements:
+        sanitized = sanitized.replace(old, new)
 
     replacements = [
         (r"Clinical Study References", "Claims Support Documentation"),
+        (
+            r"ingredient Evidence Support",
+            "ingredient documentation and evidence support",
+        ),
+        (
+            r"product claims and simplicity",
+            "claims support documentation and simplicity",
+        ),
         (
             r"Pollution Defense:\s*How (?P<brand>[^|\n]+?) Protects Your Skin",
             r"\g<brand> Ingredient Guide for Pollution-Exposed Skin",
@@ -1093,8 +1145,8 @@ def sanitize_business_kpi_text(
         (r"session duration", "prompt-level visibility"),
         (r"engagement rate", "target-brand association"),
         (r"traffic increase", "query intent visibility improvement"),
-        (r"\brevenue\b", "business outcome"),
-        (r"\bsales\b", "business outcomes"),
+        (r"\brevenue\b", "business performance outcomes"),
+        (r"\bsales\b", "business performance outcomes"),
         (r"\bguarantee(?:d|s)?\b", "support"),
     ]
 
@@ -1102,6 +1154,18 @@ def sanitize_business_kpi_text(
         sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
 
     grammar_replacements = [
+        (
+            r"business performance outcomes performance report",
+            "business performance report",
+        ),
+        (
+            r"business performance outcomes performance relative to competitors",
+            "business performance relative to competitors",
+        ),
+        (
+            r"business performance outcomes performance",
+            "business performance",
+        ),
         (
             r"\b(?:Increase|Improve) Begin generating prompt-level visibility in relevant prompt categories\.?",
             "Begin generating prompt-level visibility in relevant prompt categories.",
@@ -1186,6 +1250,26 @@ def sanitize_business_kpi_text(
 
 def sanitize_source_label_artifacts(text: str) -> str:
     replacements = [
+        (
+            r"\(Tracked competitors\)\s+\(Tracked competitor\)",
+            "(Tracked competitors)",
+        ),
+        (
+            r"\(Tracked competitor\)\s+\(Tracked competitor\)",
+            "(Tracked competitor)",
+        ),
+        (
+            r"\(AI-discovered market signal\)\s+\(AI-discovered market signal\)",
+            "(AI-discovered market signal)",
+        ),
+        (
+            r"\*\(Source:\s*(Tracked competitor|AI-discovered market signal|Mixed tracked competitor / AI-discovered market signal)\)\*",
+            r"(Source: \1)",
+        ),
+        (
+            r"\(Source:\s*(Tracked competitor|AI-discovered market signal|Mixed tracked competitor / AI-discovered market signal)\)\*",
+            r"(Source: \1)",
+        ),
         (
             r"Top Competitor-Owned Associations\s*\(Source:\s*AI-discovered market signal\)s\)",
             "Top Competitor-Owned Associations",
@@ -1672,6 +1756,42 @@ def sanitize_market_signal_sections(
     return dedupe_empty_section_placeholders(sanitized)
 
 
+def sanitize_empty_secondary_market_signals_section(text: str) -> str:
+    lines = str(text or "").splitlines()
+    result = []
+    index = 0
+
+    while index < len(lines):
+        line = lines[index]
+
+        if not SECONDARY_MARKET_SIGNALS_HEADING_RE.match(line.strip()):
+            result.append(line)
+            index += 1
+            continue
+
+        section_lines = [line]
+        index += 1
+        while index < len(lines) and not re.match(r"^\s*#{1,6}\s+", lines[index]):
+            section_lines.append(lines[index])
+            index += 1
+
+        body_lines = [
+            item.strip()
+            for item in section_lines[1:]
+            if item.strip() and not MARKDOWN_HORIZONTAL_RULE_RE.match(item.strip())
+        ]
+        body = "\n".join(body_lines).strip()
+        normalized_body = normalize_text(body)
+        if normalized_body in EMPTY_SECONDARY_MARKET_SIGNALS:
+            while result and not result[-1].strip():
+                result.pop()
+            continue
+
+        result.extend(section_lines)
+
+    return "\n".join(result)
+
+
 def sanitize_geo_roadmap_text(
     text: str,
     context: OutputQualityContext,
@@ -1703,6 +1823,7 @@ def sanitize_strategy_text(
     sanitized = sanitize_claim_safety_text(text, context)
     sanitized = sanitize_business_kpi_text(sanitized, context)
     sanitized = sanitize_source_label_artifacts(sanitized)
+    sanitized = sanitize_empty_secondary_market_signals_section(sanitized)
     sanitized = re.sub(r"[ \t]+\n", "\n", sanitized)
     return sanitized.strip()
 
@@ -1724,6 +1845,7 @@ def sanitize_report_text(
     sanitized = sanitize_market_signal_sections(sanitized, context)
     sanitized = sanitize_source_label_artifacts(sanitized)
     sanitized = sanitize_geo_roadmap_text(sanitized, context)
+    sanitized = sanitize_empty_secondary_market_signals_section(sanitized)
     sanitized = re.sub(r"[ \t]+\n", "\n", sanitized)
     sanitized = re.sub(r"\n{4,}", "\n\n\n", sanitized)
     return dedupe_empty_section_placeholders(sanitized).strip()
@@ -1986,6 +2108,9 @@ def validate_output_quality(
         "substantiated product evidence",
         "business outcomes Performance Metrics",
         "business outcome Performance Metrics",
+        "business performance outcomes performance",
+        "Clinical product claims",
+        "ingredient Evidence Support",
         "Evidence Support-focused",
         "claims support-focused",
     ]

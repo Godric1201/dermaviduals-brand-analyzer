@@ -496,7 +496,7 @@ def get_visibility_gap_sentences(
                 "No tested AI answers provided measurable third-party trust or recommendation signals for the brand."
             ),
             "comparison_footprint": (
-                "No visible comparison footprint was detected against higher-performing benchmark brands or providers."
+                "No visible comparison footprint was detected against higher-performing benchmark alternatives."
             ),
             "owned_territory": (
                 f"No clear AI-owned territory was detected in the {market} target market."
@@ -514,7 +514,7 @@ def get_visibility_gap_sentences(
             f"Measurable third-party trust or recommendation signals should be strengthened to improve from the current {share_of_voice}% share of voice."
         ),
         "comparison_footprint": (
-            f"Comparison footprint remains limited relative to higher-performing benchmark brands or providers at {avg_visibility} average visibility."
+            f"Comparison footprint remains limited relative to higher-performing benchmark alternatives at {avg_visibility} average visibility."
         ),
         "owned_territory": (
             f"The benchmark shows {share_of_voice}% share of voice, so the next priority is to build a clearer AI-owned territory in the {market} target market."
@@ -694,6 +694,31 @@ def build_winners_df(top_brands_df, max_rows=12):
     return df.head(max_rows)
 
 
+def build_measurement_plan_rows(metrics):
+    return [
+        {
+            "Metric": "Total Mentions",
+            "Current State": str(metrics["Total Mentions"]),
+            "Next Benchmark Target": "Begin generating detectable mentions in the next benchmark cycle.",
+        },
+        {
+            "Metric": "Average Visibility Score",
+            "Current State": str(metrics["Avg. Visibility"]),
+            "Next Benchmark Target": "Begin improving average visibility score in the next benchmark cycle.",
+        },
+        {
+            "Metric": "Prompts Visible",
+            "Current State": str(metrics["Prompts Visible"]),
+            "Next Benchmark Target": "Begin generating prompt-level visibility in relevant query categories.",
+        },
+        {
+            "Metric": "Share of Voice",
+            "Current State": metrics["Share of Voice"],
+            "Next Benchmark Target": "Begin generating measurable share of voice in the next benchmark cycle.",
+        },
+    ]
+
+
 def create_strategy_priorities_df(brand, category, market, audience, top_competitors):
     positive_competitors = get_positive_competitors(top_competitors)
 
@@ -733,14 +758,14 @@ def create_strategy_priorities_df(brand, category, market, audience, top_competi
         {
             "Level": "Medium",
             "Priority": "Comparison Visibility",
-            "Target Query Territory": f"{brand} vs benchmark brands or providers",
+            "Target Query Territory": f"{brand} vs benchmark alternatives",
             "Competitor Focus": primary,
             "Recommended Action": "Build fair comparison pages that explain fit, use cases, and differentiation without attacking competitors."
         },
         {
             "Level": "Medium",
             "Priority": "Market Relevance",
-            "Target Query Territory": f"{category} brands or providers in {market}",
+            "Target Query Territory": f"{category} recommendations in {market}",
             "Competitor Focus": secondary,
             "Recommended Action": "Create market-specific content with local context, buyer concerns, and recommendation language."
         }
@@ -849,7 +874,7 @@ def add_report_overview(
         {"Field": "Category", "Value": category},
         {"Field": "Audience", "Value": audience},
         {"Field": "Report Date", "Value": report_date},
-        {"Field": "Report Type", "Value": "AI Visibility / GEO Audit"},
+        {"Field": "Report Type", "Value": "AI Visibility / Generative Engine Optimization Audit"},
         {"Field": "Run Mode", "Value": run_mode},
         {"Field": "Deliverable Status", "Value": deliverable_status},
     ]
@@ -1128,28 +1153,7 @@ def add_measurement_plan(
         "The next benchmark should evaluate whether the visibility gap is beginning to close."
     )
 
-    measurement_df = pd.DataFrame([
-        {
-            "Metric": "Total Mentions",
-            "Current State": str(metrics["Total Mentions"]),
-            "Next Benchmark Target": "Begin generating detectable mentions in a future full benchmark."
-        },
-        {
-            "Metric": "Average Visibility Score",
-            "Current State": str(metrics["Avg. Visibility"]),
-            "Next Benchmark Target": "Begin improving average visibility score in a future full benchmark."
-        },
-        {
-            "Metric": "Prompts Visible",
-            "Current State": str(metrics["Prompts Visible"]),
-            "Next Benchmark Target": "Begin generating prompt-level visibility in a future full benchmark."
-        },
-        {
-            "Metric": "Share of Voice",
-            "Current State": metrics["Share of Voice"],
-            "Next Benchmark Target": "Begin generating measurable share of voice in a future full benchmark."
-        }
-    ])
+    measurement_df = pd.DataFrame(build_measurement_plan_rows(metrics))
 
     if quality_context is not None:
         measurement_df = sanitize_dataframe_text(measurement_df, quality_context)
@@ -1215,7 +1219,7 @@ def add_methodology_notes(
     f"The benchmark is based on fixed and AI-generated prompts designed to simulate {category} recommendation queries.",
     "Visibility is calculated from brand mentions, estimated ranking, and prompt-level appearance.",
     "Share of voice reflects the distribution of brand mentions among tracked competitors.",
-    "Scores reflect AI answer visibility, not actual revenue, market share, product performance, customer satisfaction, or business outcomes.",
+    "Scores reflect AI answer visibility, not market share, product performance, customer satisfaction, or broader business performance outcomes.",
     "The output should be interpreted as an AI visibility benchmark, not as a consumer survey, sales performance report, or clinical evaluation.",
     "Results should be re-run periodically to track whether content and visibility interventions improve AI recall."
 ]
@@ -1389,6 +1393,15 @@ def create_executive_docx_report(
     str(next_section_number),
     quality_context=quality_context,
 )
+    next_section_number += 1
+    add_recommended_next_step(
+        document,
+        brand,
+        category,
+        market,
+        metrics,
+        str(next_section_number),
+    )
     next_section_number += 1
     add_methodology_notes(
         document,

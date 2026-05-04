@@ -114,6 +114,78 @@ def test_generated_section_guard_blocks_full_report_raw_errors():
         )
 
 
+def test_strategy_sanitizer_removes_empty_secondary_market_signals_section():
+    dirty = """
+## 9. 30 / 60 / 90 Day Execution Roadmap
+Build the highest-priority assets.
+
+## 10. Secondary Market Signals
+No major secondary market signals detected.
+
+## 11. Final Strategic Conclusion
+Focus on the primary visibility gap.
+""".strip()
+
+    sanitized = sanitize_strategy_text(dirty, skincare_context())
+
+    assert "Secondary Market Signals" not in sanitized
+    assert "No major secondary market signals detected." not in sanitized
+    assert "30 / 60 / 90 Day Execution Roadmap" in sanitized
+    assert "Final Strategic Conclusion" in sanitized
+
+
+def test_strategy_sanitizer_removes_empty_secondary_market_signals_with_rule_separator():
+    dirty = """
+## 10. Secondary Market Signals
+No major secondary market signals detected.
+
+---
+
+## 11. Final Strategic Conclusion
+Focus on the primary visibility gap.
+""".strip()
+
+    sanitized = sanitize_strategy_text(dirty, skincare_context())
+
+    assert "Secondary Market Signals" not in sanitized
+    assert "No major secondary market signals detected." not in sanitized
+    assert "---" not in sanitized
+    assert "Final Strategic Conclusion" in sanitized
+
+
+def test_strategy_sanitizer_keeps_substantive_secondary_market_signals_section():
+    dirty = """
+## 10. Secondary Market Signals
+- Rising demand for remote-work-friendly cafes.
+
+## 11. Final Strategic Conclusion
+Focus on the primary visibility gap.
+""".strip()
+
+    sanitized = sanitize_strategy_text(dirty, skincare_context())
+
+    assert "Secondary Market Signals" in sanitized
+    assert "Rising demand for remote-work-friendly cafes." in sanitized
+
+
+def test_final_report_removes_empty_secondary_market_signals_from_appendix():
+    dirty = """
+## Appendix B: AI Visibility Strategy Deep Dive
+
+## 10. Secondary Market Signals
+No major secondary market signals detected.
+
+## 11. Final Strategic Conclusion
+Focus on the primary visibility gap.
+""".strip()
+
+    sanitized = sanitize_report_text(dirty, skincare_context())
+
+    assert "No major secondary market signals detected." not in sanitized
+    assert "Secondary Market Signals" not in sanitized
+    assert "Final Strategic Conclusion" in sanitized
+
+
 def test_ai_discovered_brands_section_keeps_only_non_tracked_brand_bullets():
     dirty = """
 ### AI-Discovered Brands Not Included in Scoring
@@ -157,6 +229,166 @@ def test_source_label_artifact_cleanup_removes_malformed_suffixes():
 
     assert sanitized == "Top Competitor-Owned Associations"
     assert "(Source:" not in sanitized
+
+
+def test_source_label_artifact_cleanup_removes_orphan_trailing_asterisks():
+    dirty = (
+        "Starbucks (Source: Mixed tracked competitor / AI-discovered market signal)*\n"
+        "The Barn *(Source: Tracked competitor)*\n"
+        "Silo Coffee (Source: AI-discovered market signal)*"
+    )
+
+    sanitized = sanitize_source_label_artifacts(dirty)
+
+    assert "(Source: Mixed tracked competitor / AI-discovered market signal)*" not in sanitized
+    assert "*(Source: Tracked competitor)*" not in sanitized
+    assert "(Source: AI-discovered market signal)*" not in sanitized
+    assert "(Source: Mixed tracked competitor / AI-discovered market signal)" in sanitized
+    assert "(Source: Tracked competitor)" in sanitized
+    assert "(Source: AI-discovered market signal)" in sanitized
+
+
+def test_source_label_artifact_cleanup_removes_duplicate_labels():
+    dirty = (
+        "iS Clinical (Tracked competitors) (Tracked competitor)\n"
+        "The Barn (Tracked competitor) (Tracked competitor)\n"
+        "Silo Coffee (AI-discovered market signal) (AI-discovered market signal)"
+    )
+
+    sanitized = sanitize_source_label_artifacts(dirty)
+
+    assert "(Tracked competitors) (Tracked competitor)" not in sanitized
+    assert "(Tracked competitor) (Tracked competitor)" not in sanitized
+    assert "(AI-discovered market signal) (AI-discovered market signal)" not in sanitized
+    assert "iS Clinical (Tracked competitors)" in sanitized
+    assert "The Barn (Tracked competitor)" in sanitized
+    assert "Silo Coffee (AI-discovered market signal)" in sanitized
+
+
+def test_business_kpi_cleanup_uses_business_performance_outcomes_wording():
+    dirty = "The report should not imply revenue or sales movement."
+
+    sanitized = sanitize_business_kpi_text(dirty, skincare_context())
+
+    assert "business performance outcomes" in sanitized
+    assert "business outcome" not in sanitized.replace("business performance outcomes", "")
+
+
+def test_report_sanitizer_cleans_final_polish_artifacts():
+    dirty = """
+This is not a business performance outcomes performance report.
+Assess business performance outcomes performance relative to competitors.
+Avoid business performance outcomes performance claims.
+Create ingredient Evidence Support.
+High Evidence Support is needed.
+high Evidence Support should be clearer.
+Clinical product claims should be avoided.
+clinical product claims should be avoided.
+Improve product claims and simplicity.
+Evidence Support through user experiences matters.
+""".strip()
+
+    sanitized = sanitize_report_text(dirty, skincare_context())
+
+    blocked = [
+        "business performance outcomes performance report",
+        "business performance outcomes performance relative to competitors",
+        "business performance outcomes performance",
+        "ingredient Evidence Support",
+        "High Evidence Support",
+        "high Evidence Support",
+        "Clinical product claims",
+        "clinical product claims",
+        "product claims and simplicity",
+        "Evidence Support through user experiences",
+    ]
+
+    for phrase in blocked:
+        assert phrase not in sanitized
+
+    expected = [
+        "business performance report",
+        "business performance relative to competitors",
+        "business performance claims",
+        "ingredient documentation and evidence support",
+        "Strong evidence support",
+        "strong evidence support",
+        "Claims support documentation",
+        "claims support documentation",
+        "claims support documentation and simplicity",
+        "evidence support through user experiences",
+    ]
+
+    for phrase in expected:
+        assert phrase in sanitized
+
+
+def test_report_sanitizer_cleans_final_blocking_health_artifacts():
+    dirty = """
+product claims of Active Ingredients
+evidence-supported positioning and Testing
+tested for Evidence Support
+Clinical testing and results-driven
+Evidence Support for local concerns
+""".strip()
+
+    sanitized = sanitize_report_text(dirty, skincare_context())
+
+    blocked = [
+        "product claims of Active Ingredients",
+        "evidence-supported positioning and Testing",
+        "tested for Evidence Support",
+        "Clinical testing and results-driven",
+        "Evidence Support for local concerns",
+    ]
+
+    for phrase in blocked:
+        assert phrase not in sanitized
+
+    expected = [
+        "Claims support documentation for active ingredients",
+        "Evidence-supported positioning and testing",
+        "supported by evidence documentation",
+        "Evidence documentation and outcomes-oriented",
+        "evidence documentation for local concerns",
+    ]
+
+    for phrase in expected:
+        assert phrase in sanitized
+
+
+def test_validator_catches_final_polish_artifacts_when_unsanitized():
+    dirty = """
+business performance outcomes performance
+Clinical product claims
+ingredient Evidence Support
+""".strip()
+
+    issues = validate_output_quality(dirty, skincare_context(), strict=True)
+    phrases = {issue.phrase for issue in issues}
+
+    assert "business performance outcomes performance" in phrases
+    assert "Clinical product claims" in phrases
+    assert "ingredient Evidence Support" in phrases
+
+
+def test_final_polish_cleanup_preserves_current_state_metrics():
+    dirty = (
+        "Espresso House is currently not visible across the tested AI search prompts, "
+        "with 0 total mentions, 0.0 average visibility, 0 prompts visible, and 0% share of voice."
+    )
+
+    sanitized = sanitize_report_text(
+        dirty,
+        skincare_context(
+            category="Cafes",
+            brand="Espresso House",
+            market="Berlin",
+            audience="Remote Workers",
+        ),
+    )
+
+    assert sanitized == dirty
 
 
 def test_geo_roadmap_cleanup_removes_high_risk_title_and_evidence_wording():

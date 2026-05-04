@@ -3,6 +3,7 @@ import pandas as pd
 from ui_formatters import df_to_markdown_table
 from report_generator import (
     build_competitor_leader_sentence,
+    build_measurement_plan_rows,
     create_roadmap_df,
     get_competitor_leaders,
     get_target_metrics,
@@ -38,32 +39,9 @@ def _append_section(parts, title, body):
 
 
 def _build_measurement_plan_md(metrics):
-    share_of_voice = metrics["Share of Voice"]
-
     measurement_df = df_to_markdown_table(
         _normalize_markdown_table_headers(
-            pd.DataFrame([
-                {
-                    "Metric": "Total Mentions",
-                    "Current State": str(metrics["Total Mentions"]),
-                    "Next Benchmark Target": "At least 5 detectable mentions",
-                },
-                {
-                    "Metric": "Average Visibility Score",
-                    "Current State": str(metrics["Avg. Visibility"]),
-                    "Next Benchmark Target": "Above 5.0",
-                },
-                {
-                    "Metric": "Prompts Visible",
-                    "Current State": str(metrics["Prompts Visible"]),
-                    "Next Benchmark Target": "Visible in at least 3 prompt categories",
-                },
-                {
-                    "Metric": "Share of Voice",
-                    "Current State": share_of_voice,
-                    "Next Benchmark Target": "At least 5%",
-                },
-            ]),
+            pd.DataFrame(build_measurement_plan_rows(metrics)),
             {},
         ),
         max_rows=10,
@@ -80,7 +58,7 @@ def _build_methodology_notes_md(category, prompt_categories):
         f"- The benchmark is based on fixed and AI-generated prompts designed to simulate {category} recommendation queries.",
         "- Visibility is calculated from brand mentions, estimated ranking, and prompt-level appearance.",
         "- Share of voice reflects the distribution of brand mentions among tracked competitors.",
-        "- Scores reflect AI answer visibility, not actual revenue, market share, product performance, customer satisfaction, or business outcomes.",
+        "- Scores reflect AI answer visibility, not market share, product performance, customer satisfaction, or broader business performance outcomes.",
         "- The output should be interpreted as an AI visibility benchmark, not as a consumer survey, sales performance report, or clinical evaluation.",
         "- Results should be re-run periodically to track whether content and visibility interventions improve AI recall.",
     ]

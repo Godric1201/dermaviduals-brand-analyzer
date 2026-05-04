@@ -114,6 +114,45 @@ def test_build_executive_markdown_report_returns_string_with_core_sections():
     assert "Test strategy plan" in report
 
 
+def test_build_executive_markdown_report_uses_clean_measurement_targets():
+    report = build_executive_markdown_report(**create_markdown_inputs())
+
+    expected_targets = [
+        "Begin generating detectable mentions in the next benchmark cycle.",
+        "Begin improving average visibility score in the next benchmark cycle.",
+        "Begin generating prompt-level visibility in relevant query categories.",
+        "Begin generating measurable share of voice in the next benchmark cycle.",
+    ]
+    blocked_targets = [
+        "At least 5 detectable mentions",
+        "Above 5.0",
+        "Visible in at least 3 prompt categories",
+        "At least 5%",
+        "detectable mentions in a future full benchmark",
+    ]
+
+    for target in expected_targets:
+        assert target in report
+
+    for target in blocked_targets:
+        assert target not in report
+
+
+def test_build_executive_markdown_report_uses_consistent_methodology_outcome_wording():
+    report = build_executive_markdown_report(**create_markdown_inputs())
+
+    expected = (
+        "Scores reflect AI answer visibility, not market share, product performance, "
+        "customer satisfaction, or broader business performance outcomes."
+    )
+
+    assert expected in report
+    assert "not actual business performance outcomes, market share" not in report
+    assert report.count("business performance outcomes") == 1
+    assert "business outcomes." not in report
+    assert "business outcome Performance Metrics" not in report
+
+
 def test_build_executive_markdown_report_uses_client_facing_table_headers():
     report = build_executive_markdown_report(**create_markdown_inputs())
 
@@ -266,6 +305,25 @@ def test_build_executive_markdown_report_applies_final_quality_gate():
         assert term not in report_lower
 
     assert "No additional non-tracked brands were identified." in report
+
+
+def test_build_executive_markdown_report_removes_empty_secondary_market_signals_from_strategy():
+    inputs = create_markdown_inputs()
+    inputs["plan"] = """
+## 10. Secondary Market Signals
+No major secondary market signals detected.
+
+---
+
+## 11. Final Strategic Conclusion
+Focus on the primary visibility gap.
+""".strip()
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert "No major secondary market signals detected." not in report
+    assert "Secondary Market Signals" not in report
+    assert "Final Strategic Conclusion" in report
 
 
 def test_build_executive_markdown_report_passes_tracked_competitors_to_final_gate():
