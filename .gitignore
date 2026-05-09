@@ -8,4 +8,5 @@ __pycache__/
 *_report.md
 *_report.docx
 *_benchmark_snapshot.json
-*_benchmark_comparison.json
+*_benchmark_comparison.json.venv/
+*.pyc
