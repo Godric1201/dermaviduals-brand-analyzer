@@ -4,8 +4,8 @@ from zipfile import ZipFile
 
 import pandas as pd
 
-from output_quality import FAILED_LLM_SECTION_PLACEHOLDER
-from report_generator import create_executive_docx_report, parse_markdown_table
+from geo_audit.output_quality import FAILED_LLM_SECTION_PLACEHOLDER
+from geo_audit.report_generator import create_executive_docx_report, parse_markdown_table
 
 
 def create_fake_report_inputs():

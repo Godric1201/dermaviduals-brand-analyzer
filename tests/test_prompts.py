@@ -1,4 +1,4 @@
-from prompts import (
+from geo_audit.prompts import (
     audience_contains_market,
     build_fixed_prompts,
     format_audience_market_context,

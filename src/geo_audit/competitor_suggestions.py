@@ -1,6 +1,6 @@
 import re
 
-from analyzer import ask_ai
+from .analyzer import ask_ai
 
 
 def build_competitor_suggestion_prompt(

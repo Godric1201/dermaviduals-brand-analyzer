@@ -1,7 +1,7 @@
 import pandas as pd
 
-from ui_formatters import df_to_markdown_table
-from report_generator import (
+from .ui_formatters import df_to_markdown_table
+from .report_generator import (
     build_competitor_leader_sentence,
     build_measurement_plan_rows,
     create_roadmap_df,
@@ -11,8 +11,8 @@ from report_generator import (
     get_visibility_status,
     get_visibility_state_noun,
 )
-from prompts import format_audience_market_context
-from output_quality import (
+from .prompts import format_audience_market_context
+from .output_quality import (
     OutputQualityContext,
     guard_generated_section_text,
     sanitize_report_text,

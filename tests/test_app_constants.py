@@ -1,4 +1,4 @@
-from app_constants import CLIENT_PRESETS
+from geo_audit.app_constants import CLIENT_PRESETS
 
 
 def test_client_presets_have_expected_shape():

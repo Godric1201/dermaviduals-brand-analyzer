@@ -1,8 +1,8 @@
 import ast
 import re
 
-from analyzer import ask_ai
-from prompts import format_audience_market_context
+from .analyzer import ask_ai
+from .prompts import format_audience_market_context
 
 
 def extract_python_list(text):

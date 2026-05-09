@@ -2,7 +2,7 @@ import io
 
 import pytest
 
-from benchmark_comparison import (
+from geo_audit.benchmark_comparison import (
     compare_query_intent_visibility,
     compare_target_brand_metrics,
     find_brand_summary_record,

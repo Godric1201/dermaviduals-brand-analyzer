@@ -1,11 +1,11 @@
 import re
 
-from analyzer import ask_ai
-from brand_intelligence_prompts import (
+from .analyzer import ask_ai
+from .brand_intelligence_prompts import (
     build_target_diagnostic_prompts,
     parse_user_brand_strengths,
 )
-from output_quality import (
+from .output_quality import (
     OutputQualityContext,
     sanitize_brand_intelligence_text as oq_sanitize_brand_intelligence_text,
     sanitize_claim_safety_text,

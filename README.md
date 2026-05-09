@@ -164,39 +164,32 @@ Runs the full benchmark workflow and generates complete Markdown and DOCX report
 
 ```text
 ai-brand-visibility-geo-audit/
-│
-├── app.py                         # Streamlit UI and workflow orchestration
-├── analysis_pipeline.py           # Benchmark execution and analysis pipeline
-├── analyzer.py                    # AI request wrapper
-├── scoring.py                     # Visibility scoring and share-of-voice logic
-├── prompt_generator.py            # Prompt generation
-├── prompts.py                     # Core prompt templates
-├── narrative_prompts.py           # Narrative report prompt templates
-├── brand_intelligence.py          # Brand intelligence analysis
-├── brand_intelligence_prompts.py  # Brand intelligence prompt templates
-├── geo_roadmap.py                 # GEO content roadmap generation
-├── recommender.py                 # Recommendation generation
-├── optimizer.py                   # Strategy deep-dive generation
-├── content_generator.py           # Content and recommendation generation logic
-├── competitor_suggestions.py      # Competitor suggestion utilities
-├── benchmark_snapshot.py          # Snapshot export
-├── benchmark_comparison.py        # Snapshot comparison
-├── markdown_report.py             # Markdown executive report export
-├── report_generator.py            # DOCX executive report export
-├── output_quality.py              # Output sanitation and validation layer
-├── app_constants.py               # App-level constants
-├── ui_formatters.py               # UI formatting helpers
-├── utils.py                       # Shared helper functions
-├── run_progress.py                # Progress display helpers
-│
-├── tests/                         # Regression and unit tests
-├── docs/                          # Screenshots and documentation assets
-│   └── dashboard-preview.png
-│
-├── .env.example                   # Environment variable template
-├── .gitignore
-├── requirements.txt
-└── README.md
+|
+|-- app.py                         # Streamlit UI and workflow orchestration entrypoint
+|-- src/
+|   `-- geo_audit/                 # Core audit package
+|       |-- __init__.py
+|       |-- analysis_pipeline.py    # Benchmark execution and analysis pipeline
+|       |-- analyzer.py             # AI request wrapper
+|       |-- scoring.py              # Visibility scoring and share-of-voice logic
+|       |-- prompt_generator.py     # Prompt generation
+|       |-- prompts.py              # Core prompt templates
+|       |-- narrative_prompts.py    # Narrative report prompt templates
+|       |-- brand_intelligence.py   # Brand intelligence analysis
+|       |-- geo_roadmap.py          # GEO content roadmap generation
+|       |-- report_generator.py     # DOCX executive report export
+|       |-- markdown_report.py      # Markdown executive report export
+|       |-- output_quality.py       # Output sanitation and validation layer
+|       `-- ...                     # Additional package helpers and export modules
+|
+|-- tests/                         # Regression and unit tests
+|-- docs/                          # Screenshots and documentation assets
+|   `-- dashboard-preview.png
+|
+|-- .env.example                   # Environment variable template
+|-- .gitignore
+|-- requirements.txt
+`-- README.md
 ```
 
 ---

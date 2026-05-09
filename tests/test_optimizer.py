@@ -1,6 +1,6 @@
 import pandas as pd
 
-import optimizer
+from geo_audit import optimizer
 
 
 def test_generate_action_plan_uses_generic_category_context(monkeypatch):

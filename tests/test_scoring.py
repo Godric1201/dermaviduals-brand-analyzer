@@ -1,6 +1,6 @@
 import pandas as pd
 
-from scoring import (
+from geo_audit.scoring import (
     calculate_share_of_voice,
     count_mentions,
     estimate_rank_from_list,

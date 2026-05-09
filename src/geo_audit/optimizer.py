@@ -1,7 +1,7 @@
 import re
 
-from analyzer import ask_ai
-from output_quality import OutputQualityContext, sanitize_strategy_text
+from .analyzer import ask_ai
+from .output_quality import OutputQualityContext, sanitize_strategy_text
 
 
 def _get_target_brand_metrics(summary_df, brand):

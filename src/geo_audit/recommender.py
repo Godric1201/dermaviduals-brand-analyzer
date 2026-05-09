@@ -1,4 +1,4 @@
-from analyzer import ask_ai
+from .analyzer import ask_ai
 
 
 def generate_recommendations(

@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 
-from benchmark_snapshot import (
+from geo_audit.benchmark_snapshot import (
     build_benchmark_snapshot,
     dataframe_to_records,
     serialize_benchmark_snapshot,

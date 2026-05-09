@@ -1,4 +1,4 @@
-from run_progress import (
+from geo_audit.run_progress import (
     build_progress_steps,
     format_progress_message,
     get_progress_mode_note,

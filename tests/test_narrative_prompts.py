@@ -1,6 +1,6 @@
 import pandas as pd
 
-from narrative_prompts import (
+from geo_audit.narrative_prompts import (
     build_ai_decision_explanation_prompt,
     build_gap_analysis_prompt,
     build_narrative_detailed_context,

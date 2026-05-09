@@ -5,7 +5,7 @@ from conftest import import_without_real_analyzer
 
 @pytest.fixture()
 def competitor_suggestions_module():
-    return import_without_real_analyzer("competitor_suggestions")
+    return import_without_real_analyzer("geo_audit.competitor_suggestions")
 
 
 def test_build_competitor_suggestion_prompt_includes_context(

@@ -1,4 +1,4 @@
-import recommender
+from geo_audit import recommender
 
 
 def test_generate_recommendations_uses_generic_category_context(monkeypatch):

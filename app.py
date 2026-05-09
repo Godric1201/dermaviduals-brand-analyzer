@@ -1,9 +1,16 @@
 from datetime import date
+from pathlib import Path
+import sys
+
+SRC_DIR = Path(__file__).resolve().parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from app_constants import (
+
+from geo_audit.app_constants import (
     ANSWER_LANGUAGE,
     AUDIENCE,
     BRAND,
@@ -13,37 +20,37 @@ from app_constants import (
     REPORT_LANGUAGE,
     TRANSLATIONS,
 )
-from analysis_pipeline import get_competitors, run_visibility_analysis
-from brand_intelligence import run_brand_intelligence_analysis
-from brand_intelligence_prompts import (
+from geo_audit.analysis_pipeline import get_competitors, run_visibility_analysis
+from geo_audit.brand_intelligence import run_brand_intelligence_analysis
+from geo_audit.brand_intelligence_prompts import (
     build_target_diagnostic_prompts,
     parse_user_brand_strengths,
 )
-from benchmark_snapshot import (
+from geo_audit.benchmark_snapshot import (
     build_benchmark_snapshot,
     serialize_benchmark_snapshot,
 )
-from benchmark_comparison import (
+from geo_audit.benchmark_comparison import (
     compare_query_intent_visibility,
     compare_target_brand_metrics,
     load_snapshot_json,
 )
-from competitor_suggestions import suggest_competitors_with_ai
-from geo_roadmap import generate_geo_content_roadmap
-from markdown_report import build_executive_markdown_report
-from narrative_prompts import (
+from geo_audit.competitor_suggestions import suggest_competitors_with_ai
+from geo_audit.geo_roadmap import generate_geo_content_roadmap
+from geo_audit.markdown_report import build_executive_markdown_report
+from geo_audit.narrative_prompts import (
     build_ai_decision_explanation_prompt,
     build_gap_analysis_prompt,
     build_replacement_strategy_prompt,
 )
-from prompts import build_fixed_prompts
-from output_quality import OutputQualityContext, sanitize_narrative_appendix_text
-from run_progress import (
+from geo_audit.prompts import build_fixed_prompts
+from geo_audit.output_quality import OutputQualityContext, sanitize_narrative_appendix_text
+from geo_audit.run_progress import (
     build_progress_steps,
     format_progress_message,
     get_progress_mode_note,
 )
-from ui_formatters import (
+from geo_audit.ui_formatters import (
     build_export_filename,
     format_display_text,
     format_brand_names_for_display,
@@ -51,12 +58,12 @@ from ui_formatters import (
     translate_dataframe_columns,
 )
 
-from analyzer import ask_ai
-from content_generator import generate_level_2_content_pack
-from report_generator import (
+from geo_audit.analyzer import ask_ai
+from geo_audit.content_generator import generate_level_2_content_pack
+from geo_audit.report_generator import (
     create_executive_docx_report,
 )
-from utils import convert_df_to_csv
+from geo_audit.utils import convert_df_to_csv
 
 
 st.set_page_config(

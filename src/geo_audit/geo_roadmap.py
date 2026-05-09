@@ -1,7 +1,7 @@
 import re
 
-from analyzer import ask_ai
-from output_quality import (
+from .analyzer import ask_ai
+from .output_quality import (
     OutputQualityContext,
     sanitize_claim_safety_text,
     sanitize_geo_roadmap_text as oq_sanitize_geo_roadmap_text,

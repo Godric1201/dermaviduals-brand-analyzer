@@ -1,6 +1,6 @@
 import pandas as pd
 
-from ui_formatters import (
+from geo_audit.ui_formatters import (
     build_export_filename,
     format_brand_names_for_display,
     format_display_text,

@@ -1,7 +1,7 @@
 import json
 
 import pandas as pd
-from output_quality import OutputQualityContext, sanitize_snapshot_payload
+from .output_quality import OutputQualityContext, sanitize_snapshot_payload
 
 
 def _json_safe_value(value):

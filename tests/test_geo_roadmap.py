@@ -6,7 +6,7 @@ from conftest import import_without_real_analyzer
 
 @pytest.fixture()
 def geo_roadmap_module():
-    return import_without_real_analyzer("geo_roadmap")
+    return import_without_real_analyzer("geo_audit.geo_roadmap")
 
 
 def test_generate_geo_content_roadmap_builds_consulting_prompt(

@@ -6,7 +6,7 @@ from conftest import import_without_real_analyzer
 
 @pytest.fixture()
 def brand_intelligence_module():
-    return import_without_real_analyzer("brand_intelligence")
+    return import_without_real_analyzer("geo_audit.brand_intelligence")
 
 
 def create_fake_inputs():

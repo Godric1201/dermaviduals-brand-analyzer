@@ -1,4 +1,4 @@
-from brand_intelligence_prompts import (
+from geo_audit.brand_intelligence_prompts import (
     build_target_diagnostic_prompts,
     parse_user_brand_strengths,
 )

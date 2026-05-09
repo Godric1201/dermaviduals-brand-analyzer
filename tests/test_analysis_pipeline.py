@@ -1,7 +1,7 @@
 import pandas as pd
 
-import analysis_pipeline
-from app_constants import DEFAULT_COMPETITORS
+from geo_audit import analysis_pipeline
+from geo_audit.app_constants import DEFAULT_COMPETITORS
 
 
 def patch_pipeline_dependencies(monkeypatch, captured_prompt_kwargs=None):

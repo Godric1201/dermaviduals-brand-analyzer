@@ -1,7 +1,7 @@
 import pandas as pd
 
-from markdown_report import build_executive_markdown_report
-from output_quality import (
+from geo_audit.markdown_report import build_executive_markdown_report
+from geo_audit.output_quality import (
     FAILED_LLM_SECTION_PLACEHOLDER,
     OutputQualityContext,
     validate_output_quality,

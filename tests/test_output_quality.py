@@ -1,6 +1,6 @@
 import pytest
 
-from output_quality import (
+from geo_audit.output_quality import (
     FAILED_LLM_SECTION_PLACEHOLDER,
     OutputQualityContext,
     FORBIDDEN_CLAIM_PHRASES,
@@ -751,7 +751,7 @@ AI-Discovered Brands Not Included in Scoring
     assert "Protects Your Skin" not in sanitized
     assert "The Science Behind Dermaviduals for Skin Health" not in sanitized
 
-from output_quality import (
+from geo_audit.output_quality import (
     OutputQualityContext,
     sanitize_report_text,
     validate_output_quality,

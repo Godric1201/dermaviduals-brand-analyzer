@@ -1,4 +1,4 @@
-from analyzer import ask_ai
+from .analyzer import ask_ai
 
 
 SEO_BLOG_HEADING = "## 1. SEO Blog Post"
