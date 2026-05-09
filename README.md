@@ -278,9 +278,15 @@ The test suite covers benchmark logic, output quality validation, report generat
 
 ---
 
+## Additional Documentation
+
+- [Usage Guide](docs/usage-guide.md)
+- [Output Examples](docs/output-examples.md)
+
 ## Outputs
 
 The tool can generate several types of outputs:
+
 
 ### Executive Reports
 
