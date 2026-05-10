@@ -31,11 +31,6 @@ from geo_audit.benchmark_snapshot import (
     build_benchmark_snapshot,
     serialize_benchmark_snapshot,
 )
-from geo_audit.benchmark_comparison import (
-    compare_query_intent_visibility,
-    compare_target_brand_metrics,
-    load_snapshot_json,
-)
 from geo_audit.competitor_suggestions import suggest_competitors_with_ai
 from geo_audit.geo_roadmap import generate_geo_content_roadmap
 from geo_audit.markdown_report import build_executive_markdown_report
@@ -62,6 +57,7 @@ from geo_audit.ui.api_usage_panel import (
     coerce_api_usage_summary,
     render_api_usage_summary,
 )
+from geo_audit.ui.benchmark_progress import render_benchmark_progress
 
 from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
 from geo_audit.content_generator import generate_level_2_content_pack
@@ -959,73 +955,7 @@ def display_results():
     # =========================
     # 15. Benchmark Progress
     # =========================
-    st.subheader("Benchmark Progress")
-    st.caption(
-        "Upload a previous Benchmark Snapshot JSON to compare target-brand visibility progress."
-    )
-
-    previous_snapshot_file = st.file_uploader(
-        "Upload Previous Benchmark Snapshot JSON",
-        type=["json"],
-        key="previous_benchmark_snapshot_upload",
-    )
-
-    if previous_snapshot_file is not None:
-        try:
-            previous_snapshot = load_snapshot_json(previous_snapshot_file)
-            comparison = compare_target_brand_metrics(
-                previous_snapshot,
-                current_snapshot,
-            )
-
-            previous_metadata = previous_snapshot.get("metadata", {}) or {}
-            current_metadata = current_snapshot.get("metadata", {}) or {}
-            context_rows = [
-                {
-                    "Context": "Report Date",
-                    "Previous": previous_metadata.get("report_date", "Unknown"),
-                    "Current": current_metadata.get("report_date", "Unknown"),
-                },
-                {
-                    "Context": "Run Mode",
-                    "Previous": previous_metadata.get("run_mode", "Unknown"),
-                    "Current": current_metadata.get("run_mode", "Unknown"),
-                },
-                {
-                    "Context": "Prompt Count",
-                    "Previous": previous_metadata.get("prompt_count", 0),
-                    "Current": current_metadata.get("prompt_count", 0),
-                },
-            ]
-
-            for warning in comparison["warnings"]:
-                st.warning(warning)
-
-            st.write("**Snapshot Context**")
-            st.dataframe(pd.DataFrame(context_rows), use_container_width=True)
-
-            st.write("**Target Brand Progress**")
-            st.dataframe(
-                pd.DataFrame(comparison["metrics"]),
-                use_container_width=True,
-            )
-
-            query_intent_progress = compare_query_intent_visibility(
-                previous_snapshot,
-                current_snapshot,
-            )
-            st.write("**Query Intent Progress**")
-            if query_intent_progress:
-                st.dataframe(
-                    pd.DataFrame(query_intent_progress),
-                    use_container_width=True,
-                )
-            else:
-                st.info(
-                    "No query intent-level comparison data available in the uploaded snapshot."
-                )
-        except ValueError as exc:
-            st.error(str(exc))
+    render_benchmark_progress(current_snapshot)
 
     # =========================
     # 16. Export Reports
