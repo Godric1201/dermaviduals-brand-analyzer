@@ -58,6 +58,11 @@ The tool can generate:
 
 ---
 
+
+## Example Output
+
+- [Demo Executive Report](examples/demo-executive-report.md)
+
 ## Key Features
 
 ### AI Recommendation Benchmark
