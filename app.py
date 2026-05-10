@@ -21,6 +21,7 @@ from geo_audit.app_constants import (
     TRANSLATIONS,
 )
 from geo_audit.analysis_pipeline import get_competitors, run_visibility_analysis
+from geo_audit.api_cost_estimator import estimate_api_cost_range
 from geo_audit.brand_intelligence import run_brand_intelligence_analysis
 from geo_audit.brand_intelligence_prompts import (
     build_target_diagnostic_prompts,
@@ -58,7 +59,7 @@ from geo_audit.ui_formatters import (
     translate_dataframe_columns,
 )
 
-from geo_audit.analyzer import ask_ai
+from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
 from geo_audit.content_generator import generate_level_2_content_pack
 from geo_audit.report_generator import (
     create_executive_docx_report,
@@ -300,6 +301,14 @@ def estimate_api_calls(
         ),
         "auto_result_narrative_calls_estimate": 3,
     }
+
+
+def estimate_total_ai_calls(api_call_estimate, brand_intelligence_calls):
+    return (
+        api_call_estimate["estimated_pipeline_calls"]
+        + brand_intelligence_calls
+        + api_call_estimate["auto_result_narrative_calls_estimate"]
+    )
 
 
 def run_analysis():
@@ -1421,6 +1430,14 @@ brand_intelligence_estimated_calls = len(build_target_diagnostic_prompts(
     competitors=current_competitors,
     user_brand_strengths=parsed_user_brand_strengths,
 )) + 3
+estimated_total_ai_calls = estimate_total_ai_calls(
+    api_call_estimate,
+    brand_intelligence_estimated_calls,
+)
+api_cost_estimate = estimate_api_cost_range(
+    estimated_total_ai_calls,
+    DEFAULT_MODEL,
+)
 
 for error in validation_errors:
     st.sidebar.error(error)
@@ -1509,29 +1526,50 @@ if st.session_state.get("pending_run_confirmation", False):
         st.write(f"**Competitors:** {len(display_competitors)}")
         st.write(display_competitors)
 
-        st.markdown("**Estimated Run Size**")
+        st.markdown("**Approximate API Usage Estimate**")
         st.write(
-            "**Effective prompts to run:** "
-            f"{api_call_estimate['effective_prompt_count']}"
+            f"**Estimated AI calls:** ~{api_cost_estimate['estimated_calls']}"
         )
-        st.write(
-            "**Estimated initial API calls:** "
-            f"{api_call_estimate['estimated_pipeline_calls']}"
-        )
-        st.write(
-            "**Brand Intelligence calls:** "
-            f"{brand_intelligence_estimated_calls}"
-        )
-        st.write(
-            "**GEO Content Roadmap call:** "
-            f"{api_call_estimate['geo_content_roadmap_calls']}"
-        )
-        st.write(
-            "**Additional narrative calls:** up to "
-            f"{api_call_estimate['auto_result_narrative_calls_estimate']}"
+        if api_cost_estimate["pricing_available"]:
+            st.write(
+                "**Estimated API cost:** "
+                f"{api_cost_estimate['formatted_cost_range']}"
+            )
+            st.write(
+                "**Pricing assumption:** "
+                f"{api_cost_estimate['pricing_label']}"
+            )
+        else:
+            st.write(
+                "Cost estimate unavailable for this configured model. "
+                "Check current OpenAI API pricing."
+            )
+        st.caption(
+            "Actual billing may vary by model, prompt length, output length, "
+            "and current OpenAI pricing."
         )
 
-        with st.expander("View API call breakdown"):
+        with st.expander("View API call breakdown", expanded=False):
+            st.write(
+                "**Effective prompts to run:** "
+                f"{api_call_estimate['effective_prompt_count']}"
+            )
+            st.write(
+                "**Estimated initial API calls:** "
+                f"{api_call_estimate['estimated_pipeline_calls']}"
+            )
+            st.write(
+                "**Brand Intelligence calls:** "
+                f"{brand_intelligence_estimated_calls}"
+            )
+            st.write(
+                "**GEO Content Roadmap call:** "
+                f"{api_call_estimate['geo_content_roadmap_calls']}"
+            )
+            st.write(
+                "**Additional narrative calls:** up to "
+                f"{api_call_estimate['auto_result_narrative_calls_estimate']}"
+            )
             st.write(f"**Fixed prompts:** {api_call_estimate['fixed_prompt_count']}")
             st.write(
                 "**AI-generated prompts estimate:** "
