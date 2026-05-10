@@ -275,6 +275,7 @@ The test suite covers benchmark logic, output quality validation, report generat
 
 - [Usage Guide](docs/usage-guide.md)
 - [Output Examples](docs/output-examples.md)
+- [Changelog](CHANGELOG.md)
 
 ## Outputs
 
