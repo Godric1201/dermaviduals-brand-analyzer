@@ -19,6 +19,16 @@ def test_count_mentions_returns_zero_when_brand_absent():
 
     assert count_mentions(answer, "Dermaviduals") == 0
 
+def test_count_mentions_does_not_match_inside_longer_words():
+    answer = "Aesopian language is unrelated to the skincare brand."
+
+    assert count_mentions(answer, "Aesop") == 0
+
+
+def test_count_mentions_deduplicates_overlapping_aliases():
+    answer = "Brand-X is recommended. Brand X is also mentioned."
+
+    assert count_mentions(answer, "Brand-X") == 2
 
 def test_estimate_rank_from_numbered_list():
     answer = """

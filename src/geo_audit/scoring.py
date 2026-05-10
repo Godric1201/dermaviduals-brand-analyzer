@@ -43,6 +43,33 @@ def brand_aliases(brand):
 
     return cleaned
 
+def alias_regex(alias: str) -> re.Pattern:
+    """
+    Build a safer regex for matching brand aliases.
+
+    The pattern prevents matching inside longer words, while still allowing
+    multi-word brand names and punctuation-normalized aliases.
+    """
+    escaped_alias = re.escape(alias)
+    return re.compile(rf"(?<!\w){escaped_alias}(?!\w)")
+
+
+def find_alias_matches(text: str, brand: str) -> list[re.Match]:
+    """
+    Find unique alias matches for a brand in normalized text.
+
+    If multiple aliases match the same character span, count that occurrence once.
+    """
+    matches_by_span = {}
+
+    for alias in brand_aliases(brand):
+        pattern = alias_regex(alias)
+
+        for match in pattern.finditer(text):
+            matches_by_span[(match.start(), match.end())] = match
+
+    return list(matches_by_span.values())
+
 
 # -------- Split AI answer into lines --------
 def split_answer_lines(answer):
@@ -82,9 +109,8 @@ def estimate_rank_from_list(answer, brand):
         rank += 1
         clean_line = normalize_text(clean_list_prefix(line))
 
-        for alias in brand_aliases(brand):
-            if alias in clean_line:
-                return rank
+        if find_alias_matches(clean_line, brand):
+            return rank
 
     return None
 
@@ -92,27 +118,18 @@ def estimate_rank_from_list(answer, brand):
 # -------- Find first brand position --------
 def find_first_position(answer, brand):
     answer_text = normalize_text(answer)
-    first_position = None
+    matches = find_alias_matches(answer_text, brand)
 
-    for alias in brand_aliases(brand):
-        pos = answer_text.find(alias)
-        if pos != -1:
-            if first_position is None or pos < first_position:
-                first_position = pos
+    if not matches:
+        return None
 
-    return first_position
+    return min(match.start() for match in matches)
 
 
 # -------- Count brand mentions --------
 def count_mentions(answer, brand):
     answer_text = normalize_text(answer)
-    mentions = 0
-
-    for alias in brand_aliases(brand):
-        pattern = re.escape(alias)
-        mentions += len(re.findall(pattern, answer_text))
-
-    return mentions
+    return len(find_alias_matches(answer_text, brand))
 
 
 # -------- Score based on rank --------
