@@ -68,17 +68,31 @@ def test_benchmark_snapshot_has_expected_top_level_keys():
 def test_benchmark_snapshot_metadata_includes_run_context():
     snapshot = build_sample_snapshot()
 
-    assert snapshot["metadata"] == {
-        "brand": "Espresso House",
-        "market": "Berlin",
-        "category": "cafes",
-        "audience": "remote workers",
-        "report_date": "2026-05-02",
+    metadata = snapshot["metadata"]
+
+    assert metadata["brand"] == "Espresso House"
+    assert metadata["market"] == "Berlin"
+    assert metadata["category"] == "cafes"
+    assert metadata["audience"] == "remote workers"
+    assert metadata["report_date"] == "2026-05-02"
+    assert metadata["run_mode"] == "Full Report Mode"
+    assert metadata["prompt_limit"] is None
+    assert metadata["prompt_count"] == 20
+    assert metadata["competitors"] == ["Coffee Fellows", "Einstein Kaffee"]
+    assert metadata["query_intent_categories"] == [
+        "Best Options",
+        "Local Recommendations",
+    ]
+
+    assert metadata["run_metadata"] == {
+        "model_name": "gpt-4o-mini",
+        "prompt_set_version": "v1",
+        "repeat_count": 1,
         "run_mode": "Full Report Mode",
         "prompt_limit": None,
         "prompt_count": 20,
-        "competitors": ["Coffee Fellows", "Einstein Kaffee"],
-        "query_intent_categories": ["Best Options", "Local Recommendations"],
+        "raw_answers_included": False,
+        "generated_at": "2026-05-02",
     }
 
 
