@@ -303,6 +303,7 @@ The test suite covers benchmark logic, output quality validation, report generat
 
 - [Usage Guide](docs/usage-guide.md)
 - [Output Examples](docs/output-examples.md)
+- [Development Guide](DEVELOPMENT.md)
 - [Changelog](CHANGELOG.md)
 
 ## Outputs
@@ -343,6 +344,10 @@ A typical generated report includes:
 - Measurement Plan
 - Brand Intelligence Appendix
 - AI Visibility Strategy Deep Dive
+
+An anonymized example report is available here:
+
+- [Demo Executive Report](examples/demo-executive-report.md)
 
 For portfolio review, exported reports should be treated as example diagnostic outputs rather than client-confidential deliverables.
 
@@ -408,4 +413,4 @@ Planned future improvements:
 - Additional example datasets and screenshots
 - Optional hosted demo version
 - More structured example reports for non-confidential portfolio review
-- Cleaner `src/` package structure for long-term maintainability
+
