@@ -48,19 +48,20 @@ def _build_measurement_plan_md(metrics):
     )
 
     return (
-        "The next benchmark should evaluate whether the visibility gap is beginning to close.\n\n"
+        "The next benchmark should evaluate whether measured visibility is beginning "
+        "to improve within comparable prompt coverage.\n\n"
         f"{measurement_df}"
     )
 
 
 def _build_methodology_notes_md(category, prompt_categories):
     notes = [
-        f"- The benchmark is based on fixed and AI-generated prompts designed to simulate {category} recommendation queries.",
-        "- Visibility is calculated from brand mentions, estimated ranking, and prompt-level appearance.",
-        "- Share of voice reflects the distribution of brand mentions among tracked competitors.",
+        f"- This AI visibility benchmark is based on fixed and AI-generated prompts designed to simulate {category} recommendation queries.",
+        "- Visibility is calculated from brand mentions, estimated ranking, and prompt-level appearance within the tested prompt set.",
+        "- Share of voice reflects the distribution of brand mentions among tracked competitors in this benchmark run.",
         "- Scores reflect AI answer visibility, not market share, product performance, customer satisfaction, or broader business performance outcomes.",
         "- The output should be interpreted as an AI visibility benchmark, not as a consumer survey, sales performance report, or clinical evaluation.",
-        "- Results should be re-run periodically to track whether content and visibility interventions improve AI recall.",
+        "- Results should be re-run periodically to track whether content and visibility interventions produce stronger benchmark signals over time.",
     ]
 
     if prompt_categories:
@@ -241,21 +242,21 @@ def build_executive_markdown_report(
 
     if target_mentions == 0:
         strategic_issue = (
-            f"The main strategic issue is that AI systems have not produced measurable mentions for {display_brand} "
-            f"in this benchmark, leaving the brand at {target_sov}% share of voice."
+            f"The benchmark indicates that {display_brand} did not generate measurable mentions "
+            f"within the tested prompt set, leaving the brand at {target_sov}% share of voice in this run."
         )
     else:
         strategic_issue = (
-            f"The main strategic issue is to improve from {target_mentions} mentions, "
+            f"The main strategic opportunity is to build from the current benchmark signal of {target_mentions} mentions, "
             f"{target_avg_score} average visibility, and {target_sov}% share of voice by strengthening association "
             f"with high-intent use cases, comparison queries, local intent, decision-stage searches, "
-            f"and market-specific category questions for {display_category} in {display_market}."
+            f"and market-specific category questions for {display_category} in {display_market}. Future benchmark validation should confirm whether those associations strengthen over time."
         )
 
     executive_summary_sentence = (
-        f"{display_brand} is {target_visibility_status} across the tested AI search prompts, "
+        f"Within the tested prompt set, {display_brand} is {target_visibility_status}, "
         f"with {target_mentions} total mentions, {target_avg_score} average visibility, "
-        f"{target_prompts_visible} prompts visible, and {target_sov}% share of voice."
+        f"{target_prompts_visible} prompts visible, and {target_sov}% share of voice in this AI visibility benchmark."
     )
     visibility_state_noun = get_visibility_state_noun(target_visibility_status)
     query_intent_md = "\n".join(
@@ -267,7 +268,8 @@ def build_executive_markdown_report(
     )
     visibility_gap_diagnosis = (
         f"{strategic_issue}\n\n"
-        f"Competitive context:\n\n{top_competitor_text}"
+        "Competitive context based on measured visibility signals:\n\n"
+        f"{top_competitor_text}"
     )
     geo_content_roadmap_body = None
     if geo_content_roadmap_done and geo_content_roadmap:
@@ -278,8 +280,8 @@ def build_executive_markdown_report(
 
     recommended_next_step = (
         f"Build AI-citable content that connects {display_brand} with high-intent use cases, comparison queries, local intent, "
-        f"decision-stage searches, and market-specific category queries for {display_category} in {display_market}. The next benchmark should track whether the brand "
-        f"improves from its {visibility_state_noun} toward stronger inclusion in AI-generated recommendation lists."
+        f"decision-stage searches, and market-specific category queries for {display_category} in {display_market}. The intended benchmark influence is to strengthen "
+        f"the brand's association with these query contexts; the next benchmark should validate whether measured visibility moves from its {visibility_state_noun} toward stronger inclusion in AI-generated recommendation lists."
     )
 
     parts = [
@@ -294,7 +296,7 @@ def build_executive_markdown_report(
             f"**Run Mode:** {run_mode}  \n"
             f"**Deliverable Status:** {deliverable_status}  \n\n"
             f'{"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}\n\n'
-            f"This report evaluates how visible {display_brand} is in AI-generated {display_category} recommendations for {report_audience_context}.\n\n"
+            f"This report evaluates how visible {display_brand} is within AI-generated {display_category} recommendations for {report_audience_context}, based on the tested prompt set.\n\n"
             "### Query Intent Coverage\n\n"
             "This benchmark covers the following AI recommendation contexts:\n\n"
             f"{query_intent_md}"
@@ -302,28 +304,28 @@ def build_executive_markdown_report(
         (
             "## 2. Executive Summary\n\n"
             f"{executive_summary_sentence}\n\n"
-            f"Key metrics for {display_brand}:\n\n"
+            f"Key benchmark metrics for {display_brand}:\n\n"
             "| Metric | Value |\n"
             "|---|---:|\n"
             f"| Total Mentions | {target_mentions} |\n"
             f"| Average Visibility Score | {target_avg_score} |\n"
             f"| Prompts Visible | {target_prompts_visible} |\n"
             f"| Share of Voice | {target_sov}% |\n\n"
-            "Top visible competitors in this benchmark:\n\n"
+            "Top measured competitor signals in this benchmark:\n\n"
             f"{top_competitor_text}\n\n"
             f"{strategic_issue}"
         ),
         "## 3. Competitive Benchmark\n\n"
-        "The table below summarizes brand-level AI visibility performance across all tested prompts.\n\n"
+        "The table below summarizes measured brand-level AI visibility across all tested prompts.\n\n"
         f"{summary_report_md}",
         "## 4. Trigger-Level Visibility Findings\n\n"
-        "The table below shows how each tracked brand performs across AI query categories.\n\n"
+        "The table below shows measured visibility by tracked brand across AI query categories.\n\n"
         f"{trigger_report_md}",
         "## 5. Top Brand Winners by Query Type\n\n"
-        "The table below identifies which brand wins each query category based on visibility score.\n\n"
+        "The table below identifies the strongest measured brand signal in each query category based on visibility score.\n\n"
         f"{top_brands_report_md}",
         f"## 6. Visibility Gap Diagnosis\n\n{visibility_gap_diagnosis}",
-        f"## 7. Strategic Priorities\n\n{recommendations}",
+        f"## 7. Strategic Priorities\n\nThe following priorities should be read as intended benchmark influence areas for future validation, not guaranteed outcomes.\n\n{recommendations}",
     ]
 
     if geo_content_roadmap_body:
