@@ -1,8 +1,11 @@
 import json
+import os
 
 import pandas as pd
 from .output_quality import OutputQualityContext, sanitize_snapshot_payload
-
+DEFAULT_MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+DEFAULT_PROMPT_SET_VERSION = os.getenv("PROMPT_SET_VERSION", "v1")
+DEFAULT_REPEAT_COUNT = int(os.getenv("PROMPT_REPEAT_COUNT", "1"))
 
 def _json_safe_value(value):
     try:
@@ -34,6 +37,27 @@ def dataframe_to_records(df):
         for record in records
     ]
 
+def build_run_metadata(
+    report_date,
+    run_mode,
+    prompt_limit,
+    prompt_count,
+    include_raw_answers,
+    model_name=None,
+    prompt_set_version=None,
+    repeat_count=None,
+):
+    """Build reproducibility metadata for a benchmark snapshot."""
+    return {
+        "model_name": model_name or DEFAULT_MODEL_NAME,
+        "prompt_set_version": prompt_set_version or DEFAULT_PROMPT_SET_VERSION,
+        "repeat_count": repeat_count or DEFAULT_REPEAT_COUNT,
+        "run_mode": run_mode,
+        "prompt_limit": prompt_limit,
+        "prompt_count": prompt_count,
+        "raw_answers_included": bool(include_raw_answers),
+        "generated_at": report_date,
+    }
 
 def build_benchmark_snapshot(
     brand,
@@ -51,6 +75,9 @@ def build_benchmark_snapshot(
     brand_intelligence=None,
     include_raw_answers=False,
     raw_answer_df=None,
+    model_name=None,
+    prompt_set_version=None,
+    repeat_count=None,
 ):
     brand_intelligence = brand_intelligence or {}
 
@@ -58,17 +85,27 @@ def build_benchmark_snapshot(
         "schema_version": "1.0",
         "generated_at": report_date,
         "metadata": {
-            "brand": brand,
-            "market": market,
-            "category": category,
-            "audience": audience,
-            "report_date": report_date,
-            "run_mode": run_mode,
-            "prompt_limit": prompt_limit,
-            "prompt_count": prompt_count,
-            "competitors": list(competitors or []),
-            "query_intent_categories": list(query_intent_categories or []),
-        },
+        "brand": brand,
+        "market": market,
+        "category": category,
+        "audience": audience,
+        "report_date": report_date,
+        "run_mode": run_mode,
+        "prompt_limit": prompt_limit,
+        "prompt_count": prompt_count,
+        "competitors": list(competitors or []),
+        "query_intent_categories": list(query_intent_categories or []),
+        "run_metadata": build_run_metadata(
+            report_date=report_date,
+            run_mode=run_mode,
+            prompt_limit=prompt_limit,
+            prompt_count=prompt_count,
+            include_raw_answers=include_raw_answers,
+            model_name=model_name,
+            prompt_set_version=prompt_set_version,
+            repeat_count=repeat_count,
+    ),
+},
         "summary_records": dataframe_to_records(summary_df),
         "detailed_records": dataframe_to_records(detailed_df),
         "brand_intelligence": {
