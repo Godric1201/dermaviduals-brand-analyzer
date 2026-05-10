@@ -90,6 +90,18 @@ def test_ai_decision_explanation_prompt_includes_numeric_grounding_guard():
     assert "Do not invent mention counts" in prompt
     assert "Do not treat character positions, first_position" in prompt
     assert "If a metric is not provided, describe it qualitatively" in prompt
+    assert "Appendix C language contract" in prompt
+    assert "Frame reasoning as prompt-set signal, not consumer behavior" in prompt
+    assert "Benchmark signal behind visibility" in prompt
+    assert "Observed query territory signal" in prompt
+    assert "Strategic implication for the target brand" in prompt
+    assert "consumers are actively seeking" in prompt
+    assert "preferred choice" in prompt
+    assert "trusted among consumers" in prompt
+    assert "ready to purchase" in prompt
+    assert "go-to option" in prompt
+    assert "Why AI selects it" not in prompt
+    assert "What signal it owns" not in prompt
     assert "mention count 320" in prompt
     assert "visibility score of 320" in prompt
     assert "first_position" not in build_narrative_detailed_context(detailed_df)
@@ -123,3 +135,22 @@ def test_replacement_and_gap_prompts_include_numeric_grounding_guard():
         assert "Do not invent mention counts" in prompt
         assert "Do not treat character positions, first_position" in prompt
         assert "If a metric is not provided, describe it qualitatively" in prompt
+
+    assert "Appendix D language contract" in replacement_prompt
+    assert "compete against brands with stronger measured visibility" in replacement_prompt
+    assert "content angle to test in future benchmark cycles" in replacement_prompt
+    assert "competitor names and useful diagnostic content" in replacement_prompt
+    assert "Dominant brands per category" not in replacement_prompt
+    assert "currently dominant brands" not in replacement_prompt
+    assert "AI-owned territory" not in replacement_prompt
+    assert "replacement strategy" not in replacement_prompt
+    assert "Competitor Attack" not in replacement_prompt
+    assert "effectively compete in the market" in replacement_prompt
+
+    assert "Appendix E language contract" in gap_prompt
+    assert "Benchmark-Visible Associations Missing or Weak" in gap_prompt
+    assert "the tested answers did not surface" in gap_prompt
+    assert "the benchmark did not detect" in gap_prompt
+    assert "Why AI does not recommend" not in gap_prompt
+    assert "consumers are not considering" not in gap_prompt
+    assert "does not resonate with consumers" not in gap_prompt

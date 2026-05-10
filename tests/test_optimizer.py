@@ -72,6 +72,18 @@ def test_generate_action_plan_uses_generic_category_context(monkeypatch):
         assert term not in prompt_lower
 
     assert "Do not make aggressive numeric performance promises" in prompt
+    assert "Appendix B language contract" in prompt
+    assert "within the tested prompt set" in prompt
+    assert "brands with stronger measured visibility" in prompt
+    assert "should, can, may, is intended to" in prompt
+    assert "future benchmark validation" in prompt
+    assert "market leader" in prompt
+    assert "go-to" in prompt
+    assert "trusted option" in prompt
+    assert "AI footprint" in prompt
+    assert "penetrate the market" in prompt
+    assert "query-intent signal" in prompt
+    assert "benchmark-visible or measured visibility" in prompt
     assert "0 mentions" in prompt
     assert "1-3 relevant prompt categories" in prompt
     assert "directional next-benchmark goals" in prompt
@@ -95,6 +107,12 @@ def test_generate_action_plan_uses_generic_category_context(monkeypatch):
     assert "prompts_visible" in prompt
     assert "share_of_voice_percent" in prompt
     assert "query intent visibility" in prompt
+    assert "Which Summary Table brands dominate AI recommendations" not in prompt
+    assert "Dominant brands and scores" not in prompt
+    assert "AI-perceived role" not in prompt
+    assert "Owned territory" not in prompt
+    assert "weak market-relevant AI footprint" not in prompt
+    assert "Expected AI visibility effect" not in prompt
 
 
 def test_sanitize_conservative_targets_rewrites_quick_test_aggressive_targets():

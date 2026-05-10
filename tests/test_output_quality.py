@@ -6,6 +6,7 @@ from geo_audit.output_quality import (
     FORBIDDEN_CLAIM_PHRASES,
     guard_generated_section_text,
     is_raw_error_output,
+    normalize_appendix_language_text,
     sanitize_business_kpi_text,
     sanitize_ai_discovered_brands_section,
     sanitize_brand_intelligence_text,
@@ -37,6 +38,365 @@ def skincare_context(**overrides):
     for key, value in overrides.items():
         setattr(context, key, value)
     return context
+
+
+def test_normalize_appendix_language_weakens_certainty_phrases_and_keeps_context():
+    dirty = (
+        "Dermaviduals must improve because of lack of awareness. "
+        "It must enhance evidence, must create comparison content, must build trust, "
+        "must position carefully, and needs to establish stronger support. "
+        "Environ has established authority, is a leading brand, and is recognized locally. "
+        "The diagnostic content should remain."
+    )
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+    clean_lower = clean.lower()
+
+    for phrase in [
+        "must improve",
+        "must enhance",
+        "must create",
+        "must build",
+        "must position",
+        "needs to establish",
+        "lack of awareness",
+        "established authority",
+        "leading brand",
+        "recognized locally",
+    ]:
+        assert phrase not in clean_lower
+
+    assert "Dermaviduals" in clean
+    assert "Environ" in clean
+    assert "should improve" in clean
+    assert "should strengthen evidence" in clean
+    assert "should create comparison content" in clean
+    assert "should build trust" in clean
+    assert "should position carefully" in clean
+    assert "should build evidence for stronger support" in clean
+    assert "limited measurable visibility in this benchmark" in clean
+    assert "stronger authority signals within the tested prompt set" in clean
+    assert "brand with stronger measured visibility" in clean
+    assert "visible in local benchmark signals" in clean
+    assert "The diagnostic content should remain." in clean
+
+
+def test_normalize_appendix_language_normalizes_headings_and_preserves_brand_names():
+    dirty = (
+        "Why AI Does Not Recommend Dermaviduals:\n"
+        "AI-owned territory: Environ.\n"
+        "Current territory owned: clinic trust.\n"
+        "Owned territory: local recommendations."
+    )
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+    clean_lower = clean.lower()
+
+    for phrase in [
+        "why ai does not recommend",
+        "ai-owned territory",
+        "current territory owned",
+        "owned territory",
+    ]:
+        assert phrase not in clean_lower
+
+    assert "Dermaviduals" in clean
+    assert "Environ" in clean
+    assert "Benchmark-Visible Associations Missing or Weak for Dermaviduals" in clean
+    assert "observed query territory signal" in clean
+    assert "Current observed query territory" in clean
+    assert "Observed query territory" in clean
+
+
+def test_normalize_appendix_language_normalizes_market_dominance_language():
+    dirty = (
+        "Environ is a dominant brand. Dominant brands are dominating the market. "
+        "This dominance appears in the appendix."
+    )
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+    clean_lower = clean.lower()
+
+    for phrase in [
+        "dominant brand",
+        "dominant brands",
+        "dominating the market",
+        "dominance",
+    ]:
+        assert phrase not in clean_lower
+
+    assert "Environ" in clean
+    assert "brand with stronger measured visibility" in clean
+    assert "brands with stronger measured visibility" in clean
+    assert "showing stronger measured visibility in this benchmark" in clean
+    assert "stronger measured visibility appears" in clean
+
+
+def test_normalize_appendix_language_normalizes_ai_agency_language():
+    dirty = (
+        "AI algorithms analyzing consumer intent say Dermaviduals is missing. "
+        "AI recommends Environ, AI does not recommend Dermaviduals, "
+        "AI trusts Environ, and AI knows the category."
+    )
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+    clean_lower = clean.lower()
+
+    for phrase in [
+        "ai algorithms analyzing consumer intent",
+        "ai recommends",
+        "ai does not recommend",
+        "ai trusts",
+        "ai knows",
+    ]:
+        assert phrase not in clean_lower
+
+    assert "Dermaviduals" in clean
+    assert "Environ" in clean
+    assert "generated answers in this benchmark" in clean
+    assert "generated answers mention Environ" in clean
+    assert "generated answers do not mention Dermaviduals" in clean
+    assert "generated answers show trust-related signals for Environ" in clean
+    assert "generated answers suggest the category" in clean
+
+
+def test_normalize_appendix_language_reduces_market_fact_language():
+    dirty = (
+        "The brand has market presence in the local recommendation market. "
+        "The competitive landscape suggests market reach and market penetration."
+    )
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+    clean_lower = clean.lower()
+
+    for phrase in [
+        "market presence",
+        "local recommendation market",
+        "competitive landscape",
+        "market reach",
+        "market penetration",
+    ]:
+        assert phrase not in clean_lower
+
+    assert "measured visibility footprint" in clean
+    assert "local recommendation query context" in clean
+    assert "tested competitive context" in clean
+    assert "benchmark-visible reach" in clean
+    assert "measured market visibility signal" in clean
+
+
+def test_normalize_appendix_language_reduces_consumer_behavior_claims():
+    dirty = (
+        "Consumers are likely ready to purchase. "
+        "Consumer preference and consumer trust are capturing attention, "
+        "which could capture consumer interest. "
+        "Dermaviduals is a trusted brand among skincare-conscious consumers and a preferred choice. "
+        "Consumer awareness, brand awareness, purchase decisions, consumer intent, and market trust appear."
+    )
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+    clean_lower = clean.lower()
+
+    for phrase in [
+        "consumers are likely ready to purchase",
+        "consumer preference",
+        "consumer trust",
+        "capturing attention",
+        "capture consumer interest",
+        "trusted brand among skincare-conscious consumers",
+        "preferred choice",
+        "consumer awareness",
+        "brand awareness",
+        "purchase decisions",
+        "consumer intent",
+        "market trust",
+    ]:
+        assert phrase not in clean_lower
+
+    assert "Dermaviduals" in clean
+    assert "tested prompts may reflect decision-stage intent" in clean
+    assert "preference-related signal in generated answers" in clean
+    assert "trust-related signals in generated answers" in clean
+    assert "appearing in measured benchmark signals" in clean
+    assert "support future consideration signals" in clean
+    assert "brand with stronger trust-related signals in generated answers" in clean
+    assert "more visible option in this benchmark" in clean
+    assert "audience-awareness signal" in clean
+    assert "brand visibility signal" in clean
+    assert "decision-stage query context" in clean
+    assert "query intent" in clean
+    assert "trust-related market signal" in clean
+
+
+def test_normalize_appendix_language_weakens_recommendation_outcomes():
+    dirty = (
+        "The plan can gain traction and establish presence. "
+        "It should improve relevance and enhance credibility. "
+        "The content will improve visibility, will increase share of voice, "
+        "will drive revenue, and will increase sales."
+    )
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+    clean_lower = clean.lower()
+
+    for phrase in [
+        "gain traction",
+        "establish presence",
+        "improve relevance",
+        "enhance credibility",
+        "will improve visibility",
+        "will increase share of voice",
+        "will drive revenue",
+        "will increase sales",
+    ]:
+        assert phrase not in clean_lower
+
+    assert "build measurable visibility" in clean
+    assert "build measurable presence in future benchmarks" in clean
+    assert "support future benchmark relevance" in clean
+    assert "support clearer credibility signals" in clean
+    assert "is intended to support future measured visibility" in clean
+    assert "is intended to support future share-of-voice improvement" in clean
+    assert clean.count("is not evaluated by this benchmark") == 2
+
+
+def test_normalize_appendix_language_normalizes_label_artifacts_only_in_labels():
+    dirty = """
+**measured visibility footprint**: Evidence stays.
+- audience-awareness signal in generated answers: Diagnostic note.
+### measured market visibility signal
+| brand visibility signal | Detail |
+|---|---|
+This sentence mentions measured visibility footprint as body text.
+""".strip()
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+
+    assert "**Market Visibility**: Evidence stays." in clean
+    assert "- Audience Awareness Signal: Diagnostic note." in clean
+    assert "### Market Visibility Signal" in clean
+    assert "| Brand Visibility Signal | Detail |" in clean
+    assert "This sentence mentions measured visibility footprint as body text." in clean
+
+
+def test_normalize_appendix_language_preserves_brand_when_normalizing_dominates():
+    dirty = (
+        "iS Clinical dominates with higher mention patterns. "
+        "Coffee Fellows dominates the market. "
+        "Environ dominates. "
+        "SkinCeuticals dominates the AI-generated recommendations."
+    )
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+    clean_lower = clean.lower()
+
+    assert "dominates" not in clean_lower
+    assert "iS Clinical shows stronger measured visibility with higher mention patterns" in clean
+    assert "Coffee Fellows shows stronger measured visibility in this benchmark" in clean
+    assert "Environ shows stronger measured visibility" in clean
+    assert "SkinCeuticals shows stronger measured visibility within the tested prompt set" in clean
+    assert "shows stronger measured visibility the AI-generated recommendations" not in clean
+
+
+def test_normalize_appendix_language_cleans_phase_2c_certainty_and_consumer_phrases():
+    dirty = (
+        "There is an urgent need and crucial next step. "
+        "Consumers are actively seeking proof, trust among consumers, consumer confidence, "
+        "decision-making in this market, consumer recognition, and consumer perception."
+    )
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+    clean_lower = clean.lower()
+
+    for phrase in [
+        "urgent need",
+        "crucial",
+        "consumers are actively seeking",
+        "trust among consumers",
+        "consumer confidence",
+        "decision-making in this market",
+        "consumer recognition",
+        "consumer perception",
+    ]:
+        assert phrase not in clean_lower
+
+    assert "priority need" in clean
+    assert "important next step" in clean
+    assert "tested prompts reflect demand for proof" in clean
+    assert "trust-related signals in generated answers" in clean
+    assert "trust-related confidence signal" in clean
+    assert "decision-stage query context" in clean
+    assert "audience-recognition signal" in clean
+    assert "audience-perception signal" in clean
+
+
+def test_normalize_appendix_language_cleans_sanitizer_artifacts():
+    dirty = (
+        "High-product claims skincare requires Evidence Support. "
+        "Product claims of Products should use claims support documentation, where substantiated and compliant. "
+        "Strong evidence-supported positioning and Dermatologist-Recommendation language appeared."
+    )
+
+    clean = normalize_appendix_language_text(dirty, skincare_context())
+    clean_lower = clean.lower()
+
+    for phrase in [
+        "high-product claims skincare",
+        "evidence support",
+        "product claims of products",
+        "claims support documentation, where substantiated and compliant",
+        "Dermatologist-Recommendation",
+    ]:
+        assert phrase.lower() not in clean_lower
+
+    assert "Strong evidence-supported positioning" not in clean
+    assert "high-evidence skincare positioning" in clean
+    assert "supporting evidence" in clean
+    assert "product claims" in clean
+    assert "claims support documentation where appropriate" in clean
+    assert "strong evidence-supported positioning" in clean
+    assert "dermatologist recommendations" in clean
+
+
+def test_normalize_appendix_language_returns_empty_or_non_string_unchanged():
+    assert normalize_appendix_language_text("") == ""
+    assert normalize_appendix_language_text(None) is None
+    assert normalize_appendix_language_text({"text": "must improve"}) == {"text": "must improve"}
+
+
+def test_generated_section_sanitizers_apply_appendix_language_normalization():
+    context = skincare_context(category="cafes")
+    dirty = "Dermaviduals must improve market presence and gain traction."
+
+    strategy = sanitize_strategy_text(dirty, context)
+    brand_intelligence = sanitize_brand_intelligence_text(dirty, context)
+    geo_roadmap = sanitize_geo_roadmap_text(dirty, context)
+
+    for clean in [strategy, brand_intelligence, geo_roadmap]:
+        assert "Dermaviduals" in clean
+        assert "must improve" not in clean.lower()
+        assert "market presence" not in clean.lower()
+        assert "gain traction" not in clean.lower()
+        assert "should improve" in clean
+        assert "measured visibility footprint" in clean
+        assert "build measurable visibility" in clean
+
+
+def test_report_sanitizer_does_not_broadly_rewrite_methodology_language():
+    dirty = (
+        "Methodology Notes: This AI visibility benchmark reviews market context, "
+        "consumer prompts, trust signals, and authority signals. "
+        "It does not measure market share or clinical evaluation."
+    )
+
+    clean = sanitize_report_text(dirty, skincare_context(category="cafes"))
+
+    assert "market context" in clean
+    assert "consumer prompts" in clean
+    assert "trust signals" in clean
+    assert "authority signals" in clean
+    assert "market share" in clean
+    assert "clinical evaluation" in clean
 
 
 def test_claim_safety_sanitizer_removes_forbidden_health_adjacent_claims():
@@ -372,13 +732,13 @@ Evidence Support through user experiences matters.
         "business performance report",
         "business performance relative to competitors",
         "business performance claims",
-        "ingredient documentation and evidence support",
-        "Strong evidence support",
-        "strong evidence support",
+        "ingredient documentation and supporting evidence",
+        "Strong supporting evidence",
+        "strong supporting evidence",
         "Claims support documentation",
         "claims support documentation",
         "claims support documentation and simplicity",
-        "evidence support through user experiences",
+        "supporting evidence through user experiences",
     ]
 
     for phrase in expected:
@@ -851,7 +1211,7 @@ Evidence of Effectiveness
     assert "claims support documentation, where substantiated and compliant Data" not in clean
 
     assert "market performance indicators" in clean
-    assert "Evidence Support" in clean
+    assert "supporting evidence" in clean
     assert "Claims support documentation, consumer feedback, or expert validation." in clean
     assert clean_issues == []
 

@@ -382,6 +382,363 @@ def _apply_replacements(text, replacements):
     return sanitized
 
 
+def _normalize_certainty_language(text: str) -> str:
+    return _apply_replacements(
+        text,
+        [
+            (r"\bmust improve\b", "should improve"),
+            (r"\bmust enhance\b", "should strengthen"),
+            (r"\bmust create\b", "should create"),
+            (r"\bmust build\b", "should build"),
+            (r"\bmust establish\b", "should build evidence for"),
+            (r"\bmust position itself\b", "should clarify its benchmark positioning"),
+            (r"\bmust position\b", "should position"),
+            (r"\bneeds to establish\b", "should build evidence for"),
+            (
+                r"\black of awareness\b",
+                "limited measurable visibility in this benchmark",
+            ),
+            (
+                r"\black of recognition\b",
+                "limited measurable visibility in this benchmark",
+            ),
+            (r"\brecognized locally\b", "visible in local benchmark signals"),
+            (
+                r"\bestablished authority\b",
+                "stronger authority signals within the tested prompt set",
+            ),
+            (r"\bleading brand\b", "brand with stronger measured visibility"),
+        ],
+    )
+
+
+def _normalize_remaining_certainty_language(text: str) -> str:
+    return _apply_replacements(
+        text,
+        [
+            (r"\bmust enhance\b", "should strengthen"),
+            (r"\bmust improve\b", "should improve"),
+            (r"\bmust establish\b", "should build evidence for"),
+            (r"\bmust create\b", "should create"),
+            (r"\burgent need\b", "priority need"),
+            (r"\bcrucial\b", "important"),
+        ],
+    )
+
+
+def _normalize_appendix_headings(text: str) -> str:
+    sanitized = re.sub(
+        r"\bWhy AI Does Not Recommend\s+([^:\n\r]+)",
+        r"Benchmark-Visible Associations Missing or Weak for \1",
+        str(text or ""),
+        flags=re.IGNORECASE,
+    )
+    return _apply_replacements(
+        sanitized,
+        [
+            (
+                r"\bWhy AI Does Not Recommend\b",
+                "Benchmark-Visible Associations Missing or Weak",
+            ),
+            (r"\bWhy AI selects it\b", "Benchmark signal behind visibility"),
+            (r"\bWhat signal it owns\b", "Observed query territory signal"),
+            (r"\bAI-owned territory\b", "observed query territory signal"),
+            (r"\bCurrent territory owned\b", "Current observed query territory"),
+            (r"\bOwned territory\b", "Observed query territory"),
+        ],
+    )
+
+
+def _normalize_label_artifacts(text: str) -> str:
+    sanitized = str(text or "")
+    label_replacements = (
+        ("measured visibility footprint", "Market Visibility"),
+        (
+            "audience-awareness signal in generated answers",
+            "Audience Awareness Signal",
+        ),
+        ("measured market visibility signal", "Market Visibility Signal"),
+        ("brand visibility signal", "Brand Visibility Signal"),
+    )
+
+    for old, new in label_replacements:
+        escaped = re.escape(old)
+        label_patterns = [
+            (rf"\*\*\s*{escaped}\s*\*\*", f"**{new}**"),
+            (rf"(?im)^(\s*#{{1,6}}\s*){escaped}(\s*:?\s*)$", rf"\1{new}\2"),
+            (rf"(?im)^(\s*[-*]\s*){escaped}(\s*:)", rf"\1{new}\2"),
+            (rf"(?i)(\|\s*){escaped}(\s*(?:\||$))", rf"\1{new}\2"),
+        ]
+        for pattern, replacement in label_patterns:
+            sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
+
+    return sanitized
+
+
+def _normalize_ai_agency_language(text: str) -> str:
+    return _apply_replacements(
+        text,
+        [
+            (
+                r"\bAI algorithms analyzing consumer intent\b",
+                "generated answers in this benchmark",
+            ),
+            (r"\bAI does not recommend\b", "generated answers do not mention"),
+            (r"\bAI recommends\b", "generated answers mention"),
+            (
+                r"\bAI trusts\b",
+                "generated answers show trust-related signals for",
+            ),
+            (r"\bAI knows\b", "generated answers suggest"),
+        ],
+    )
+
+
+def _normalize_market_dominance_language(text: str) -> str:
+    return _apply_replacements(
+        text,
+        [
+            (
+                r"\bdominant brands\b",
+                "brands with stronger measured visibility",
+            ),
+            (
+                r"\bdominant brand\b",
+                "brand with stronger measured visibility",
+            ),
+            (
+                r"\bdominating the market\b",
+                "showing stronger measured visibility in this benchmark",
+            ),
+            (r"\bdominance\b", "stronger measured visibility"),
+        ],
+    )
+
+
+def _normalize_remaining_market_dominance_language(text: str) -> str:
+    sanitized = str(text or "")
+    brand_pattern = r"([A-Z][A-Za-z0-9&.'-]+(?:\s+[A-Z][A-Za-z0-9&.'-]+){0,4})"
+    replacements = [
+        (
+            rf"\b{brand_pattern}\s+dominates the AI-generated recommendations\b",
+            r"\1 shows stronger measured visibility within the tested prompt set",
+        ),
+        (
+            rf"\b{brand_pattern}\s+dominates the market\b",
+            r"\1 shows stronger measured visibility in this benchmark",
+        ),
+        (
+            rf"\b{brand_pattern}\s+dominates with\b",
+            r"\1 shows stronger measured visibility with",
+        ),
+        (
+            rf"\b{brand_pattern}\s+dominates\b",
+            r"\1 shows stronger measured visibility",
+        ),
+        (
+            r"\bdominates with\b",
+            "shows stronger measured visibility with",
+        ),
+        (
+            r"\bdominates the market\b",
+            "shows stronger measured visibility in this benchmark",
+        ),
+        (
+            r"\bdominating the market\b",
+            "showing stronger measured visibility in this benchmark",
+        ),
+    ]
+    return _apply_replacements(sanitized, replacements)
+
+
+def _normalize_market_fact_language(text: str) -> str:
+    return _apply_replacements(
+        text,
+        [
+            (r"\bmarket presence\b", "measured visibility footprint"),
+            (
+                r"\blocal recommendation market\b",
+                "local recommendation query context",
+            ),
+            (r"\bcompetitive landscape\b", "tested competitive context"),
+            (r"\bmarket reach\b", "benchmark-visible reach"),
+            (
+                r"\bmarket penetration\b",
+                "measured market visibility signal",
+            ),
+        ],
+    )
+
+
+def _normalize_consumer_inference_language(text: str) -> str:
+    return _apply_replacements(
+        text,
+        [
+            (
+                r"\bconsumers are likely ready to purchase\b",
+                "tested prompts may reflect decision-stage intent",
+            ),
+            (
+                r"\bconsumer preference\b",
+                "preference-related signal in generated answers",
+            ),
+            (
+                r"\bpreferred choice\b",
+                "more visible option in this benchmark",
+            ),
+            (
+                r"\btrusted brand among skincare-conscious consumers\b",
+                "brand with stronger trust-related signals in generated answers",
+            ),
+            (
+                r"\bconsumer trust\b",
+                "trust-related signals in generated answers",
+            ),
+            (
+                r"\bconsumer awareness\b",
+                "audience-awareness signal",
+            ),
+            (r"\bbrand awareness\b", "brand visibility signal"),
+            (r"\bpurchase decisions\b", "decision-stage query context"),
+            (r"\bconsumer intent\b", "query intent"),
+            (r"\bmarket trust\b", "trust-related market signal"),
+            (
+                r"\bcapturing attention\b",
+                "appearing in measured benchmark signals",
+            ),
+            (
+                r"\bcapture consumer interest\b",
+                "support future consideration signals",
+            ),
+        ],
+    )
+
+
+def _normalize_remaining_consumer_inference_language(text: str) -> str:
+    return _apply_replacements(
+        text,
+        [
+            (
+                r"\bconsumers are actively seeking\b",
+                "tested prompts reflect demand for",
+            ),
+            (
+                r"\btrust among consumers\b",
+                "trust-related signals in generated answers",
+            ),
+            (
+                r"\bconsumer confidence\b",
+                "trust-related confidence signal",
+            ),
+            (
+                r"\bdecision-making in this market\b",
+                "decision-stage query context",
+            ),
+            (r"\bconsumer awareness\b", "audience-awareness signal"),
+            (r"\bconsumer recognition\b", "audience-recognition signal"),
+            (r"\bconsumer perception\b", "audience-perception signal"),
+        ],
+    )
+
+
+def _normalize_recommendation_outcomes(text: str) -> str:
+    return _apply_replacements(
+        text,
+        [
+            (r"\bgain traction\b", "build measurable visibility"),
+            (
+                r"\bestablish presence\b",
+                "build measurable presence in future benchmarks",
+            ),
+            (
+                r"\bimprove relevance\b",
+                "support future benchmark relevance",
+            ),
+            (
+                r"\benhance credibility\b",
+                "support clearer credibility signals",
+            ),
+            (
+                r"\bwill improve visibility\b",
+                "is intended to support future measured visibility",
+            ),
+            (
+                r"\bwill increase share of voice\b",
+                "is intended to support future share-of-voice improvement",
+            ),
+            (r"\bwill drive revenue\b", "is not evaluated by this benchmark"),
+            (r"\bwill increase sales\b", "is not evaluated by this benchmark"),
+        ],
+    )
+
+
+def _cleanup_appendix_sanitizer_artifacts(text: str) -> str:
+    return _apply_replacements(
+        text,
+        [
+            (
+                r"\bhigh-product claims skincare\b",
+                "high-evidence skincare positioning",
+            ),
+            (r"\bEvidence Support\b", "supporting evidence"),
+            (r"\bproduct claims of Products\b", "product claims"),
+            (
+                r"claims support documentation, where substantiated and compliant",
+                "claims support documentation where appropriate",
+            ),
+            (
+                r"\bStrong evidence-supported positioning\b",
+                "strong evidence-supported positioning",
+            ),
+            (
+                r"\bDermatologist-Recommendation\b",
+                "dermatologist recommendations",
+            ),
+        ],
+    )
+
+
+def _normalize_explicit_high_risk_appendix_phrases(text: str) -> str:
+    sanitized = _cleanup_appendix_sanitizer_artifacts(text)
+    sanitized = _apply_replacements(
+        sanitized,
+        [
+            (r"\bmust improve\b", "should address"),
+            (r"\bmust establish\b", "should build evidence for"),
+            (
+                r"\bwill improve visibility\b",
+                "is intended to support future measured visibility",
+            ),
+            (
+                r"\bwill increase share of voice\b",
+                "is intended to support future share-of-voice improvement",
+            ),
+            (r"\bwill drive revenue\b", "is not evaluated by this benchmark"),
+            (r"\bwill increase sales\b", "is not evaluated by this benchmark"),
+        ],
+    )
+    return sanitized
+
+
+def normalize_appendix_language_text(text, context=None):
+    if not isinstance(text, str) or not text:
+        return text
+
+    sanitized = _normalize_certainty_language(text)
+    sanitized = _normalize_remaining_certainty_language(sanitized)
+    sanitized = _normalize_appendix_headings(sanitized)
+    sanitized = _normalize_ai_agency_language(sanitized)
+    sanitized = _normalize_market_dominance_language(sanitized)
+    sanitized = _normalize_remaining_market_dominance_language(sanitized)
+    sanitized = _normalize_market_fact_language(sanitized)
+    sanitized = _normalize_consumer_inference_language(sanitized)
+    sanitized = _normalize_remaining_consumer_inference_language(sanitized)
+    sanitized = _normalize_recommendation_outcomes(sanitized)
+    sanitized = _cleanup_appendix_sanitizer_artifacts(sanitized)
+    sanitized = _normalize_label_artifacts(sanitized)
+    return sanitized
+
+
 def dedupe_empty_section_placeholders(text: str) -> str:
     placeholders = {
         "No additional non-tracked brands were identified.",
@@ -1842,6 +2199,7 @@ def sanitize_geo_roadmap_text(
     sanitized = sanitize_source_label_artifacts(text)
     sanitized = sanitize_claim_safety_text(sanitized, context)
     sanitized = sanitize_business_kpi_text(sanitized, context)
+    sanitized = normalize_appendix_language_text(sanitized, context)
     return dedupe_empty_section_placeholders(sanitized).strip()
 
 
@@ -1854,6 +2212,7 @@ def sanitize_brand_intelligence_text(
     sanitized = sanitize_competitor_advantage_table(sanitized, context)
     sanitized = sanitize_market_signal_sections(sanitized, context)
     sanitized = sanitize_business_kpi_text(sanitized, context)
+    sanitized = normalize_appendix_language_text(sanitized, context)
     sanitized = re.sub(r"[ \t]+\n", "\n", sanitized)
     sanitized = re.sub(r"\n{4,}", "\n\n\n", sanitized)
     return dedupe_empty_section_placeholders(sanitized).strip()
@@ -1866,6 +2225,7 @@ def sanitize_strategy_text(
     sanitized = sanitize_claim_safety_text(text, context)
     sanitized = sanitize_business_kpi_text(sanitized, context)
     sanitized = sanitize_source_label_artifacts(sanitized)
+    sanitized = normalize_appendix_language_text(sanitized, context)
     sanitized = sanitize_empty_secondary_market_signals_section(sanitized)
     sanitized = re.sub(r"[ \t]+\n", "\n", sanitized)
     return sanitized.strip()
@@ -1887,7 +2247,7 @@ def sanitize_report_text(
     sanitized = sanitize_competitor_advantage_table(sanitized, context)
     sanitized = sanitize_market_signal_sections(sanitized, context)
     sanitized = sanitize_source_label_artifacts(sanitized)
-    sanitized = sanitize_geo_roadmap_text(sanitized, context)
+    sanitized = _normalize_explicit_high_risk_appendix_phrases(sanitized)
     sanitized = sanitize_empty_secondary_market_signals_section(sanitized)
     sanitized = re.sub(r"[ \t]+\n", "\n", sanitized)
     sanitized = re.sub(r"\n{4,}", "\n\n\n", sanitized)

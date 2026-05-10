@@ -114,6 +114,74 @@ def test_build_executive_markdown_report_returns_string_with_core_sections():
     assert "Test strategy plan" in report
 
 
+def test_build_executive_markdown_report_normalizes_dirty_appendix_text():
+    inputs = create_markdown_inputs()
+    inputs["display_brand"] = "Espresso House"
+    inputs["plan"] = (
+        "Dominant brand: Coffee Fellows is dominating the market. "
+        "iS Clinical dominates with skincare signals. "
+        "Espresso House must enhance local recommendations."
+    )
+    inputs["brand_win_explanation"] = (
+        "Why AI selects it: Coffee Fellows has convenient locations. "
+        "What signal it owns: remote worker cafe intent. "
+        "AI algorithms analyzing consumer intent identify a preferred choice. "
+        "Consumers are actively seeking quiet locations."
+    )
+    inputs["replacement_strategy"] = (
+        "AI-owned territory: Coffee Fellows appears for Berlin cafe queries. "
+        "Owned territory: consumer preference and trust among consumers."
+    )
+    inputs["gap_analysis"] = (
+        "Why AI Does Not Recommend Espresso House: "
+        "Dominant brands suggest Espresso House must position itself more clearly. "
+        "Consumer confidence affects decision-making in this market."
+    )
+
+    report = build_executive_markdown_report(**inputs)
+    report_lower = report.lower()
+
+    for phrase in [
+        "Why AI selects it",
+        "What signal it owns",
+        "AI-owned territory",
+        "Dominant brands",
+        "dominant brand",
+        "dominates",
+        "dominating the market",
+        "preferred choice",
+        "AI algorithms analyzing consumer intent",
+        "must enhance",
+        "consumers are actively seeking",
+        "trust among consumers",
+        "consumer confidence",
+        "decision-making in this market",
+        "Why AI Does Not Recommend",
+        "must position itself",
+    ]:
+        assert phrase.lower() not in report_lower
+
+    assert "Espresso House" in report
+    assert "Coffee Fellows" in report
+    assert "iS Clinical" in report
+    assert "Benchmark signal behind visibility" in report
+    assert "Observed query territory signal" in report
+    assert "observed query territory signal" in report
+    assert "brand with stronger measured visibility" in report
+    assert "brands with stronger measured visibility" in report
+    assert "showing stronger measured visibility in this benchmark" in report
+    assert "generated answers in this benchmark" in report
+    assert "more visible option in this benchmark" in report
+    assert "tested prompts reflect demand for quiet locations" in report
+    assert "trust-related signals in generated answers" in report
+    assert "trust-related confidence signal" in report
+    assert "decision-stage query context" in report
+    assert "iS Clinical shows stronger measured visibility with skincare signals" in report
+    assert "should strengthen local recommendations" in report
+    assert "Benchmark-Visible Associations Missing or Weak for Espresso House" in report
+    assert "should clarify its benchmark positioning" in report
+
+
 def test_build_executive_markdown_report_uses_clean_measurement_targets():
     report = build_executive_markdown_report(**create_markdown_inputs())
 
