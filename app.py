@@ -21,7 +21,7 @@ from geo_audit.app_constants import (
     TRANSLATIONS,
 )
 from geo_audit.analysis_pipeline import get_competitors, run_visibility_analysis
-from geo_audit.api_cost_estimator import estimate_api_cost_range, format_usd
+from geo_audit.api_cost_estimator import estimate_api_cost_range
 from geo_audit.brand_intelligence import run_brand_intelligence_analysis
 from geo_audit.brand_intelligence_prompts import (
     build_target_diagnostic_prompts,
@@ -29,13 +29,6 @@ from geo_audit.brand_intelligence_prompts import (
 )
 from geo_audit.benchmark_snapshot import (
     build_benchmark_snapshot,
-    normalize_api_usage_summary,
-    serialize_benchmark_snapshot,
-)
-from geo_audit.benchmark_comparison import (
-    compare_query_intent_visibility,
-    compare_target_brand_metrics,
-    load_snapshot_json,
 )
 from geo_audit.competitor_suggestions import suggest_competitors_with_ai
 from geo_audit.geo_roadmap import generate_geo_content_roadmap
@@ -59,9 +52,15 @@ from geo_audit.ui_formatters import (
     replace_target_brand_for_display,
     translate_dataframe_columns,
 )
+from geo_audit.ui.api_usage_panel import (
+    coerce_api_usage_summary,
+    render_api_usage_summary,
+)
+from geo_audit.ui.benchmark_progress import render_benchmark_progress
+from geo_audit.ui.content_generator_panel import render_content_generator_panel
+from geo_audit.ui.exports import render_benchmark_snapshot_export
 
 from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
-from geo_audit.content_generator import generate_level_2_content_pack
 from geo_audit.report_generator import (
     create_executive_docx_report,
 )
@@ -101,119 +100,6 @@ ANALYSIS_OUTPUT_KEYS = [
     "geo_content_roadmap_done",
     "api_usage_summary",
 ]
-
-API_USAGE_DISPLAY_NUMERIC_FIELDS = (
-    "input_tokens",
-    "output_tokens",
-    "total_tokens",
-    "call_count",
-    "calls_with_usage",
-    "calls_without_usage",
-)
-
-
-def _safe_usage_int(value):
-    try:
-        return int(value or 0)
-    except (TypeError, ValueError):
-        return 0
-
-
-def _safe_usage_float(value):
-    try:
-        if value is None:
-            return None
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def build_empty_api_usage_summary():
-    return {
-        "model_name": DEFAULT_MODEL,
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "call_count": 0,
-        "calls_with_usage": 0,
-        "calls_without_usage": 0,
-        "usage_available": False,
-        "pricing_available": False,
-        "estimated_actual_cost_usd": None,
-        "pricing_label": None,
-    }
-
-
-def coerce_api_usage_summary(api_usage_summary):
-    summary = build_empty_api_usage_summary()
-    normalized = normalize_api_usage_summary(api_usage_summary)
-
-    if normalized is None:
-        return summary
-
-    summary.update(normalized)
-    for field in API_USAGE_DISPLAY_NUMERIC_FIELDS:
-        summary[field] = _safe_usage_int(summary.get(field))
-
-    summary["estimated_actual_cost_usd"] = _safe_usage_float(
-        summary.get("estimated_actual_cost_usd")
-    )
-    summary["usage_available"] = bool(summary.get("usage_available"))
-    summary["pricing_available"] = bool(summary.get("pricing_available"))
-    return summary
-
-
-def format_api_usage_cost(api_usage_summary):
-    if (
-        not api_usage_summary.get("usage_available")
-        or not api_usage_summary.get("pricing_available")
-        or api_usage_summary.get("estimated_actual_cost_usd") is None
-    ):
-        return "Unavailable"
-
-    return format_usd(api_usage_summary["estimated_actual_cost_usd"])
-
-
-def build_api_usage_display_rows(api_usage_summary):
-    summary = coerce_api_usage_summary(api_usage_summary)
-    return [
-        {"Metric": "Model", "Value": summary.get("model_name") or "Unavailable"},
-        {"Metric": "AI calls", "Value": summary["call_count"]},
-        {"Metric": "Calls with usage", "Value": summary["calls_with_usage"]},
-        {"Metric": "Calls without usage", "Value": summary["calls_without_usage"]},
-        {"Metric": "Input tokens", "Value": summary["input_tokens"]},
-        {"Metric": "Output tokens", "Value": summary["output_tokens"]},
-        {"Metric": "Total tokens", "Value": summary["total_tokens"]},
-        {
-            "Metric": "Estimated actual API cost",
-            "Value": format_api_usage_cost(summary),
-        },
-        {
-            "Metric": "Pricing assumption",
-            "Value": summary.get("pricing_label") or "Unavailable",
-        },
-    ]
-
-
-def render_api_usage_summary(api_usage_summary):
-    summary = coerce_api_usage_summary(api_usage_summary)
-
-    st.subheader("API Usage From This Run")
-    st.caption("Actual token usage when available.")
-    st.table(pd.DataFrame(build_api_usage_display_rows(summary)))
-
-    if summary["calls_without_usage"] > 0:
-        st.info(
-            "Token usage metadata was not available for all calls. Cost is "
-            "estimated from available token metadata only."
-        )
-
-    if summary["usage_available"] and not summary["pricing_available"]:
-        st.info(
-            "Cost estimate unavailable for this configured model. Check current "
-            "OpenAI API pricing."
-        )
-
 
 def parse_competitors(text):
     return [
@@ -1010,38 +896,16 @@ def display_results():
     # =========================
     # 14. Level 2 Content Pack
     # =========================
-    st.subheader(t["level_2"])
-    st.caption(t["level_2_caption"])
-
-    if st.button(t["generate_level_2"]):
-        with st.spinner(t["generating_level_2"]):
-            content_pack = generate_level_2_content_pack(
-                brand=brand,
-                category=category,
-                market=market,
-                audience=audience,
-                competitors=competitors,
-                summary_table=summary_df.to_string(index=False),
-                detailed_table=detailed_df.head(40).to_string(index=False),
-                report_language=REPORT_LANGUAGE
-            )
-
-        st.success(t["level_2_done"])
-
-        with st.expander(t["seo_blog"]):
-            st.write(content_pack["seo_blog"])
-
-        with st.expander(t["review_strategy"]):
-            st.write(content_pack["review_strategy"])
-
-        with st.expander(t["social_posts"]):
-            st.write(content_pack["social_posts"])
-
-        with st.expander(t["faq_content"]):
-            st.write(content_pack["faq_content"])
-
-        with st.expander(t["comparison_outline"]):
-            st.write(content_pack["comparison_outline"])
+    render_content_generator_panel(
+        t=t,
+        brand=brand,
+        category=category,
+        market=market,
+        audience=audience,
+        competitors=competitors,
+        summary_df=summary_df,
+        detailed_df=detailed_df,
+    )
 
     snapshot_brand_intelligence = None
     if st.session_state.get("brand_intelligence_done", False):
@@ -1069,73 +933,7 @@ def display_results():
     # =========================
     # 15. Benchmark Progress
     # =========================
-    st.subheader("Benchmark Progress")
-    st.caption(
-        "Upload a previous Benchmark Snapshot JSON to compare target-brand visibility progress."
-    )
-
-    previous_snapshot_file = st.file_uploader(
-        "Upload Previous Benchmark Snapshot JSON",
-        type=["json"],
-        key="previous_benchmark_snapshot_upload",
-    )
-
-    if previous_snapshot_file is not None:
-        try:
-            previous_snapshot = load_snapshot_json(previous_snapshot_file)
-            comparison = compare_target_brand_metrics(
-                previous_snapshot,
-                current_snapshot,
-            )
-
-            previous_metadata = previous_snapshot.get("metadata", {}) or {}
-            current_metadata = current_snapshot.get("metadata", {}) or {}
-            context_rows = [
-                {
-                    "Context": "Report Date",
-                    "Previous": previous_metadata.get("report_date", "Unknown"),
-                    "Current": current_metadata.get("report_date", "Unknown"),
-                },
-                {
-                    "Context": "Run Mode",
-                    "Previous": previous_metadata.get("run_mode", "Unknown"),
-                    "Current": current_metadata.get("run_mode", "Unknown"),
-                },
-                {
-                    "Context": "Prompt Count",
-                    "Previous": previous_metadata.get("prompt_count", 0),
-                    "Current": current_metadata.get("prompt_count", 0),
-                },
-            ]
-
-            for warning in comparison["warnings"]:
-                st.warning(warning)
-
-            st.write("**Snapshot Context**")
-            st.dataframe(pd.DataFrame(context_rows), use_container_width=True)
-
-            st.write("**Target Brand Progress**")
-            st.dataframe(
-                pd.DataFrame(comparison["metrics"]),
-                use_container_width=True,
-            )
-
-            query_intent_progress = compare_query_intent_visibility(
-                previous_snapshot,
-                current_snapshot,
-            )
-            st.write("**Query Intent Progress**")
-            if query_intent_progress:
-                st.dataframe(
-                    pd.DataFrame(query_intent_progress),
-                    use_container_width=True,
-                )
-            else:
-                st.info(
-                    "No query intent-level comparison data available in the uploaded snapshot."
-                )
-        except ValueError as exc:
-            st.error(str(exc))
+    render_benchmark_progress(current_snapshot)
 
     # =========================
     # 16. Export Reports
@@ -1293,53 +1091,22 @@ def display_results():
         )
 
         st.divider()
-    st.subheader("Benchmark Snapshot")
-    st.caption(
-        "Export a benchmark snapshot JSON for progress tracking, audit review, "
-        "or comparison with future benchmark runs."
-    )
-
-    include_raw_answers_in_snapshot = st.checkbox(
-        "Include raw AI answers in Benchmark Snapshot JSON",
-        value=False,
-        help=RAW_ANSWER_EVIDENCE_HELP,
-        key="include_raw_answers_in_benchmark_snapshot",
-    )
-    st.caption(RAW_ANSWER_EVIDENCE_HELP)
-
-    export_snapshot = build_benchmark_snapshot(
-        brand=display_brand,
-        market=display_market,
-        category=display_category,
-        audience=display_audience,
-        report_date=date.today().isoformat(),
+    render_benchmark_snapshot_export(
+        display_brand=display_brand,
+        display_market=display_market,
+        display_category=display_category,
+        display_audience=display_audience,
         run_mode=run_mode,
         prompt_limit=prompt_limit,
         prompt_count=len(prompts),
         competitors=competitors,
-        query_intent_categories=prompt_categories,
+        prompt_categories=prompt_categories,
         summary_df=summary_df,
         detailed_df=detailed_df,
-        brand_intelligence=snapshot_brand_intelligence,
-        include_raw_answers=include_raw_answers_in_snapshot,
+        snapshot_brand_intelligence=snapshot_brand_intelligence,
         raw_answer_df=raw_answer_df,
         api_usage_summary=api_usage_summary,
-    )
-    benchmark_snapshot_json = serialize_benchmark_snapshot(export_snapshot)
-
-    st.download_button(
-        label="Download Benchmark Snapshot JSON",
-        data=benchmark_snapshot_json.encode("utf-8"),
-        file_name=build_export_filename(
-            display_brand,
-            display_market,
-            "benchmark_snapshot",
-            "json",
-            run_mode
-        ),
-        mime="application/json",
-        key="benchmark_snapshot_download",
-        on_click="ignore",
+        raw_answer_evidence_help=RAW_ANSWER_EVIDENCE_HELP,
     )
 
 # =========================
