@@ -46,7 +46,6 @@ from geo_audit.run_progress import (
     get_progress_mode_note,
 )
 from geo_audit.ui_formatters import (
-    build_export_filename,
     format_display_text,
     format_brand_names_for_display,
     replace_target_brand_for_display,
@@ -58,13 +57,15 @@ from geo_audit.ui.api_usage_panel import (
 )
 from geo_audit.ui.benchmark_progress import render_benchmark_progress
 from geo_audit.ui.content_generator_panel import render_content_generator_panel
-from geo_audit.ui.exports import render_benchmark_snapshot_export
+from geo_audit.ui.exports import (
+    render_benchmark_snapshot_export,
+    render_report_download_exports,
+)
 
 from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
 from geo_audit.report_generator import (
     create_executive_docx_report,
 )
-from geo_audit.utils import convert_df_to_csv
 
 
 st.set_page_config(
@@ -1009,88 +1010,17 @@ def display_results():
         )
     )
 
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        st.download_button(
-            label=t["summary_csv"],
-            data=convert_df_to_csv(summary_df),
-            file_name=build_export_filename(
-                display_brand,
-                display_market,
-                "summary",
-                "csv",
-                run_mode
-            ),
-            mime="text/csv",
-            key="summary_download",
-            on_click="ignore",
-        )
-
-    with col2:
-        st.download_button(
-            label=t["detailed_csv"],
-            data=convert_df_to_csv(detailed_df),
-            file_name=build_export_filename(
-                display_brand,
-                display_market,
-                "detailed_results",
-                "csv",
-                run_mode
-            ),
-            mime="text/csv",
-            key="detailed_download",
-            on_click="ignore",
-        )
-
-    with col3:
-        st.download_button(
-            label=t["raw_csv"],
-            data=convert_df_to_csv(raw_answer_df),
-            file_name=build_export_filename(
-                display_brand,
-                display_market,
-                "raw_answers",
-                "csv",
-                run_mode
-            ),
-            mime="text/csv",
-            key="raw_download",
-            on_click="ignore",
-        )
-
-    with col4:
-        st.download_button(
-            label="Download Executive Report MD",
-            data=executive_report.encode("utf-8-sig"),
-            file_name=build_export_filename(
-                display_brand,
-                display_market,
-                "executive_report",
-                "md",
-                run_mode
-            ),
-            mime="text/markdown",
-            key="executive_report_download",
-            on_click="ignore",
-        )
-
-    with col5:
-        st.download_button(
-            label="Download Client Report DOCX",
-            data=executive_docx,
-            file_name=build_export_filename(
-                display_brand,
-                display_market,
-                "ai_visibility_report",
-                "docx",
-                run_mode
-            ),
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            key="client_report_docx_download",
-            on_click="ignore",
-        )
-
-        st.divider()
+    render_report_download_exports(
+        t=t,
+        summary_df=summary_df,
+        detailed_df=detailed_df,
+        raw_answer_df=raw_answer_df,
+        executive_report=executive_report,
+        executive_docx=executive_docx,
+        display_brand=display_brand,
+        display_market=display_market,
+        run_mode=run_mode,
+    )
     render_benchmark_snapshot_export(
         display_brand=display_brand,
         display_market=display_market,
