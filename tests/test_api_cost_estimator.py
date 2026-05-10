@@ -8,6 +8,7 @@ from geo_audit.api_cost_estimator import (
     estimate_actual_usage_cost,
     format_cost_range,
     get_pricing_assumption,
+    resolve_pricing_model_name,
 )
 
 
@@ -17,6 +18,14 @@ def test_gpt_4o_mini_pricing_defaults():
     assert pricing["label"] == "gpt-4o-mini text token pricing"
     assert pricing["input_usd_per_1m_tokens"] == 0.15
     assert pricing["output_usd_per_1m_tokens"] == 0.60
+
+
+def test_dated_gpt_4o_mini_resolves_to_base_pricing_family():
+    assert resolve_pricing_model_name("gpt-4o-mini-2024-07-18") == "gpt-4o-mini"
+    assert resolve_pricing_model_name("GPT-4O-MINI-2024-07-18") == "gpt-4o-mini"
+    assert get_pricing_assumption("gpt-4o-mini-2024-07-18") == get_pricing_assumption(
+        "gpt-4o-mini"
+    )
 
 
 def test_low_and_high_estimate_calculation():
@@ -62,9 +71,32 @@ def test_estimate_actual_usage_cost_for_known_model():
     assert estimate["estimated_actual_cost_usd"] == pytest.approx(0.45)
 
 
+def test_estimate_actual_usage_cost_for_dated_gpt_4o_mini_model():
+    estimate = estimate_actual_usage_cost(
+        1_000_000,
+        500_000,
+        "gpt-4o-mini-2024-07-18",
+    )
+
+    assert estimate["pricing_available"] is True
+    assert estimate["pricing_label"] == "gpt-4o-mini text token pricing"
+    assert estimate["estimated_actual_cost_usd"] == pytest.approx(0.45)
+
+
 def test_estimate_actual_usage_cost_unknown_model_fallback():
     estimate = estimate_actual_usage_cost(1000, 500, "custom-model")
 
+    assert estimate["pricing_available"] is False
+    assert estimate["pricing_label"] is None
+    assert estimate["estimated_actual_cost_usd"] is None
+
+
+def test_unknown_dated_model_fallback_remains_unavailable():
+    estimate = estimate_actual_usage_cost(1000, 500, "custom-model-2024-07-18")
+
+    assert resolve_pricing_model_name("custom-model-2024-07-18") == (
+        "custom-model-2024-07-18"
+    )
     assert estimate["pricing_available"] is False
     assert estimate["pricing_label"] is None
     assert estimate["estimated_actual_cost_usd"] is None

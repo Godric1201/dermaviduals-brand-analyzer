@@ -21,7 +21,7 @@ from geo_audit.app_constants import (
     TRANSLATIONS,
 )
 from geo_audit.analysis_pipeline import get_competitors, run_visibility_analysis
-from geo_audit.api_cost_estimator import estimate_api_cost_range
+from geo_audit.api_cost_estimator import estimate_api_cost_range, format_usd
 from geo_audit.brand_intelligence import run_brand_intelligence_analysis
 from geo_audit.brand_intelligence_prompts import (
     build_target_diagnostic_prompts,
@@ -29,6 +29,7 @@ from geo_audit.brand_intelligence_prompts import (
 )
 from geo_audit.benchmark_snapshot import (
     build_benchmark_snapshot,
+    normalize_api_usage_summary,
     serialize_benchmark_snapshot,
 )
 from geo_audit.benchmark_comparison import (
@@ -98,7 +99,120 @@ ANALYSIS_OUTPUT_KEYS = [
     "brand_intelligence_done",
     "geo_content_roadmap",
     "geo_content_roadmap_done",
+    "api_usage_summary",
 ]
+
+API_USAGE_DISPLAY_NUMERIC_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "call_count",
+    "calls_with_usage",
+    "calls_without_usage",
+)
+
+
+def _safe_usage_int(value):
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _safe_usage_float(value):
+    try:
+        if value is None:
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def build_empty_api_usage_summary():
+    return {
+        "model_name": DEFAULT_MODEL,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "call_count": 0,
+        "calls_with_usage": 0,
+        "calls_without_usage": 0,
+        "usage_available": False,
+        "pricing_available": False,
+        "estimated_actual_cost_usd": None,
+        "pricing_label": None,
+    }
+
+
+def coerce_api_usage_summary(api_usage_summary):
+    summary = build_empty_api_usage_summary()
+    normalized = normalize_api_usage_summary(api_usage_summary)
+
+    if normalized is None:
+        return summary
+
+    summary.update(normalized)
+    for field in API_USAGE_DISPLAY_NUMERIC_FIELDS:
+        summary[field] = _safe_usage_int(summary.get(field))
+
+    summary["estimated_actual_cost_usd"] = _safe_usage_float(
+        summary.get("estimated_actual_cost_usd")
+    )
+    summary["usage_available"] = bool(summary.get("usage_available"))
+    summary["pricing_available"] = bool(summary.get("pricing_available"))
+    return summary
+
+
+def format_api_usage_cost(api_usage_summary):
+    if (
+        not api_usage_summary.get("usage_available")
+        or not api_usage_summary.get("pricing_available")
+        or api_usage_summary.get("estimated_actual_cost_usd") is None
+    ):
+        return "Unavailable"
+
+    return format_usd(api_usage_summary["estimated_actual_cost_usd"])
+
+
+def build_api_usage_display_rows(api_usage_summary):
+    summary = coerce_api_usage_summary(api_usage_summary)
+    return [
+        {"Metric": "Model", "Value": summary.get("model_name") or "Unavailable"},
+        {"Metric": "AI calls", "Value": summary["call_count"]},
+        {"Metric": "Calls with usage", "Value": summary["calls_with_usage"]},
+        {"Metric": "Calls without usage", "Value": summary["calls_without_usage"]},
+        {"Metric": "Input tokens", "Value": summary["input_tokens"]},
+        {"Metric": "Output tokens", "Value": summary["output_tokens"]},
+        {"Metric": "Total tokens", "Value": summary["total_tokens"]},
+        {
+            "Metric": "Estimated actual API cost",
+            "Value": format_api_usage_cost(summary),
+        },
+        {
+            "Metric": "Pricing assumption",
+            "Value": summary.get("pricing_label") or "Unavailable",
+        },
+    ]
+
+
+def render_api_usage_summary(api_usage_summary):
+    summary = coerce_api_usage_summary(api_usage_summary)
+
+    st.subheader("API Usage From This Run")
+    st.caption("Actual token usage when available.")
+    st.table(pd.DataFrame(build_api_usage_display_rows(summary)))
+
+    if summary["calls_without_usage"] > 0:
+        st.info(
+            "Token usage metadata was not available for all calls. Cost is "
+            "estimated from available token metadata only."
+        )
+
+    if summary["usage_available"] and not summary["pricing_available"]:
+        st.info(
+            "Cost estimate unavailable for this configured model. Check current "
+            "OpenAI API pricing."
+        )
 
 
 def parse_competitors(text):
@@ -408,6 +522,9 @@ def run_analysis():
         st.session_state["raw_answers"] = result["raw_answers"]
         st.session_state["recommendations"] = result["recommendations"]
         st.session_state["plan"] = result["plan"]
+        st.session_state["api_usage_summary"] = coerce_api_usage_summary(
+            result.get("api_usage_summary")
+        )
         st.session_state["brand"] = brand
         st.session_state["category"] = category
         st.session_state["market"] = market
@@ -512,6 +629,9 @@ def display_results():
     raw_answers = st.session_state["raw_answers"]
     recommendations = st.session_state["recommendations"]
     plan = st.session_state["plan"]
+    api_usage_summary = coerce_api_usage_summary(
+        st.session_state.get("api_usage_summary")
+    )
     summary_display_df = replace_target_brand_for_display(
         format_brand_names_for_display(summary_df),
         raw_brand=brand,
@@ -557,6 +677,8 @@ def display_results():
             st.write(ai_prompts)
 
     st.write(f"Total prompts: {len(prompts)}")
+
+    render_api_usage_summary(api_usage_summary)
 
     st.subheader("Query Intent Coverage")
     st.caption(
@@ -941,6 +1063,7 @@ def display_results():
         brand_intelligence=snapshot_brand_intelligence,
         include_raw_answers=False,
         raw_answer_df=raw_answer_df,
+        api_usage_summary=api_usage_summary,
     )
 
     # =========================
@@ -1200,6 +1323,7 @@ def display_results():
         brand_intelligence=snapshot_brand_intelligence,
         include_raw_answers=include_raw_answers_in_snapshot,
         raw_answer_df=raw_answer_df,
+        api_usage_summary=api_usage_summary,
     )
     benchmark_snapshot_json = serialize_benchmark_snapshot(export_snapshot)
 

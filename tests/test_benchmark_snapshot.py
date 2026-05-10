@@ -5,6 +5,7 @@ import pandas as pd
 from geo_audit.benchmark_snapshot import (
     build_benchmark_snapshot,
     dataframe_to_records,
+    normalize_api_usage_summary,
     serialize_benchmark_snapshot,
 )
 
@@ -92,6 +93,7 @@ def test_benchmark_snapshot_metadata_includes_run_context():
         "prompt_limit": None,
         "prompt_count": 20,
         "raw_answers_included": False,
+        "api_usage": None,
         "generated_at": "2026-05-02",
     }
 
@@ -193,6 +195,132 @@ def test_raw_answer_records_serialize_cleanly_to_json():
             "answer": "AI-generated answer mentioning Espresso House.",
         },
     ]
+
+
+def test_benchmark_snapshot_includes_api_usage_metadata():
+    api_usage_summary = {
+        "model_name": "gpt-4o-mini",
+        "input_tokens": 1200,
+        "output_tokens": 450,
+        "total_tokens": 1650,
+        "call_count": 3,
+        "calls_with_usage": 2,
+        "calls_without_usage": 1,
+        "usage_available": True,
+        "pricing_available": True,
+        "estimated_actual_cost_usd": 0.00045,
+        "pricing_label": "gpt-4o-mini text token pricing",
+    }
+
+    snapshot = build_sample_snapshot(api_usage_summary=api_usage_summary)
+
+    assert snapshot["metadata"]["run_metadata"]["api_usage"] == api_usage_summary
+
+
+def test_benchmark_snapshot_handles_missing_api_usage_metadata():
+    snapshot = build_sample_snapshot(api_usage_summary=None)
+
+    assert snapshot["metadata"]["run_metadata"]["api_usage"] is None
+
+
+def test_benchmark_snapshot_api_usage_serializes_cleanly():
+    snapshot = build_sample_snapshot(
+        api_usage_summary={
+            "model_name": "gpt-4o-mini",
+            "input_tokens": 1200,
+            "output_tokens": 450,
+            "total_tokens": 1650,
+            "call_count": 3,
+            "calls_with_usage": 2,
+            "calls_without_usage": 1,
+            "usage_available": True,
+            "pricing_available": True,
+            "estimated_actual_cost_usd": 0.00045,
+            "pricing_label": "gpt-4o-mini text token pricing",
+        }
+    )
+
+    serialized = serialize_benchmark_snapshot(snapshot)
+    parsed = json.loads(serialized)
+
+    assert parsed["metadata"]["run_metadata"]["api_usage"]["total_tokens"] == 1650
+    assert (
+        parsed["metadata"]["run_metadata"]["api_usage"]["pricing_label"]
+        == "gpt-4o-mini text token pricing"
+    )
+
+
+def test_benchmark_snapshot_api_usage_excludes_prompt_answer_and_raw_payloads():
+    snapshot = build_sample_snapshot(
+        api_usage_summary={
+            "model_name": "gpt-4o-mini",
+            "input_tokens": 1200,
+            "output_tokens": 450,
+            "total_tokens": 1650,
+            "call_count": 3,
+            "calls_with_usage": 2,
+            "calls_without_usage": 1,
+            "usage_available": True,
+            "pricing_available": True,
+            "estimated_actual_cost_usd": 0.00045,
+            "pricing_label": "gpt-4o-mini text token pricing",
+            "prompt": "SECRET PROMPT TEXT",
+            "answer": "SECRET ANSWER TEXT",
+            "raw_response": {"id": "raw-response-id"},
+        }
+    )
+
+    serialized = serialize_benchmark_snapshot(snapshot)
+    api_usage = snapshot["metadata"]["run_metadata"]["api_usage"]
+
+    assert set(api_usage) == {
+        "model_name",
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+        "call_count",
+        "calls_with_usage",
+        "calls_without_usage",
+        "usage_available",
+        "pricing_available",
+        "estimated_actual_cost_usd",
+        "pricing_label",
+    }
+    assert "SECRET PROMPT TEXT" not in serialized
+    assert "SECRET ANSWER TEXT" not in serialized
+    assert "raw-response-id" not in serialized
+
+
+def test_normalize_api_usage_summary_allowlists_aggregate_fields_only():
+    normalized = normalize_api_usage_summary({
+        "model_name": "gpt-4o-mini",
+        "input_tokens": 1,
+        "output_tokens": 2,
+        "total_tokens": 3,
+        "call_count": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "usage_available": True,
+        "pricing_available": True,
+        "estimated_actual_cost_usd": 0.01,
+        "pricing_label": "gpt-4o-mini text token pricing",
+        "prompt": "do not export",
+        "answer": "do not export",
+    })
+
+    assert normalized == {
+        "model_name": "gpt-4o-mini",
+        "input_tokens": 1,
+        "output_tokens": 2,
+        "total_tokens": 3,
+        "call_count": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "usage_available": True,
+        "pricing_available": True,
+        "estimated_actual_cost_usd": 0.01,
+        "pricing_label": "gpt-4o-mini text token pricing",
+    }
 
 
 def test_quick_test_note_is_included_only_for_quick_test_mode():
