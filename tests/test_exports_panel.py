@@ -2,7 +2,10 @@ import json
 
 import pandas as pd
 
-from geo_audit.ui.exports import build_benchmark_snapshot_export
+from geo_audit.ui.exports import (
+    build_benchmark_snapshot_export,
+    build_report_download_payloads,
+)
 
 
 def build_export_fixture(**kwargs):
@@ -48,6 +51,38 @@ def build_export_fixture(**kwargs):
     defaults.update(kwargs)
 
     return build_benchmark_snapshot_export(**defaults)
+
+
+def build_report_payload_fixture(**kwargs):
+    summary_df = pd.DataFrame([
+        {"brand": "Espresso House", "average_visibility_score": 1.5}
+    ])
+    detailed_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 1,
+        }
+    ])
+    raw_answer_df = pd.DataFrame([
+        {
+            "prompt": "Which cafes are best for remote work?",
+            "answer": "AI-generated answer mentioning Espresso House.",
+        }
+    ])
+    defaults = {
+        "summary_df": summary_df,
+        "detailed_df": detailed_df,
+        "raw_answer_df": raw_answer_df,
+        "executive_report": "# Executive Report\n\nMeasured visibility.",
+        "executive_docx": b"docx-bytes",
+        "display_brand": "Espresso House",
+        "display_market": "Berlin",
+        "run_mode": "Full Report Mode",
+    }
+    defaults.update(kwargs)
+
+    return build_report_download_payloads(**defaults)
 
 
 def test_benchmark_snapshot_export_excludes_raw_answers_by_default():
@@ -133,3 +168,59 @@ def test_benchmark_snapshot_export_excludes_raw_api_payload_fields():
     assert "SECRET PROMPT" not in serialized
     assert "SECRET ANSWER" not in serialized
     assert "raw-response-id" not in serialized
+
+
+def test_report_download_payloads_use_utf8_sig_for_markdown():
+    payloads = build_report_payload_fixture()
+
+    assert payloads["markdown"].data.startswith(b"\xef\xbb\xbf")
+    assert b"# Executive Report" in payloads["markdown"].data
+    assert payloads["markdown"].mime == "text/markdown"
+
+
+def test_report_download_payloads_pass_docx_bytes_through_unchanged():
+    payloads = build_report_payload_fixture(executive_docx=b"original-docx")
+
+    assert payloads["docx"].data == b"original-docx"
+    assert payloads["docx"].mime == (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+
+def test_report_download_payload_filenames_use_expected_export_slugs():
+    payloads = build_report_payload_fixture()
+
+    assert "summary" in payloads["summary"].file_name
+    assert payloads["summary"].file_name.endswith(".csv")
+    assert "detailed_results" in payloads["detailed"].file_name
+    assert payloads["detailed"].file_name.endswith(".csv")
+    assert "raw_answers" in payloads["raw"].file_name
+    assert payloads["raw"].file_name.endswith(".csv")
+    assert "executive_report" in payloads["markdown"].file_name
+    assert payloads["markdown"].file_name.endswith(".md")
+    assert "ai_visibility_report" in payloads["docx"].file_name
+    assert payloads["docx"].file_name.endswith(".docx")
+
+
+def test_report_download_payloads_preserve_download_keys_and_mime_types():
+    payloads = build_report_payload_fixture()
+
+    assert payloads["summary"].key == "summary_download"
+    assert payloads["summary"].mime == "text/csv"
+    assert payloads["detailed"].key == "detailed_download"
+    assert payloads["detailed"].mime == "text/csv"
+    assert payloads["raw"].key == "raw_download"
+    assert payloads["raw"].mime == "text/csv"
+    assert payloads["markdown"].key == "executive_report_download"
+    assert payloads["docx"].key == "client_report_docx_download"
+
+
+def test_report_download_payload_csv_data_remains_utf8_sig_bytes():
+    payloads = build_report_payload_fixture()
+
+    assert isinstance(payloads["summary"].data, bytes)
+    assert payloads["summary"].data.startswith(b"\xef\xbb\xbf")
+    assert isinstance(payloads["detailed"].data, bytes)
+    assert payloads["detailed"].data.startswith(b"\xef\xbb\xbf")
+    assert isinstance(payloads["raw"].data, bytes)
+    assert payloads["raw"].data.startswith(b"\xef\xbb\xbf")

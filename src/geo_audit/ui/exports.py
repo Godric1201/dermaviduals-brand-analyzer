@@ -17,6 +17,173 @@ class BenchmarkSnapshotExport:
     file_name: str
 
 
+@dataclass(frozen=True)
+class ReportDownloadPayload:
+    data: bytes
+    file_name: str
+    mime: str
+    key: str
+
+
+def build_report_download_payloads(
+    *,
+    summary_df,
+    detailed_df,
+    raw_answer_df,
+    executive_report,
+    executive_docx,
+    display_brand,
+    display_market,
+    run_mode,
+):
+    from geo_audit.utils import convert_df_to_csv
+
+    return {
+        "summary": ReportDownloadPayload(
+            data=convert_df_to_csv(summary_df),
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "summary",
+                "csv",
+                run_mode,
+            ),
+            mime="text/csv",
+            key="summary_download",
+        ),
+        "detailed": ReportDownloadPayload(
+            data=convert_df_to_csv(detailed_df),
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "detailed_results",
+                "csv",
+                run_mode,
+            ),
+            mime="text/csv",
+            key="detailed_download",
+        ),
+        "raw": ReportDownloadPayload(
+            data=convert_df_to_csv(raw_answer_df),
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "raw_answers",
+                "csv",
+                run_mode,
+            ),
+            mime="text/csv",
+            key="raw_download",
+        ),
+        "markdown": ReportDownloadPayload(
+            data=executive_report.encode("utf-8-sig"),
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "executive_report",
+                "md",
+                run_mode,
+            ),
+            mime="text/markdown",
+            key="executive_report_download",
+        ),
+        "docx": ReportDownloadPayload(
+            data=executive_docx,
+            file_name=build_export_filename(
+                display_brand,
+                display_market,
+                "ai_visibility_report",
+                "docx",
+                run_mode,
+            ),
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            key="client_report_docx_download",
+        ),
+    }
+
+
+def render_report_download_exports(
+    *,
+    t,
+    summary_df,
+    detailed_df,
+    raw_answer_df,
+    executive_report,
+    executive_docx,
+    display_brand,
+    display_market,
+    run_mode,
+):
+    payloads = build_report_download_payloads(
+        summary_df=summary_df,
+        detailed_df=detailed_df,
+        raw_answer_df=raw_answer_df,
+        executive_report=executive_report,
+        executive_docx=executive_docx,
+        display_brand=display_brand,
+        display_market=display_market,
+        run_mode=run_mode,
+    )
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        payload = payloads["summary"]
+        st.download_button(
+            label=t["summary_csv"],
+            data=payload.data,
+            file_name=payload.file_name,
+            mime=payload.mime,
+            key=payload.key,
+            on_click="ignore",
+        )
+
+    with col2:
+        payload = payloads["detailed"]
+        st.download_button(
+            label=t["detailed_csv"],
+            data=payload.data,
+            file_name=payload.file_name,
+            mime=payload.mime,
+            key=payload.key,
+            on_click="ignore",
+        )
+
+    with col3:
+        payload = payloads["raw"]
+        st.download_button(
+            label=t["raw_csv"],
+            data=payload.data,
+            file_name=payload.file_name,
+            mime=payload.mime,
+            key=payload.key,
+            on_click="ignore",
+        )
+
+    with col4:
+        payload = payloads["markdown"]
+        st.download_button(
+            label="Download Executive Report MD",
+            data=payload.data,
+            file_name=payload.file_name,
+            mime=payload.mime,
+            key=payload.key,
+            on_click="ignore",
+        )
+
+    with col5:
+        payload = payloads["docx"]
+        st.download_button(
+            label="Download Client Report DOCX",
+            data=payload.data,
+            file_name=payload.file_name,
+            mime=payload.mime,
+            key=payload.key,
+            on_click="ignore",
+        )
+
+        st.divider()
+
+
 def build_benchmark_snapshot_export(
     *,
     display_brand,
