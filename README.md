@@ -133,10 +133,6 @@ At a high level, the workflow is:
 
 ---
 
-
-在這個 workflow code block **下面**加這段：
-
-````markdown
 ### Workflow Architecture
 
 ```mermaid
