@@ -358,6 +358,86 @@ def test_normalize_appendix_language_cleans_sanitizer_artifacts():
     assert "dermatologist recommendations" in clean
 
 
+def test_report_artifact_cleanup_fixes_broken_metric_target_composition():
+    dirty = (
+        "Target a score Begin improving average visibility score in the next benchmark. "
+        "The metric label said score Begin improving prompt-level visibility."
+    )
+
+    clean = sanitize_strategy_text(dirty, skincare_context(category="cafes"))
+
+    assert "Target a score Begin" not in clean
+    assert "score Begin improving" not in clean
+    assert "Begin improving average visibility score" in clean
+    assert "Begin improving prompt-level visibility" in clean
+
+
+def test_report_artifact_cleanup_fixes_measured_visibility_grammar():
+    dirty = (
+        "Brand A shows stronger measured visibility queries. "
+        "Brand B shows stronger measured visibility the AI-generated recommendations. "
+        "Brand C shows stronger measured visibility in the AI-generated recommendations."
+    )
+
+    clean = sanitize_strategy_text(dirty, skincare_context(category="cafes"))
+
+    assert "shows stronger measured visibility queries" not in clean
+    assert "shows stronger measured visibility the AI-generated recommendations" not in clean
+    assert "shows stronger measured visibility in the AI-generated recommendations" not in clean
+    assert "Brand A shows stronger measured visibility for relevant queries" in clean
+    assert clean.count("shows stronger measured visibility within the tested prompt set") == 2
+
+
+def test_report_artifact_cleanup_deduplicates_product_claims_without_overreach():
+    dirty = (
+        "Use product claims and product claims carefully. "
+        "Use supporting product claims and product claims carefully. "
+        "Use claims support documentation where appropriate and claims support documentation. "
+        "Claims support documentation and expert validation should remain."
+    )
+
+    clean = sanitize_report_text(dirty, skincare_context())
+
+    assert "product claims and product claims" not in clean
+    assert "supporting product claims and product claims" not in clean
+    assert "claims support documentation where appropriate and claims support documentation" not in clean
+    assert "Use product claims carefully" in clean
+    assert "Use supporting product claims carefully" in clean
+    assert "claims support documentation where appropriate" in clean
+    assert "Claims support documentation and expert validation should remain." in clean
+
+
+def test_report_artifact_cleanup_removes_repeated_professional_grade_adjectives():
+    dirty = (
+        "The report says professional, professional-grade support. "
+        "It also says professional professional-grade positioning."
+    )
+
+    clean = sanitize_report_text(dirty, skincare_context(category="cafes"))
+
+    assert "professional, professional-grade" not in clean
+    assert "professional professional-grade" not in clean
+    assert "professional-grade support" in clean
+    assert "professional-grade positioning" in clean
+
+
+def test_report_artifact_cleanup_fixes_capitalization_and_bold_claims_label():
+    dirty = (
+        "Professional-Grade product claims and Evidence-Based product claims appear. "
+        "**claims support documentation where appropriate**: keep the explanation. "
+        "claims support documentation where appropriate remains normal body text."
+    )
+
+    clean = sanitize_report_text(dirty, skincare_context(category="cafes"))
+
+    assert "Professional-Grade product claims" not in clean
+    assert "Evidence-Based product claims" not in clean
+    assert "professional-grade product claims" in clean
+    assert "evidence-based product claims" in clean
+    assert "**Claims Support Documentation**: keep the explanation." in clean
+    assert "claims support documentation where appropriate remains normal body text." in clean
+
+
 def test_normalize_appendix_language_returns_empty_or_non_string_unchanged():
     assert normalize_appendix_language_text("") == ""
     assert normalize_appendix_language_text(None) is None
