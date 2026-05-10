@@ -109,6 +109,9 @@ def test_run_visibility_analysis_applies_prompt_limit(monkeypatch):
     assert len(result["prompts"]) == 1
     assert len(result["raw_answers"]) == 1
     assert progress_calls == [(0, 1, "Fixed 1")]
+    assert "api_usage_summary" in result
+    assert result["api_usage_summary"]["call_count"] == 0
+    assert result["api_usage_summary"]["usage_available"] is False
 
 
 def test_run_visibility_analysis_uses_all_prompts_without_limit(monkeypatch):
@@ -118,6 +121,7 @@ def test_run_visibility_analysis_uses_all_prompts_without_limit(monkeypatch):
 
     assert len(result["prompts"]) == 4
     assert len(result["raw_answers"]) == 4
+    assert "api_usage_summary" in result
 
 
 def test_run_visibility_analysis_uses_custom_competitors(monkeypatch):
@@ -132,3 +136,13 @@ def test_run_visibility_analysis_uses_custom_competitors(monkeypatch):
 
     assert result["competitors"] == custom_competitors
     assert captured_prompt_kwargs["competitors"] == custom_competitors
+
+
+def test_run_visibility_analysis_usage_summary_does_not_include_prompt_or_answer_text(monkeypatch):
+    patch_pipeline_dependencies(monkeypatch)
+
+    result = run_test_analysis(prompt_limit=1)
+    summary_text = str(result["api_usage_summary"])
+
+    assert "Fixed prompt 1" not in summary_text
+    assert "Answer for Fixed prompt 1" not in summary_text

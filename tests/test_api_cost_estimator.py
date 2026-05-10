@@ -5,6 +5,7 @@ from geo_audit.api_cost_estimator import (
     LOW_TOKEN_ASSUMPTION,
     calculate_cost_usd,
     estimate_api_cost_range,
+    estimate_actual_usage_cost,
     format_cost_range,
     get_pricing_assumption,
 )
@@ -51,3 +52,19 @@ def test_high_estimate_is_greater_than_or_equal_to_low_estimate():
 
 def test_format_cost_range_handles_sub_cent_values():
     assert format_cost_range(0.004, 0.02) == "approx. < USD 0.01 - USD 0.02"
+
+
+def test_estimate_actual_usage_cost_for_known_model():
+    estimate = estimate_actual_usage_cost(1_000_000, 500_000, "gpt-4o-mini")
+
+    assert estimate["pricing_available"] is True
+    assert estimate["pricing_label"] == "gpt-4o-mini text token pricing"
+    assert estimate["estimated_actual_cost_usd"] == pytest.approx(0.45)
+
+
+def test_estimate_actual_usage_cost_unknown_model_fallback():
+    estimate = estimate_actual_usage_cost(1000, 500, "custom-model")
+
+    assert estimate["pricing_available"] is False
+    assert estimate["pricing_label"] is None
+    assert estimate["estimated_actual_cost_usd"] is None

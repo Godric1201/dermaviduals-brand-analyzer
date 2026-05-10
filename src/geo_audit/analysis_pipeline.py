@@ -1,4 +1,5 @@
 from .analyzer import ask_ai
+from .api_usage import track_api_usage
 from .app_constants import DEFAULT_COMPETITORS
 from .optimizer import generate_action_plan
 from .output_quality import OutputQualityContext, sanitize_strategy_text
@@ -25,99 +26,101 @@ def run_visibility_analysis(
     competitors=None,
     run_mode=None,
 ):
-    if competitors is None:
-        competitors = get_competitors()
+    with track_api_usage() as usage_tracker:
+        if competitors is None:
+            competitors = get_competitors()
 
-    ai_prompts = generate_search_prompts(
-        brand=brand,
-        competitors=competitors,
-        category=category,
-        market=market,
-        audience=audience,
-        output_language=answer_language
-    )
-
-    prompts = fixed_prompts + ai_prompts
-    if prompt_limit is not None:
-        prompts = prompts[:prompt_limit]
-
-    all_results = []
-    raw_answers = []
-    total_prompts = len(prompts)
-
-    for index, item in enumerate(prompts):
-        prompt_category = item["category"]
-        prompt = item["prompt"]
-
-        if on_progress is not None:
-            on_progress(index, total_prompts, item.get("category", "Unknown"))
-
-        answer = ask_ai(prompt, answer_language)
-
-        raw_answers.append({
-            "prompt_category": prompt_category,
-            "prompt": prompt,
-            "answer": answer
-        })
-
-        rows = analyze_answer(
-            prompt_category=prompt_category,
-            prompt=prompt,
-            answer=answer,
+        ai_prompts = generate_search_prompts(
             brand=brand,
-            competitors=competitors
+            competitors=competitors,
+            category=category,
+            market=market,
+            audience=audience,
+            output_language=answer_language
         )
 
-        all_results.extend(rows)
+        prompts = fixed_prompts + ai_prompts
+        if prompt_limit is not None:
+            prompts = prompts[:prompt_limit]
 
-    detailed_df, summary_df = summarize_results(all_results)
-    summary_df = calculate_share_of_voice(summary_df)
+        all_results = []
+        raw_answers = []
+        total_prompts = len(prompts)
 
-    detailed_df = add_timestamp(detailed_df)
-    summary_df = add_timestamp(summary_df)
+        for index, item in enumerate(prompts):
+            prompt_category = item["category"]
+            prompt = item["prompt"]
 
-    raw_answer_df = create_raw_answer_dataframe(raw_answers)
+            if on_progress is not None:
+                on_progress(index, total_prompts, item.get("category", "Unknown"))
 
-    quality_context = OutputQualityContext(
-        category=category,
-        run_mode=run_mode,
-        brand=brand,
-        market=market,
-        audience=audience,
-        tracked_competitors=list(competitors or []),
-    )
+            answer = ask_ai(prompt, answer_language)
 
-    recommendations = generate_recommendations(
-        brand=brand,
-        category=category,
-        market=market,
-        audience=audience,
-        summary_table=summary_df.to_string(index=False),
-        detailed_table=detailed_df.head(40).to_string(index=False),
-        report_language=report_language
-    )
-    recommendations = sanitize_strategy_text(recommendations, quality_context)
+            raw_answers.append({
+                "prompt_category": prompt_category,
+                "prompt": prompt,
+                "answer": answer
+            })
 
-    plan = generate_action_plan(
-        brand=brand,
-        detailed_df=detailed_df,
-        summary_df=summary_df,
-        raw_answers=raw_answers,
-        report_language=report_language,
-        category=category,
-        market=market,
-        audience=audience,
-        run_mode=run_mode,
-    )
+            rows = analyze_answer(
+                prompt_category=prompt_category,
+                prompt=prompt,
+                answer=answer,
+                brand=brand,
+                competitors=competitors
+            )
 
-    return {
-        "competitors": competitors,
-        "prompts": prompts,
-        "ai_prompts": ai_prompts,
-        "detailed_df": detailed_df,
-        "summary_df": summary_df,
-        "raw_answer_df": raw_answer_df,
-        "raw_answers": raw_answers,
-        "recommendations": recommendations,
-        "plan": plan,
-    }
+            all_results.extend(rows)
+
+        detailed_df, summary_df = summarize_results(all_results)
+        summary_df = calculate_share_of_voice(summary_df)
+
+        detailed_df = add_timestamp(detailed_df)
+        summary_df = add_timestamp(summary_df)
+
+        raw_answer_df = create_raw_answer_dataframe(raw_answers)
+
+        quality_context = OutputQualityContext(
+            category=category,
+            run_mode=run_mode,
+            brand=brand,
+            market=market,
+            audience=audience,
+            tracked_competitors=list(competitors or []),
+        )
+
+        recommendations = generate_recommendations(
+            brand=brand,
+            category=category,
+            market=market,
+            audience=audience,
+            summary_table=summary_df.to_string(index=False),
+            detailed_table=detailed_df.head(40).to_string(index=False),
+            report_language=report_language
+        )
+        recommendations = sanitize_strategy_text(recommendations, quality_context)
+
+        plan = generate_action_plan(
+            brand=brand,
+            detailed_df=detailed_df,
+            summary_df=summary_df,
+            raw_answers=raw_answers,
+            report_language=report_language,
+            category=category,
+            market=market,
+            audience=audience,
+            run_mode=run_mode,
+        )
+
+        return {
+            "competitors": competitors,
+            "prompts": prompts,
+            "ai_prompts": ai_prompts,
+            "detailed_df": detailed_df,
+            "summary_df": summary_df,
+            "raw_answer_df": raw_answer_df,
+            "raw_answers": raw_answers,
+            "recommendations": recommendations,
+            "plan": plan,
+            "api_usage_summary": usage_tracker.to_summary(),
+        }

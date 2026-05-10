@@ -44,6 +44,38 @@ def calculate_cost_usd(call_count, token_assumption, pricing_assumption):
     return input_cost + output_cost
 
 
+def estimate_actual_usage_cost(input_tokens, output_tokens, model_name):
+    pricing_assumption = get_pricing_assumption(model_name)
+
+    if pricing_assumption is None:
+        return {
+            "model_name": model_name,
+            "pricing_available": False,
+            "pricing_label": None,
+            "estimated_actual_cost_usd": None,
+        }
+
+    safe_input_tokens = max(0, int(input_tokens or 0))
+    safe_output_tokens = max(0, int(output_tokens or 0))
+    input_cost = (
+        safe_input_tokens
+        / TOKENS_PER_MILLION
+        * pricing_assumption["input_usd_per_1m_tokens"]
+    )
+    output_cost = (
+        safe_output_tokens
+        / TOKENS_PER_MILLION
+        * pricing_assumption["output_usd_per_1m_tokens"]
+    )
+
+    return {
+        "model_name": model_name,
+        "pricing_available": True,
+        "pricing_label": pricing_assumption["label"],
+        "estimated_actual_cost_usd": input_cost + output_cost,
+    }
+
+
 def format_usd(value):
     if value <= 0:
         return "USD 0.00"

@@ -5,6 +5,8 @@ from functools import lru_cache
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from .api_usage import record_openai_usage
+
 
 load_dotenv()
 
@@ -79,6 +81,7 @@ Rules:
             ],
             temperature=0.7,
         )
+        record_openai_usage(response, fallback_model_name=selected_model)
 
         content = response.choices[0].message.content
 
