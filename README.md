@@ -58,10 +58,11 @@ The tool can generate:
 
 ---
 
-
 ## Example Output
 
 - [Demo Executive Report](examples/demo-executive-report.md)
+
+---
 
 ## Key Features
 
@@ -136,8 +137,6 @@ At a high level, the workflow is:
 8. Markdown, DOCX, and snapshot exports are generated
 ```
 
----
-
 ### Workflow Architecture
 
 ```mermaid
@@ -157,9 +156,9 @@ flowchart TD
     J --> K[Markdown / DOCX Reports]
     J --> L[Benchmark Snapshots]
     L --> M[Snapshot Comparison]
-
-
 ```
+
+---
 
 ## Run Modes
 
@@ -192,32 +191,49 @@ Runs the full benchmark workflow and generates complete Markdown and DOCX report
 
 ```text
 ai-brand-visibility-geo-audit/
-|
-|-- app.py                         # Streamlit UI and workflow orchestration entrypoint
-|-- src/
-|   `-- geo_audit/                 # Core audit package
-|       |-- __init__.py
-|       |-- analysis_pipeline.py    # Benchmark execution and analysis pipeline
-|       |-- analyzer.py             # AI request wrapper
-|       |-- scoring.py              # Visibility scoring and share-of-voice logic
-|       |-- prompt_generator.py     # Prompt generation
-|       |-- prompts.py              # Core prompt templates
-|       |-- narrative_prompts.py    # Narrative report prompt templates
-|       |-- brand_intelligence.py   # Brand intelligence analysis
-|       |-- geo_roadmap.py          # GEO content roadmap generation
-|       |-- report_generator.py     # DOCX executive report export
-|       |-- markdown_report.py      # Markdown executive report export
-|       |-- output_quality.py       # Output sanitation and validation layer
-|       `-- ...                     # Additional package helpers and export modules
-|
-|-- tests/                         # Regression and unit tests
-|-- docs/                          # Screenshots and documentation assets
-|   `-- dashboard-preview.png
-|
-|-- .env.example                   # Environment variable template
-|-- .gitignore
-|-- requirements.txt
-`-- README.md
+│
+├── app.py                         # Streamlit UI and workflow orchestration entrypoint
+│
+├── src/
+│   └── geo_audit/                 # Core audit package
+│       ├── __init__.py
+│       ├── analysis_pipeline.py    # Benchmark execution and analysis pipeline
+│       ├── analyzer.py             # AI request wrapper
+│       ├── scoring.py              # Visibility scoring and share-of-voice logic
+│       ├── prompt_generator.py     # Prompt generation
+│       ├── prompts.py              # Core prompt templates
+│       ├── narrative_prompts.py    # Narrative report prompt templates
+│       ├── brand_intelligence.py   # Brand intelligence analysis
+│       ├── geo_roadmap.py          # GEO content roadmap generation
+│       ├── recommender.py          # Recommendation generation
+│       ├── optimizer.py            # Strategy deep-dive generation
+│       ├── markdown_report.py      # Markdown executive report export
+│       ├── report_generator.py     # DOCX executive report export
+│       ├── output_quality.py       # Output sanitation and validation layer
+│       ├── benchmark_snapshot.py   # Snapshot export
+│       ├── benchmark_comparison.py # Snapshot comparison
+│       ├── app_constants.py        # App-level constants
+│       ├── ui_formatters.py        # UI formatting helpers
+│       ├── run_progress.py         # Progress display helpers
+│       └── utils.py                # Shared helper functions
+│
+├── tests/                         # Regression and unit tests
+│
+├── docs/                          # Screenshots and documentation assets
+│   ├── dashboard-preview.png
+│   ├── usage-guide.md
+│   └── output-examples.md
+│
+├── examples/
+│   └── demo-executive-report.md
+│
+├── .env.example                   # Environment variable template
+├── .gitignore
+├── AGENTS.md
+├── CHANGELOG.md
+├── DEVELOPMENT.md
+├── requirements.txt
+└── README.md
 ```
 
 ---
@@ -306,10 +322,11 @@ The test suite covers benchmark logic, output quality validation, report generat
 - [Development Guide](DEVELOPMENT.md)
 - [Changelog](CHANGELOG.md)
 
+---
+
 ## Outputs
 
-The tool can generate several types of outputs:
-
+The tool can generate several types of outputs.
 
 ### Executive Reports
 
@@ -413,4 +430,3 @@ Planned future improvements:
 - Additional example datasets and screenshots
 - Optional hosted demo version
 - More structured example reports for non-confidential portfolio review
-
