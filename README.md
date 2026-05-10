@@ -153,6 +153,9 @@ flowchart LR
     J --> L[Benchmark Snapshots]
     L --> M[Snapshot Comparison]
 
+    
+```
+
 ## Run Modes
 
 ### Quick Test Mode
