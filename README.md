@@ -98,6 +98,8 @@ Produces Markdown and DOCX executive reports for review and presentation.
 
 Supports JSON snapshot export and comparison for tracking changes over time.
 
+Benchmark snapshots include run metadata such as model name, prompt set version, prompt count, repeat count, and whether raw answers were included. This improves reproducibility and makes snapshot comparisons easier to audit.
+
 ### Output Quality Validation
 
 Includes sanitation and validation logic to reduce raw LLM errors, malformed output, unsafe claim wording, and inconsistent report artifacts.
@@ -319,6 +321,8 @@ The test suite covers benchmark logic, output quality validation, report generat
 
 - [Usage Guide](docs/usage-guide.md)
 - [Output Examples](docs/output-examples.md)
+- [Report Style Guide](docs/report-style-guide.md)
+- [Report Section Contract](docs/report-section-contract.md)
 - [Development Guide](DEVELOPMENT.md)
 - [Changelog](CHANGELOG.md)
 
