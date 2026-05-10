@@ -149,6 +149,7 @@ def test_raw_answer_records_are_excluded_by_default():
     snapshot = build_sample_snapshot(raw_answer_df=raw_answer_df)
 
     assert "raw_answer_records" not in snapshot
+    assert snapshot["metadata"]["run_metadata"]["raw_answers_included"] is False
 
 
 def test_raw_answer_records_are_included_only_when_requested():
@@ -163,6 +164,34 @@ def test_raw_answer_records_are_included_only_when_requested():
 
     assert snapshot["raw_answer_records"] == [
         {"prompt": "test prompt", "answer": "test answer"},
+    ]
+    assert snapshot["metadata"]["run_metadata"]["raw_answers_included"] is True
+
+
+def test_raw_answer_records_serialize_cleanly_to_json():
+    raw_answer_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "prompt": "Which cafes are best for remote work?",
+            "answer": "AI-generated answer mentioning Espresso House.",
+        },
+    ])
+
+    snapshot = build_sample_snapshot(
+        include_raw_answers=True,
+        raw_answer_df=raw_answer_df,
+    )
+
+    serialized = serialize_benchmark_snapshot(snapshot)
+    parsed = json.loads(serialized)
+
+    assert parsed["metadata"]["run_metadata"]["raw_answers_included"] is True
+    assert parsed["raw_answer_records"] == [
+        {
+            "prompt_category": "Best Options",
+            "prompt": "Which cafes are best for remote work?",
+            "answer": "AI-generated answer mentioning Espresso House.",
+        },
     ]
 
 
