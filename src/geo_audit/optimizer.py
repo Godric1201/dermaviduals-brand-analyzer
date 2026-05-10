@@ -4,6 +4,17 @@ from .analyzer import ask_ai
 from .output_quality import OutputQualityContext, sanitize_strategy_text
 
 
+APPENDIX_B_LANGUAGE_CONTRACT = """
+Appendix B language contract:
+- Describe every finding as a benchmark signal within the tested prompt set.
+- Use "brands with stronger measured visibility" instead of "dominant brands."
+- Use should, can, may, is intended to, and future benchmark validation language instead of must.
+- Avoid over-strong phrases such as dominate, market leader, go-to, trusted option, AI footprint, and penetrate the market.
+- Do not infer consumer behavior unless it is framed as a query-intent signal from the tested prompts.
+- Every strategic section should use benchmark-visible or measured visibility language.
+""".strip()
+
+
 def _get_target_brand_metrics(summary_df, brand):
     if summary_df is None or getattr(summary_df, "empty", False):
         return {}
@@ -147,6 +158,8 @@ Analyze AI-generated search visibility results and produce a decision-level AI v
 This is NOT a generic SEO report.
 This is an AI recommendation intelligence report.
 
+{APPENDIX_B_LANGUAGE_CONTRACT}
+
 Context:
 - Target brand: {brand}
 - Market: {market}
@@ -169,15 +182,15 @@ Raw AI Answers Sample:
 
 Important competitor rule:
 - In sections 3, 4, 6, 7, 8, and 9, only use brands shown in the Summary Table as primary competitors.
-- Do NOT list non-summary-table brands as dominant brands in Trigger-Level Mapping.
+- Do NOT list non-summary-table brands as brands with stronger measured visibility in Trigger-Level Mapping.
 - If non-summary-table brands appear in raw AI answers, mention them only once in a short note called "Secondary Market Signals."
-- Do NOT include La Roche-Posay, CeraVe, Avène, EltaMD, Obagi, SkinCeuticals, or SkinMedica as dominant competitors unless they appear in the Summary Table.
+- Do NOT include La Roche-Posay, CeraVe, Avène, EltaMD, Obagi, SkinCeuticals, or SkinMedica as primary competitors unless they appear in the Summary Table.
 - The strategic focus must remain on {brand} versus the benchmark competitors in the Summary Table.
 - Do not repeat the GEO Content Roadmap.
 - Do not repeat the Strategic Priorities table.
 - Focus on interpretation, diagnosis, and prioritization logic rather than another generic action list.
 - Every recommendation must reference at least one of: a benchmark metric, a query intent category, a tracked competitor signal, or a missing evidence gap.
-- Replace generic recommendations with specific recommendations that name the content asset, target query, evidence required, competitor territory challenged, and expected benchmark metric influenced.
+- Replace generic recommendations with specific recommendations that name the content asset, target query, evidence required, competitor signal challenged, and intended benchmark influence.
 - Avoid generic phrases such as "increase online presence", "build awareness", "create content", or "engage community" unless they are made specific with benchmark evidence.
 
 ========================
@@ -190,7 +203,7 @@ Explain the overall result in 4-6 bullets.
 
 Must include:
 - Whether {brand} appears or is absent
-- Which Summary Table brands dominate AI recommendations
+- Which Summary Table brands show stronger measured visibility in AI-generated answers
 - Total mentions, average visibility score, prompts visible, and share of voice when available
 - Whether the problem is awareness, positioning, semantic association, or content footprint
 - What the most important strategic implication is
@@ -227,12 +240,12 @@ Do not infer from general category knowledge alone. Tie the logic back to the Su
 
 Analyze which prompt types or category themes trigger brand recommendations.
 
-Use only the Trigger-Level Visibility Table, Detailed Prompt-Level Sample, and Summary Table when identifying dominant brands.
-Do not infer dominant brands from general category knowledge.
-Do not list non-summary-table brands as dominant brands.
+Use only the Trigger-Level Visibility Table, Detailed Prompt-Level Sample, and Summary Table when identifying brands with stronger measured visibility.
+Do not infer brands with stronger measured visibility from general category knowledge.
+Do not list non-summary-table brands as brands with stronger measured visibility.
 
 For each relevant trigger, explain:
-- Winning / dominant brands from the Summary Table
+- Winning / brands with stronger measured visibility from the Summary Table
 - Actual visibility scores from the Trigger-Level Visibility Table
 - Whether {brand} appears
 - What this means strategically
@@ -250,11 +263,11 @@ Include these themes if present in the data:
 Format:
 
 - Trigger:
-  - Dominant brands and scores:
+  - Brands with stronger measured visibility and scores:
   - {brand} score/status:
   - Strategic implication:
 
-Do not write broad claims like "dominates" unless supported by a score.
+Do not use market-dominance language. Tie the observation to measured visibility scores.
 
 ---
 
@@ -265,19 +278,19 @@ Describe how AI appears to position major competitors.
 Only use meaningful competitors from the Summary Table.
 
 For each meaningful competitor, explain:
-- AI-perceived role
+- Benchmark-visible role
 - Total mentions
 - Average visibility score
 - Share of voice
 - Strongest trigger categories, with actual scores
 - Likely reason it is recommended
-- Category need or authority territory it appears to own
+- Category need or observed query territory signal it appears connected to
 
 Example style:
 - iS Clinical:
-  - AI-perceived role:
+  - Benchmark-visible role:
   - Evidence:
-  - Owned territory:
+  - Observed query territory signal:
   - Strategic implication:
 
 Then explain where {brand} currently sits in this map using its actual numbers.
@@ -292,11 +305,11 @@ Do NOT just say "low SEO."
 
 Diagnose AI-specific barriers:
 - missing semantic association with high-value query themes
-- weak market-relevant AI footprint
+- limited benchmark-visible footprint
 - insufficient third-party trust signals
 - lack of comparison pages
 - weak use-case mapping
-- unclear category ownership
+- unclear benchmark-visible category association
 - weak {market} {category} association
 
 Tie every major diagnosis to a number where possible, such as:
@@ -326,19 +339,19 @@ Include actual trigger-level scores when choosing entry points.
 
 ---
 
-## 7. Competitor Attack Strategy
+## 7. Competitor Challenge Strategy
 
 Identify 2-4 competitors from the Summary Table that {brand} should target first.
 
 For each:
 - Why this competitor is the right target
-- What AI territory they currently own
+- What observed query territory signal they currently show
 - Relevant visibility score or mention count
 - What content angle can challenge them
 - Example comparison or cluster content
 
 Avoid vague suggestions.
-Do not choose non-summary-table brands as main attack targets.
+Do not choose non-summary-table brands as main challenge targets.
 
 ---
 
@@ -374,8 +387,8 @@ For each phase:
 - What to build
 - Which query territory it targets
 - Which Summary Table competitor it challenges
-- Which current metric it is designed to improve
-- Expected AI visibility effect
+- Which current metric it is intended to influence
+- Intended benchmark influence
 
 Avoid generic marketing actions such as influencer campaigns, webinars, email campaigns, partnerships, and broad website optimization unless directly connected to AI visibility.
 
@@ -407,7 +420,7 @@ End with:
 - The single biggest visibility problem
 - The single best strategic entry point
 - The next action the brand should take
-- The 2-3 numeric metrics that should improve in the next benchmark
+- The 2-3 numeric metrics to validate in the next benchmark
 
 ========================
 NUMERIC EVIDENCE RULES
@@ -420,9 +433,9 @@ NUMERIC EVIDENCE RULES
 - If a metric is not provided, describe it qualitatively instead of assigning a number.
 - Use at least 10 specific numbers from the Summary Table or Trigger-Level Visibility Table.
 - Every major section must include at least one concrete number when data is available.
-- In Trigger-Level Mapping, include actual visibility scores for dominant brands.
-- In Competitor Attack Strategy, include each competitor's relevant visibility score, total mentions, prompts visible, or share of voice.
-- Do not write broad claims like "dominates", "strong", "weak", or "absent" unless supported by a number.
+- In Trigger-Level Mapping, include actual visibility scores for brands with stronger measured visibility.
+- In Competitor Challenge Strategy, include each competitor's relevant visibility score, total mentions, prompts visible, or share of voice.
+- Avoid broad claims like "strong", "weak", or "absent" unless supported by a number.
 - If a trigger has all zero scores, say that clearly instead of inventing a winner.
 - Do not make aggressive numeric performance promises.
 - Numeric targets must be framed as directional next-benchmark goals, not guaranteed outcomes.
@@ -442,7 +455,7 @@ GENERAL RULES
 - Use actual data; do not invent results
 - Avoid generic SEO advice
 - Avoid generic marketing actions unless directly connected to AI visibility
-- Focus on AI recommendation logic, semantic association, comparison content, professional third-party mentions, and query territory ownership
+- Focus on AI recommendation logic, semantic association, comparison content, professional third-party mentions, and observed query territory signals
 - Keep primary competitor discussion limited to Summary Table brands
 - Be useful for a founder, marketer, or consultant making decisions
 """

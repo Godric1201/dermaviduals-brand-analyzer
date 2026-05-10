@@ -15,6 +15,7 @@ from .prompts import format_audience_market_context
 from .output_quality import (
     OutputQualityContext,
     guard_generated_section_text,
+    sanitize_narrative_appendix_text,
     sanitize_report_text,
     validate_output_quality,
 )
@@ -148,6 +149,20 @@ def build_executive_markdown_report(
         context,
         "Replacement Strategy",
     )
+    if plan:
+        plan = sanitize_narrative_appendix_text(plan, context)
+    if gap_analysis:
+        gap_analysis = sanitize_narrative_appendix_text(gap_analysis, context)
+    if brand_win_explanation:
+        brand_win_explanation = sanitize_narrative_appendix_text(
+            brand_win_explanation,
+            context,
+        )
+    if replacement_strategy:
+        replacement_strategy = sanitize_narrative_appendix_text(
+            replacement_strategy,
+            context,
+        )
     if brand_intelligence:
         brand_intelligence = {
             key: (

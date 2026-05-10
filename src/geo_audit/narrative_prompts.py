@@ -13,6 +13,34 @@ Numeric grounding rules:
 """.strip()
 
 
+APPENDIX_C_LANGUAGE_CONTRACT = """
+Appendix C language contract:
+- Frame reasoning as prompt-set signal, not consumer behavior.
+- Use the required labels: Benchmark signal behind visibility, Observed query territory signal, and Strategic implication for the target brand.
+- Avoid consumer-behavior claims such as consumers are actively seeking, preferred choice, trusted among consumers, ready to purchase, and go-to option.
+- Describe findings as within the tested prompt set and tied to measured visibility.
+""".strip()
+
+
+APPENDIX_D_LANGUAGE_CONTRACT = """
+Appendix D language contract:
+- Use "compete against brands with stronger measured visibility" as the strategic frame.
+- Avoid replacement, attack, go-to brand, dominates, trusted option among consumers, and effectively compete in the market as framing language.
+- Use "content angle to test in future benchmark cycles" instead of guaranteed positioning.
+- Keep competitor names and useful diagnostic content, but frame them as benchmark-visible signals.
+""".strip()
+
+
+APPENDIX_E_LANGUAGE_CONTRACT = """
+Appendix E language contract:
+- Use the heading "Benchmark-Visible Associations Missing or Weak".
+- Avoid old AI-recommendation rejection headings.
+- Do not describe consumers as excluding, rejecting, or failing to connect with the brand.
+- Use "the tested answers did not surface..." or "the benchmark did not detect..." for missing associations.
+- Avoid unsupported market interpretation and describe gaps as benchmark-visible signals.
+""".strip()
+
+
 def _compact_table(df, columns, rename_map, max_rows=50):
     if df is None or getattr(df, "empty", False):
         return "No data provided."
@@ -94,7 +122,7 @@ def build_ai_decision_explanation_prompt(
     return f"""
 You are analyzing AI-generated {category} brand or provider recommendations in {market}.
 
-Based on the data below, explain WHY each top brand is selected by AI.
+Based on the data below, explain the benchmark signals behind each top brand's measured visibility.
 
 Focus on:
 - What signal triggers the brand
@@ -104,6 +132,8 @@ Focus on:
 - Whether it is associated with high-intent use cases, comparison queries, local intent, decision-stage searches, or trust signals
 
 {NUMERIC_GROUNDING_RULES}
+
+{APPENDIX_C_LANGUAGE_CONTRACT}
 
 Top brands per category:
 {build_narrative_top_brands_context(top_brands_df)}
@@ -115,8 +145,8 @@ Explain in this format:
 
 - Category: X
 - Winning Brand: Y
-- Why AI selects it:
-- What signal it owns:
+- Benchmark signal behind visibility:
+- Observed query territory signal:
 - Strategic implication for {brand}:
 """.strip()
 
@@ -134,7 +164,7 @@ def build_replacement_strategy_prompt(
     return f"""
 You are a senior GEO strategist.
 
-Based on the AI visibility data below, explain how {brand} can replace the currently dominant brands in AI-generated {category} recommendations in {market}.
+Based on the AI visibility data below, explain how {brand} can compete against brands with stronger measured visibility in AI-generated {category} recommendations in {market}.
 
 Target brand:
 {brand}
@@ -150,8 +180,10 @@ Audience:
 
 {NUMERIC_GROUNDING_RULES}
 
-Dominant brands per category:
+Brands with stronger measured visibility per category:
 {build_narrative_top_brands_context(top_brands_df)}
+
+{APPENDIX_D_LANGUAGE_CONTRACT}
 
 Summary benchmark metrics:
 {build_narrative_summary_context(summary_df)}
@@ -162,10 +194,10 @@ Detailed benchmark context:
 Raw AI answers:
 {str(raw_answers[:10])}
 
-For each major dominant brand, explain:
+For each major brand with stronger measured visibility, explain:
 
-1. What the competitor currently owns in AI perception
-2. Why AI recommends that competitor
+1. What observed query territory signal appears connected to the competitor
+2. What benchmark signal appears behind the competitor's measured visibility
 3. What {brand} should do to compete
 4. What content should be created
 5. What query or keyword cluster {brand} should target
@@ -174,11 +206,11 @@ Use this format:
 
 ## Competitor: [Brand Name]
 
-- AI-owned territory:
-- Why it wins:
+- Observed query territory signal:
+- Benchmark signal behind visibility:
 - Weakness or opening:
-- {brand} replacement strategy:
-- Content to create:
+- {brand} competitive positioning strategy:
+- Content angle to test in future benchmark cycles:
 - Target queries:
 
 Focus on generic GEO territories such as high-intent use cases, comparison queries, local intent, decision-stage searches, and trust signals.
@@ -202,7 +234,7 @@ Based on the data below, explain:
 
 1. What concepts each competitor is associated with
 2. What concepts {brand} is missing
-3. Why AI does not recommend {brand}
+3. What benchmark-visible associations are missing or weak for {brand}
 
 Category:
 {category}
@@ -217,6 +249,8 @@ Focus on generic GEO concepts such as high-intent use cases, comparison queries,
 
 {NUMERIC_GROUNDING_RULES}
 
+{APPENDIX_E_LANGUAGE_CONTRACT}
+
 Competitors:
 {", ".join(competitors)}
 
@@ -225,6 +259,9 @@ Summary benchmark metrics:
 
 Detailed benchmark context:
 {build_narrative_detailed_context(detailed_df)}
+
+Use this heading:
+## Benchmark-Visible Associations Missing or Weak
 
 Answer in structured bullet points.
 """.strip()
