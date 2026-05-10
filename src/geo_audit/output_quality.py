@@ -698,6 +698,48 @@ def _cleanup_appendix_sanitizer_artifacts(text: str) -> str:
     )
 
 
+def _cleanup_report_artifacts(text: str) -> str:
+    sanitized = str(text or "")
+
+    replacements = [
+        (r"\bTarget a score\s+(Begin\b)", r"\1"),
+        (r"\bscore\s+(Begin improving\b)", r"\1"),
+        (
+            r"\bshows stronger measured visibility queries\b",
+            "shows stronger measured visibility for relevant queries",
+        ),
+        (
+            r"\bshows stronger measured visibility the AI-generated recommendations\b",
+            "shows stronger measured visibility within the tested prompt set",
+        ),
+        (
+            r"\bshows stronger measured visibility in the AI-generated recommendations\b",
+            "shows stronger measured visibility within the tested prompt set",
+        ),
+        (r"\bproduct claims and product claims\b", "product claims"),
+        (
+            r"\bsupporting product claims and product claims\b",
+            "supporting product claims",
+        ),
+        (
+            r"\bclaims support documentation where appropriate and claims support documentation\b",
+            "claims support documentation where appropriate",
+        ),
+        (r"\bprofessional,\s*professional-grade\b", "professional-grade"),
+        (r"\bprofessional\s+professional-grade\b", "professional-grade"),
+        (r"\bProfessional-Grade product claims\b", "professional-grade product claims"),
+        (r"\bEvidence-Based product claims\b", "evidence-based product claims"),
+    ]
+    sanitized = _apply_replacements(sanitized, replacements)
+    sanitized = re.sub(
+        r"\*\*\s*claims support documentation where appropriate\s*\*\*",
+        "**Claims Support Documentation**",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
+    return sanitized
+
+
 def _normalize_explicit_high_risk_appendix_phrases(text: str) -> str:
     sanitized = _cleanup_appendix_sanitizer_artifacts(text)
     sanitized = _apply_replacements(
@@ -717,6 +759,7 @@ def _normalize_explicit_high_risk_appendix_phrases(text: str) -> str:
             (r"\bwill increase sales\b", "is not evaluated by this benchmark"),
         ],
     )
+    sanitized = _cleanup_report_artifacts(sanitized)
     return sanitized
 
 
@@ -736,6 +779,7 @@ def normalize_appendix_language_text(text, context=None):
     sanitized = _normalize_recommendation_outcomes(sanitized)
     sanitized = _cleanup_appendix_sanitizer_artifacts(sanitized)
     sanitized = _normalize_label_artifacts(sanitized)
+    sanitized = _cleanup_report_artifacts(sanitized)
     return sanitized
 
 
