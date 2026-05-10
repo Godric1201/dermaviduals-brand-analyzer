@@ -6,6 +6,19 @@ from .output_quality import OutputQualityContext, sanitize_snapshot_payload
 DEFAULT_MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 DEFAULT_PROMPT_SET_VERSION = os.getenv("PROMPT_SET_VERSION", "v1")
 DEFAULT_REPEAT_COUNT = int(os.getenv("PROMPT_REPEAT_COUNT", "1"))
+API_USAGE_METADATA_FIELDS = (
+    "model_name",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "call_count",
+    "calls_with_usage",
+    "calls_without_usage",
+    "usage_available",
+    "pricing_available",
+    "estimated_actual_cost_usd",
+    "pricing_label",
+)
 
 def _json_safe_value(value):
     try:
@@ -37,6 +50,18 @@ def dataframe_to_records(df):
         for record in records
     ]
 
+
+def normalize_api_usage_summary(api_usage_summary):
+    """Return aggregate API usage metadata safe for benchmark snapshots."""
+    if not isinstance(api_usage_summary, dict):
+        return None
+
+    return {
+        field: _json_safe_value(api_usage_summary.get(field))
+        for field in API_USAGE_METADATA_FIELDS
+    }
+
+
 def build_run_metadata(
     report_date,
     run_mode,
@@ -46,6 +71,7 @@ def build_run_metadata(
     model_name=None,
     prompt_set_version=None,
     repeat_count=None,
+    api_usage_summary=None,
 ):
     """Build reproducibility metadata for a benchmark snapshot."""
     return {
@@ -56,6 +82,7 @@ def build_run_metadata(
         "prompt_limit": prompt_limit,
         "prompt_count": prompt_count,
         "raw_answers_included": bool(include_raw_answers),
+        "api_usage": normalize_api_usage_summary(api_usage_summary),
         "generated_at": report_date,
     }
 
@@ -78,6 +105,7 @@ def build_benchmark_snapshot(
     model_name=None,
     prompt_set_version=None,
     repeat_count=None,
+    api_usage_summary=None,
 ):
     brand_intelligence = brand_intelligence or {}
 
@@ -104,6 +132,7 @@ def build_benchmark_snapshot(
             model_name=model_name,
             prompt_set_version=prompt_set_version,
             repeat_count=repeat_count,
+            api_usage_summary=api_usage_summary,
     ),
 },
         "summary_records": dataframe_to_records(summary_df),

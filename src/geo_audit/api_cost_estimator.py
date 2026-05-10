@@ -1,4 +1,5 @@
 TOKENS_PER_MILLION = 1_000_000
+GPT_4O_MINI_BASE_MODEL = "gpt-4o-mini"
 
 LOW_TOKEN_ASSUMPTION = {
     "input_tokens": 1500,
@@ -10,7 +11,7 @@ HIGH_TOKEN_ASSUMPTION = {
 }
 
 MODEL_PRICING_ASSUMPTIONS = {
-    "gpt-4o-mini": {
+    GPT_4O_MINI_BASE_MODEL: {
         "label": "gpt-4o-mini text token pricing",
         "input_usd_per_1m_tokens": 0.15,
         "output_usd_per_1m_tokens": 0.60,
@@ -22,8 +23,38 @@ def normalize_model_name(model_name):
     return str(model_name or "").strip().lower()
 
 
+def resolve_pricing_model_name(model_name):
+    normalized = normalize_model_name(model_name)
+
+    if normalized in MODEL_PRICING_ASSUMPTIONS:
+        return normalized
+
+    if normalized.startswith(f"{GPT_4O_MINI_BASE_MODEL}-"):
+        suffix = normalized.removeprefix(f"{GPT_4O_MINI_BASE_MODEL}-")
+        if _is_date_suffix(suffix):
+            return GPT_4O_MINI_BASE_MODEL
+
+    return normalized
+
+
+def _is_date_suffix(value):
+    parts = value.split("-")
+    if len(parts) != 3:
+        return False
+
+    year, month, day = parts
+    return (
+        len(year) == 4
+        and len(month) == 2
+        and len(day) == 2
+        and year.isdigit()
+        and month.isdigit()
+        and day.isdigit()
+    )
+
+
 def get_pricing_assumption(model_name):
-    return MODEL_PRICING_ASSUMPTIONS.get(normalize_model_name(model_name))
+    return MODEL_PRICING_ASSUMPTIONS.get(resolve_pricing_model_name(model_name))
 
 
 def calculate_cost_usd(call_count, token_assumption, pricing_assumption):
@@ -42,6 +73,38 @@ def calculate_cost_usd(call_count, token_assumption, pricing_assumption):
     )
 
     return input_cost + output_cost
+
+
+def estimate_actual_usage_cost(input_tokens, output_tokens, model_name):
+    pricing_assumption = get_pricing_assumption(model_name)
+
+    if pricing_assumption is None:
+        return {
+            "model_name": model_name,
+            "pricing_available": False,
+            "pricing_label": None,
+            "estimated_actual_cost_usd": None,
+        }
+
+    safe_input_tokens = max(0, int(input_tokens or 0))
+    safe_output_tokens = max(0, int(output_tokens or 0))
+    input_cost = (
+        safe_input_tokens
+        / TOKENS_PER_MILLION
+        * pricing_assumption["input_usd_per_1m_tokens"]
+    )
+    output_cost = (
+        safe_output_tokens
+        / TOKENS_PER_MILLION
+        * pricing_assumption["output_usd_per_1m_tokens"]
+    )
+
+    return {
+        "model_name": model_name,
+        "pricing_available": True,
+        "pricing_label": pricing_assumption["label"],
+        "estimated_actual_cost_usd": input_cost + output_cost,
+    }
 
 
 def format_usd(value):
