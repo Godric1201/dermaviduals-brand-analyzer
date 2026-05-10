@@ -29,7 +29,6 @@ from geo_audit.brand_intelligence_prompts import (
 )
 from geo_audit.benchmark_snapshot import (
     build_benchmark_snapshot,
-    serialize_benchmark_snapshot,
 )
 from geo_audit.competitor_suggestions import suggest_competitors_with_ai
 from geo_audit.geo_roadmap import generate_geo_content_roadmap
@@ -59,6 +58,7 @@ from geo_audit.ui.api_usage_panel import (
 )
 from geo_audit.ui.benchmark_progress import render_benchmark_progress
 from geo_audit.ui.content_generator_panel import render_content_generator_panel
+from geo_audit.ui.exports import render_benchmark_snapshot_export
 
 from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
 from geo_audit.report_generator import (
@@ -1091,53 +1091,22 @@ def display_results():
         )
 
         st.divider()
-    st.subheader("Benchmark Snapshot")
-    st.caption(
-        "Export a benchmark snapshot JSON for progress tracking, audit review, "
-        "or comparison with future benchmark runs."
-    )
-
-    include_raw_answers_in_snapshot = st.checkbox(
-        "Include raw AI answers in Benchmark Snapshot JSON",
-        value=False,
-        help=RAW_ANSWER_EVIDENCE_HELP,
-        key="include_raw_answers_in_benchmark_snapshot",
-    )
-    st.caption(RAW_ANSWER_EVIDENCE_HELP)
-
-    export_snapshot = build_benchmark_snapshot(
-        brand=display_brand,
-        market=display_market,
-        category=display_category,
-        audience=display_audience,
-        report_date=date.today().isoformat(),
+    render_benchmark_snapshot_export(
+        display_brand=display_brand,
+        display_market=display_market,
+        display_category=display_category,
+        display_audience=display_audience,
         run_mode=run_mode,
         prompt_limit=prompt_limit,
         prompt_count=len(prompts),
         competitors=competitors,
-        query_intent_categories=prompt_categories,
+        prompt_categories=prompt_categories,
         summary_df=summary_df,
         detailed_df=detailed_df,
-        brand_intelligence=snapshot_brand_intelligence,
-        include_raw_answers=include_raw_answers_in_snapshot,
+        snapshot_brand_intelligence=snapshot_brand_intelligence,
         raw_answer_df=raw_answer_df,
         api_usage_summary=api_usage_summary,
-    )
-    benchmark_snapshot_json = serialize_benchmark_snapshot(export_snapshot)
-
-    st.download_button(
-        label="Download Benchmark Snapshot JSON",
-        data=benchmark_snapshot_json.encode("utf-8"),
-        file_name=build_export_filename(
-            display_brand,
-            display_market,
-            "benchmark_snapshot",
-            "json",
-            run_mode
-        ),
-        mime="application/json",
-        key="benchmark_snapshot_download",
-        on_click="ignore",
+        raw_answer_evidence_help=RAW_ANSWER_EVIDENCE_HELP,
     )
 
 # =========================
