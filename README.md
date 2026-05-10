@@ -136,7 +136,7 @@ At a high level, the workflow is:
 ### Workflow Architecture
 
 ```mermaid
-flowchart LR
+flowchart TD
     A[Audit Setup] --> B[Prompt Generation]
     B --> C[AI Responses]
     C --> D[Visibility Scoring]
