@@ -298,7 +298,7 @@ Do not commit `.env` to GitHub.
 ### 5. Start the Streamlit app
 
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 ---
