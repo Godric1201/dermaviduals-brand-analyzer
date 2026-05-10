@@ -99,7 +99,7 @@ Do not commit `.env`.
 Start the Streamlit app:
 
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 The app should open in the browser and show the audit setup interface.
@@ -151,7 +151,7 @@ python -m py_compile app.py
 Also verify manually:
 
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 Expected checks:

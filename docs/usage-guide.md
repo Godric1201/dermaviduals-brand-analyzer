@@ -7,7 +7,7 @@ This guide explains how to use the AI Brand Visibility / GEO Audit Tool locally.
 Run:
 
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 The app opens in the browser and shows the analysis setup panel.

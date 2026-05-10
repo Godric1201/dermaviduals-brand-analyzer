@@ -1,21 +1,46 @@
-import os
 import json
-from openai import OpenAI
+import os
+from functools import lru_cache
+
 from dotenv import load_dotenv
+from openai import OpenAI
+
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
-def ask_ai(prompt, language="English"):
+class AIServiceError(RuntimeError):
+    """Raised when the AI service cannot return a usable response."""
+
+
+@lru_cache(maxsize=1)
+def get_openai_client() -> OpenAI:
+    """Create the OpenAI client lazily so imports do not fail before runtime."""
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        raise AIServiceError(
+            "OPENAI_API_KEY is not configured. Create a local .env file based on .env.example."
+        )
+
+    return OpenAI(api_key=api_key)
+
+
+def ask_ai(prompt: str, language: str = "English", model: str | None = None) -> str:
     """
     Main AI answer generator.
-    Used for generating skincare recommendation answers and strategic reports.
+
+    Used for generating recommendation answers and strategic report sections.
+    Raises AIServiceError when the API call fails instead of returning raw error text
+    as if it were a valid AI answer.
     """
+    selected_model = model or DEFAULT_MODEL
+
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
+        response = get_openai_client().chat.completions.create(
+            model=selected_model,
             messages=[
                 {
                     "role": "system",
@@ -45,27 +70,42 @@ Rules:
 - Do NOT give only general advice when brand recommendations are requested
 - Do NOT avoid naming brands
 - Prioritize professional, clinic-grade, dermatologist-recommended skincare brands
-"""
+""",
                 },
                 {
                     "role": "user",
-                    "content": prompt
-                }
+                    "content": prompt,
+                },
             ],
-            temperature=0.7
+            temperature=0.7,
         )
 
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
 
-    except Exception as e:
-        return f"ERROR: {str(e)}"
+        if not content or not content.strip():
+            raise AIServiceError("AI service returned an empty response.")
+
+        return content
+
+    except AIServiceError:
+        raise
+    except Exception as error:
+        raise AIServiceError(f"AI request failed: {error}") from error
 
 
-def evaluate_brand_visibility(answer, brand):
+def evaluate_brand_visibility(
+    answer: str,
+    brand: str,
+    model: str | None = None,
+) -> dict:
     """
     Evaluates whether a specific brand appears in an AI answer.
-    This function uses a separate evaluator prompt and should return JSON only.
+
+    This function uses a separate evaluator prompt and returns a safe fallback
+    if the AI response cannot be parsed as valid JSON.
     """
+    selected_model = model or DEFAULT_MODEL
+
     evaluation_prompt = f"""
 Analyze the AI answer below and evaluate how visible this brand is.
 
@@ -101,8 +141,8 @@ Scoring logic:
 """
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
+        response = get_openai_client().chat.completions.create(
+            model=selected_model,
             messages=[
                 {
                     "role": "system",
@@ -115,14 +155,14 @@ Return ONLY valid JSON.
 Do not include markdown.
 Do not include explanations.
 Do not include brand recommendation lists.
-"""
+""",
                 },
                 {
                     "role": "user",
-                    "content": evaluation_prompt
-                }
+                    "content": evaluation_prompt,
+                },
             ],
-            temperature=0
+            temperature=0,
         )
 
         result = response.choices[0].message.content.strip()
@@ -132,7 +172,7 @@ Do not include brand recommendation lists.
             "mentioned": bool(data.get("mentioned", False)),
             "position": data.get("position"),
             "visibility_score": int(data.get("visibility_score", 0)),
-            "visibility_level": data.get("visibility_level", "Not Visible")
+            "visibility_level": data.get("visibility_level", "Not Visible"),
         }
 
     except Exception:
@@ -140,5 +180,5 @@ Do not include brand recommendation lists.
             "mentioned": False,
             "position": None,
             "visibility_score": 0,
-            "visibility_level": "Not Visible"
+            "visibility_level": "Not Visible",
         }
