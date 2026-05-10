@@ -133,6 +133,30 @@ At a high level, the workflow is:
 
 ---
 
+
+在這個 workflow code block **下面**加這段：
+
+````markdown
+### Workflow Architecture
+
+```mermaid
+flowchart LR
+    A[Audit Setup] --> B[Prompt Generation]
+    B --> C[AI Responses]
+    C --> D[Visibility Scoring]
+    D --> E[Competitor Benchmark]
+    D --> F[Share of Voice]
+    D --> G[Brand Intelligence]
+    G --> H[GEO Content Roadmap]
+    G --> I[Strategy Deep Dive]
+    E --> J[Executive Reports]
+    F --> J
+    H --> J
+    I --> J
+    J --> K[Markdown / DOCX Reports]
+    J --> L[Benchmark Snapshots]
+    L --> M[Snapshot Comparison]
+
 ## Run Modes
 
 ### Quick Test Mode
