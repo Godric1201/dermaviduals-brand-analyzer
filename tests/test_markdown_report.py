@@ -195,10 +195,8 @@ def test_build_executive_markdown_report_avoids_duplicate_market_in_intro():
     report = build_executive_markdown_report(**inputs)
 
     assert "in Hong Kong in Hong Kong" not in report
-    assert (
-        "recommendations for skincare-conscious consumers in Hong Kong."
-        in report
-    )
+    assert "recommendations for skincare-conscious consumers in Hong Kong" in report
+    assert "based on the tested prompt set" in report
 
 
 def test_build_executive_markdown_report_omits_optional_appendices_when_absent():

@@ -514,7 +514,7 @@ def get_visibility_gap_sentences(
     if total_mentions == 0:
         return {
             "category_association": (
-                f"AI systems currently associate the tracked {category} category with better-established competitors in {market}."
+                f"Within the tested prompt set, the tracked {category} category produced stronger measurable signals for benchmark alternatives in {market}."
             ),
             "semantic_association": (
                 "Semantic association with high-intent use cases, comparison queries, local intent, and decision-stage searches is not measurable in the tested answers."
@@ -523,28 +523,28 @@ def get_visibility_gap_sentences(
                 "No tested AI answers provided measurable third-party trust or recommendation signals for the brand."
             ),
             "comparison_footprint": (
-                "No visible comparison footprint was detected against higher-performing benchmark alternatives."
+                "No measurable comparison footprint was detected against higher-performing benchmark alternatives in this run."
             ),
             "owned_territory": (
-                f"No clear AI-owned territory was detected in the {market} target market."
+                f"No clear benchmark-owned query territory was detected for the brand in {market}."
             ),
         }
 
     return {
         "category_association": (
-            f"AI systems produced {total_mentions} mentions for {brand}, but competitor benchmarks show room to strengthen association with {category}."
+            f"The benchmark produced {total_mentions} mentions for {brand}, while competitor signals indicate room to strengthen association with {category}."
         ),
         "semantic_association": (
-            f"Semantic association should be expanded from the current {avg_visibility} average visibility score into high-intent use cases, comparison queries, local intent, and decision-stage searches."
+            f"Semantic association should be strengthened from the current {avg_visibility} average visibility score into high-intent use cases, comparison queries, local intent, and decision-stage searches."
         ),
         "third_party_signals": (
-            f"Measurable third-party trust or recommendation signals should be strengthened to improve from the current {share_of_voice}% share of voice."
+            f"Measurable third-party trust or recommendation signals should be strengthened and validated in future benchmark cycles from the current {share_of_voice}% share of voice."
         ),
         "comparison_footprint": (
             f"Comparison footprint remains limited relative to higher-performing benchmark alternatives at {avg_visibility} average visibility."
         ),
         "owned_territory": (
-            f"The benchmark shows {share_of_voice}% share of voice, so the next priority is to build a clearer AI-owned territory in the {market} target market."
+            f"The benchmark shows {share_of_voice}% share of voice, so the next priority is to build a clearer query territory signal in {market}."
         ),
     }
 
@@ -603,19 +603,19 @@ def build_competitor_leader_sentence(leaders):
 
     if highest_visibility:
         parts.append(
-            f"The highest average visibility brand is {highest_visibility['brand']} "
+            f"The strongest measured average visibility signal is {highest_visibility['brand']} "
             f"({highest_visibility['value']} avg. visibility)"
         )
 
     if highest_mentions:
         parts.append(
-            f"The highest mention brand is {highest_mentions['brand']} "
+            f"The strongest measured mention signal is {highest_mentions['brand']} "
             f"({highest_mentions['value']} mentions)"
         )
 
     if highest_sov:
         parts.append(
-            f"The highest share-of-voice brand is {highest_sov['brand']} "
+            f"The strongest measured share-of-voice signal is {highest_sov['brand']} "
             f"({highest_sov['value']}% SOV)"
         )
 
@@ -766,35 +766,35 @@ def create_strategy_priorities_df(brand, category, market, audience, top_competi
             "Priority": "Category Authority",
             "Target Query Territory": f"{category} recommendations for {audience}",
             "Competitor Focus": primary,
-            "Recommended Action": f"Create AI-citable guides positioning {brand} around category expertise, decision criteria, and buyer fit."
+            "Recommended Action": f"Create AI-citable guides intended to strengthen {brand}'s association with category expertise, decision criteria, and buyer fit."
         },
         {
             "Level": "High",
             "Priority": "Use-Case Association",
             "Target Query Territory": f"{category} for high-intent use cases",
             "Competitor Focus": primary,
-            "Recommended Action": f"Publish educational content explaining {possessive(brand)} relevance to common buyer needs and use-case-specific searches."
+            "Recommended Action": f"Publish educational content designed to make {possessive(brand)} relevance to common buyer needs and use-case-specific searches easier to validate in future benchmark runs."
         },
         {
             "Level": "High",
             "Priority": "Decision-Stage Visibility",
             "Target Query Territory": f"decision-stage {category} searches",
             "Competitor Focus": secondary,
-            "Recommended Action": "Develop decision-stage pages and recommendation content for buyers, evaluators, and decision-makers."
+            "Recommended Action": "Develop decision-stage pages and recommendation content with intended benchmark influence on buyer, evaluator, and decision-maker query contexts."
         },
         {
             "Level": "Medium",
             "Priority": "Comparison Visibility",
             "Target Query Territory": f"{brand} vs benchmark alternatives",
             "Competitor Focus": primary,
-            "Recommended Action": "Build fair comparison pages that explain fit, use cases, and differentiation without attacking competitors."
+            "Recommended Action": "Build fair comparison pages that explain fit, use cases, and differentiation for future benchmark validation without attacking competitors."
         },
         {
             "Level": "Medium",
             "Priority": "Market Relevance",
             "Target Query Territory": f"{category} recommendations in {market}",
             "Competitor Focus": secondary,
-            "Recommended Action": "Create market-specific content with local context, buyer concerns, and recommendation language."
+            "Recommended Action": "Create market-specific content with local context, buyer concerns, and recommendation language intended to strengthen measured visibility in future benchmark cycles."
         }
     ])
 
@@ -824,19 +824,19 @@ def create_roadmap_df(brand, category, top_competitors, metrics):
         {
             "Phase": "30 Days",
             "Action": f"Publish core content for {category} use cases, buyer questions, and decision criteria.",
-            "Target Metric": f"Increase from {current_mentions} current mentions to more AI-detectable brand mentions.",
+            "Target Metric": f"Use future benchmark validation to assess whether the current {current_mentions} mentions begin moving toward more AI-detectable brand mentions.",
             "Competitor Focus": primary
         },
         {
             "Phase": "60 Days",
             "Action": "Launch comparison pages and category authority explainers.",
-            "Target Metric": "Improve average visibility score and prompts visible.",
+            "Target Metric": "Evaluate directional movement in average visibility score and prompts visible.",
             "Competitor Focus": second_phase_focus
         },
         {
             "Phase": "90 Days",
             "Action": "Build third-party mentions, reviews, and AI-citable references.",
-            "Target Metric": f"Increase share of voice from the current {current_sov} toward stronger measurable inclusion.",
+            "Target Metric": f"Track whether share of voice moves from the current {current_sov} toward stronger measurable inclusion.",
             "Competitor Focus": tertiary
         }
     ])
@@ -958,8 +958,8 @@ def add_executive_summary(document, brand, category, market, metrics, competitor
     top_competitor_sentence = build_competitor_leader_sentence(competitor_leaders)
 
     core_finding = (
-        f"{brand} is {visibility_status} in AI-generated {category} category recommendations in {market}. "
-        f"The brand records {total_mentions} total mentions, an average visibility score of "
+        f"Within the tested prompt set, {brand} is {visibility_status} in AI-generated {category} category recommendations in {market}. "
+        f"The benchmark records {total_mentions} total mentions, an average visibility score of "
         f"{avg_visibility}, {prompts_visible} prompts visible, and "
         f"{metrics['Share of Voice']} share of voice. {top_competitor_sentence}"
     )
@@ -970,10 +970,10 @@ def add_executive_summary(document, brand, category, market, metrics, competitor
     add_subheading(document, "Key Findings")
 
     findings = [
-        f"{brand} is {visibility_status} in the tested prompt set, with {total_mentions} total mentions and {metrics['Share of Voice']} share of voice.",
+        f"{brand} is {visibility_status} within the tested prompt set, with {total_mentions} total mentions and {metrics['Share of Voice']} share of voice.",
         gap_sentences["category_association"],
         "The highest-value opportunity is to connect the brand with high-intent use cases, comparison queries, local intent, and decision-stage searches.",
-        f"The immediate GEO objective is to create AI-citable evidence that can improve from the current {avg_visibility} average visibility score."
+        f"The immediate GEO objective is to create AI-citable evidence with intended benchmark influence on the current {avg_visibility} average visibility score."
     ]
 
     for item in findings:
@@ -1044,7 +1044,7 @@ def add_gap_diagnosis(document, brand, category, market, metrics, top_competitor
     add_callout_box(
         document,
         "Diagnosis",
-        f"{brand} is {visibility_status} in the AI recommendation set. The brand has "
+        f"Within the tested prompt set, {brand} is {visibility_status}. The benchmark records "
         f"{total_mentions} mentions, {avg_visibility} average visibility, "
         f"and {metrics['Share of Voice']} share of voice.",
         fill=LIGHT_YELLOW
@@ -1075,13 +1075,13 @@ def add_gap_diagnosis(document, brand, category, market, metrics, top_competitor
             add_bullet(
                 document,
                 "No benchmark competitor generated measurable AI recall signal in this run. "
-                "Competitors should be treated as unproven in this dataset, not as stronger AI visibility leaders."
+                "Competitors should be treated as unproven in this dataset, not as stronger measured visibility signals."
             )
         else:
             for item in positive_competitors:
                 add_bullet(
                     document,
-                    f"{item['brand']} has {item['mentions']} mentions and {item['sov']}% share of voice, creating a stronger AI recall signal than {brand}."
+                    f"{item['brand']} has {item['mentions']} mentions and {item['sov']}% share of voice, creating a stronger measured benchmark signal than {brand}."
                 )
 
 
@@ -1090,7 +1090,7 @@ def add_strategy_priorities(document, priorities_df):
 
     add_paragraph_text(
         document,
-        "The following priorities translate the visibility gap into concrete GEO actions."
+        "The following priorities translate the measured visibility gap into GEO actions with intended benchmark influence for future validation."
     )
 
     add_styled_table(document, priorities_df, max_rows=10, font_size=7.3)
@@ -1177,7 +1177,7 @@ def add_measurement_plan(
 
     add_paragraph_text(
         document,
-        "The next benchmark should evaluate whether the visibility gap is beginning to close."
+        "The next benchmark should evaluate whether measured visibility is beginning to improve within comparable prompt coverage."
     )
 
     measurement_df = pd.DataFrame(build_measurement_plan_rows(metrics))
@@ -1211,8 +1211,8 @@ def add_recommended_next_step(
         document,
         "Immediate Action",
         f"Build AI-citable content that connects {brand} with high-intent use cases, comparison queries, local intent, "
-        f"decision-stage searches, and market-specific category queries for {category} in {market}. The next benchmark should track whether the brand "
-        f"improves from its {visibility_state_noun} toward stronger inclusion in AI-generated recommendation lists.",
+        f"decision-stage searches, and market-specific category queries for {category} in {market}. The intended benchmark influence is to strengthen "
+        f"the brand's association with these query contexts; the next benchmark should validate whether measured visibility moves from its {visibility_state_noun} toward stronger inclusion in AI-generated recommendation lists.",
         fill=LIGHT_GREEN
     )
 
@@ -1243,12 +1243,12 @@ def add_methodology_notes(
     add_section_heading(document, "Methodology Notes", section_number)
 
     notes = [
-    f"The benchmark is based on fixed and AI-generated prompts designed to simulate {category} recommendation queries.",
-    "Visibility is calculated from brand mentions, estimated ranking, and prompt-level appearance.",
-    "Share of voice reflects the distribution of brand mentions among tracked competitors.",
+    f"This AI visibility benchmark is based on fixed and AI-generated prompts designed to simulate {category} recommendation queries.",
+    "Visibility is calculated from brand mentions, estimated ranking, and prompt-level appearance within the tested prompt set.",
+    "Share of voice reflects the distribution of brand mentions among tracked competitors in this benchmark run.",
     "Scores reflect AI answer visibility, not market share, product performance, customer satisfaction, or broader business performance outcomes.",
     "The output should be interpreted as an AI visibility benchmark, not as a consumer survey, sales performance report, or clinical evaluation.",
-    "Results should be re-run periodically to track whether content and visibility interventions improve AI recall."
+    "Results should be re-run periodically to track whether content and visibility interventions produce stronger benchmark signals over time."
 ]
 
     for note in notes:
