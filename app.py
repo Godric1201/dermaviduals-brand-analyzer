@@ -71,6 +71,11 @@ st.set_page_config(
     layout="wide"
 )
 
+RAW_ANSWER_EVIDENCE_HELP = (
+    "Raw answers are evidence logs for auditability. They may contain "
+    "AI-generated content and should be reviewed before sharing externally."
+)
+
 ANALYSIS_OUTPUT_KEYS = [
     "competitors",
     "prompts",
@@ -1074,8 +1079,6 @@ def display_results():
         )
     )
 
-    benchmark_snapshot_json = serialize_benchmark_snapshot(current_snapshot)
-
     col1, col2, col3, col4, col5, col6 = st.columns(6)
 
     with col1:
@@ -1159,6 +1162,33 @@ def display_results():
         )
 
     with col6:
+        include_raw_answers_in_snapshot = st.checkbox(
+            "Include raw AI answers in Benchmark Snapshot JSON",
+            value=False,
+            help=RAW_ANSWER_EVIDENCE_HELP,
+            key="include_raw_answers_in_benchmark_snapshot",
+        )
+        st.caption(RAW_ANSWER_EVIDENCE_HELP)
+
+        export_snapshot = build_benchmark_snapshot(
+            brand=display_brand,
+            market=display_market,
+            category=display_category,
+            audience=display_audience,
+            report_date=date.today().isoformat(),
+            run_mode=run_mode,
+            prompt_limit=prompt_limit,
+            prompt_count=len(prompts),
+            competitors=competitors,
+            query_intent_categories=prompt_categories,
+            summary_df=summary_df,
+            detailed_df=detailed_df,
+            brand_intelligence=snapshot_brand_intelligence,
+            include_raw_answers=include_raw_answers_in_snapshot,
+            raw_answer_df=raw_answer_df,
+        )
+        benchmark_snapshot_json = serialize_benchmark_snapshot(export_snapshot)
+
         st.download_button(
             label="Download Benchmark Snapshot JSON",
             data=benchmark_snapshot_json.encode("utf-8"),
