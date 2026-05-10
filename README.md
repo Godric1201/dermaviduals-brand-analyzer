@@ -58,6 +58,11 @@ The tool can generate:
 
 ---
 
+
+## Example Output
+
+- [Demo Executive Report](examples/demo-executive-report.md)
+
 ## Key Features
 
 ### AI Recommendation Benchmark
@@ -404,3 +409,4 @@ Planned future improvements:
 - Optional hosted demo version
 - More structured example reports for non-confidential portfolio review
 - Cleaner `src/` package structure for long-term maintainability
+
