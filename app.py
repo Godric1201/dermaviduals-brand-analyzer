@@ -61,6 +61,7 @@ from geo_audit.ui.exports import (
     render_benchmark_snapshot_export,
     render_report_download_exports,
 )
+from geo_audit.ui.raw_answers_panel import render_raw_answers_panel
 
 from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
 from geo_audit.report_generator import (
@@ -812,13 +813,7 @@ def display_results():
     # =========================
     # 10. Raw Answers
     # =========================
-    st.subheader("5. Raw AI Answers / Evidence Log")
-    st.caption("Open each item to inspect the original AI answer used for scoring.")
-
-    for item in raw_answers:
-        with st.expander(f"{item['prompt_category']}"):
-            st.markdown(f"**Prompt:** {item['prompt']}")
-            st.write(item["answer"])
+    render_raw_answers_panel(raw_answers)
 
     # =========================
     # 11. GEO Recommendations
