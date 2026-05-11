@@ -77,6 +77,7 @@ from geo_audit.ui.results_sections import (
     render_query_intent_coverage,
     render_run_input_summary,
     render_run_status_messages,
+    render_top_brands_by_query_type,
     render_trigger_level_visibility,
 )
 
@@ -607,34 +608,11 @@ def display_results():
     # =========================
     # 5. Top Brands per Query Type
     # =========================
-    st.subheader("Top Performing Brands per Query Type")
-    st.caption("This table identifies which brand wins each AI query category based on visibility score.")
-
-    positive_df = detailed_df[detailed_df["visibility_score"] > 0].copy()
-
-    if not positive_df.empty:
-        top_brands = (
-            positive_df.sort_values("visibility_score", ascending=False)
-            .groupby("prompt_category")
-            .first()
-            .reset_index()
-        )
-
-        st.dataframe(
-            replace_target_brand_for_display(
-                format_brand_names_for_display(
-                    top_brands[["prompt_category", "brand", "visibility_score"]]
-                ),
-                raw_brand=brand,
-                display_brand=display_brand
-            ),
-            use_container_width=True
-        )
-    else:
-        top_brands = pd.DataFrame(
-            columns=["prompt_category", "brand", "visibility_score"]
-        )
-        st.warning("No brands received positive visibility scores.")
+    top_brands = render_top_brands_by_query_type(
+        detailed_df=detailed_df,
+        brand=brand,
+        display_brand=display_brand,
+    )
 
     # =========================
     # 6. Why These Brands Win

@@ -3,7 +3,11 @@ import pandas as pd
 import plotly.express as px
 
 from geo_audit.app_constants import TRANSLATIONS
-from geo_audit.ui_formatters import translate_dataframe_columns
+from geo_audit.ui_formatters import (
+    format_brand_names_for_display,
+    replace_target_brand_for_display,
+    translate_dataframe_columns,
+)
 
 
 def render_query_intent_coverage(prompt_categories):
@@ -164,6 +168,49 @@ def render_trigger_level_visibility(detailed_df):
         st.warning("No data available for heatmap.")
 
     return pivot
+
+
+def build_top_brands_by_query_type(detailed_df):
+    positive_df = detailed_df[detailed_df["visibility_score"] > 0].copy()
+
+    if not positive_df.empty:
+        return (
+            positive_df.sort_values("visibility_score", ascending=False)
+            .groupby("prompt_category")
+            .first()
+            .reset_index()
+        )
+
+    return pd.DataFrame(
+        columns=["prompt_category", "brand", "visibility_score"]
+    )
+
+
+def build_top_brands_display_df(top_brands, brand, display_brand):
+    return replace_target_brand_for_display(
+        format_brand_names_for_display(
+            top_brands[["prompt_category", "brand", "visibility_score"]]
+        ),
+        raw_brand=brand,
+        display_brand=display_brand
+    )
+
+
+def render_top_brands_by_query_type(detailed_df, brand, display_brand):
+    st.subheader("Top Performing Brands per Query Type")
+    st.caption("This table identifies which brand wins each AI query category based on visibility score.")
+
+    top_brands = build_top_brands_by_query_type(detailed_df)
+
+    if not top_brands.empty:
+        st.dataframe(
+            build_top_brands_display_df(top_brands, brand, display_brand),
+            use_container_width=True
+        )
+    else:
+        st.warning("No brands received positive visibility scores.")
+
+    return top_brands
 
 
 def build_prompt_level_results_display_df(detailed_display_df):
