@@ -78,8 +78,11 @@ from geo_audit.ui.sidebar_sections import (
     render_page_header,
     render_run_mode_controls,
     render_sidebar_base_inputs,
-    render_sidebar_methodology_info,
     render_sidebar_preset_loader,
+    render_sidebar_report_info,
+    render_sidebar_run_buttons,
+    render_sidebar_validation_messages,
+    render_run_confirmation_flow,
 )
 
 from geo_audit.analyzer import DEFAULT_MODEL
@@ -931,178 +934,30 @@ api_cost_estimate = estimate_api_cost_range(
     DEFAULT_MODEL,
 )
 
-for error in validation_errors:
-    st.sidebar.error(error)
+render_sidebar_validation_messages(validation_errors, validation_warnings)
 
-for warning in validation_warnings:
-    st.sidebar.warning(warning)
+review_button = render_sidebar_run_buttons(t, validation_errors)
 
-review_button = st.sidebar.button(
-    "Review & Run Analysis",
-    disabled=bool(validation_errors)
+render_sidebar_report_info()
+
+render_run_confirmation_flow(
+    review_button=review_button,
+    display_brand=display_brand,
+    display_category=display_category,
+    display_market=display_market,
+    display_audience=display_audience,
+    run_mode=run_mode,
+    prompt_limit=prompt_limit,
+    parsed_user_brand_strengths=parsed_user_brand_strengths,
+    current_competitors=current_competitors,
+    api_cost_estimate=api_cost_estimate,
+    api_call_estimate=api_call_estimate,
+    brand_intelligence_estimated_calls=brand_intelligence_estimated_calls,
+    validation_errors=validation_errors,
+    format_display_text_fn=format_display_text,
+    clear_analysis_results_fn=clear_analysis_results,
+    run_analysis_fn=run_analysis,
 )
-reset_button = st.sidebar.button(t["reset"])
-
-if reset_button:
-    st.session_state.clear()
-    st.rerun()
-
-render_sidebar_methodology_info()
-
-st.sidebar.markdown("""
-### Report Sections
-
-1. Executive Snapshot  
-2. Prompt Matrix  
-3. Competitor Benchmark  
-4. Trigger-Level Heatmap  
-5. Top Brand Winners  
-6. AI Decision Explanation  
-7. Replacement Strategy  
-8. Strategic Insight  
-9. Export Reports  
-""")
-
-with st.expander("How the scoring works"):
-    st.markdown("""
-Visibility scoring uses three signals from AI answers:
-
-1. Brand mentions
-2. First appearance position
-3. Estimated rank
-
-Visibility and share of voice are calculated from discovery prompts only.
-""")
-
-if review_button:
-    st.session_state["pending_run_confirmation"] = True
-
-if st.session_state.get("pending_run_confirmation", False):
-    confirmation_panel = st.empty()
-
-    with confirmation_panel.container():
-        st.info("Confirm this setup before generating the report. This may call the OpenAI API.")
-        st.subheader("Review Analysis Setup")
-        st.write(f"**Target Brand:** {display_brand}")
-        st.write(f"**Category:** {display_category}")
-        st.write(f"**Market:** {display_market}")
-        st.write(f"**Audience:** {display_audience}")
-        st.write(f"**Run Mode:** {run_mode}")
-        st.write("**Brand Intelligence:** Included")
-
-        if run_mode == "Quick Test Mode":
-            st.write(f"**Prompt Limit:** {prompt_limit}")
-
-        if parsed_user_brand_strengths:
-            st.write("**Brand Strengths / Positioning Notes:**")
-            st.write(parsed_user_brand_strengths)
-
-        display_competitors = [
-            format_display_text(competitor)
-            for competitor in current_competitors
-        ]
-        st.write(f"**Competitors:** {len(display_competitors)}")
-        st.write(display_competitors)
-
-        st.markdown("**Approximate API Usage Estimate**")
-        st.write(
-            f"**Estimated AI calls:** ~{api_cost_estimate['estimated_calls']}"
-        )
-        if api_cost_estimate["pricing_available"]:
-            st.write(
-                "**Estimated API cost:** "
-                f"{api_cost_estimate['formatted_cost_range']}"
-            )
-            st.write(
-                "**Pricing assumption:** "
-                f"{api_cost_estimate['pricing_label']}"
-            )
-        else:
-            st.write(
-                "Cost estimate unavailable for this configured model. "
-                "Check current OpenAI API pricing."
-            )
-        st.caption(
-            "Actual billing may vary by model, prompt length, output length, "
-            "and current OpenAI pricing."
-        )
-
-        with st.expander("View API call breakdown", expanded=False):
-            st.write(
-                "**Effective prompts to run:** "
-                f"{api_call_estimate['effective_prompt_count']}"
-            )
-            st.write(
-                "**Estimated initial API calls:** "
-                f"{api_call_estimate['estimated_pipeline_calls']}"
-            )
-            st.write(
-                "**Brand Intelligence calls:** "
-                f"{brand_intelligence_estimated_calls}"
-            )
-            st.write(
-                "**GEO Content Roadmap call:** "
-                f"{api_call_estimate['geo_content_roadmap_calls']}"
-            )
-            st.write(
-                "**Additional narrative calls:** up to "
-                f"{api_call_estimate['auto_result_narrative_calls_estimate']}"
-            )
-            st.write(f"**Fixed prompts:** {api_call_estimate['fixed_prompt_count']}")
-            st.write(
-                "**AI-generated prompts estimate:** "
-                f"{api_call_estimate['ai_generated_prompt_estimate']}"
-            )
-            st.write(
-                "**AI answer generation calls:** "
-                f"{api_call_estimate['ai_answer_generation_calls']}"
-            )
-            st.write(
-                "**Prompt generation call:** "
-                f"{api_call_estimate['prompt_generation_calls']}"
-            )
-            st.write(
-                "**Recommendation call:** "
-                f"{api_call_estimate['recommendation_calls']}"
-            )
-            st.write(
-                "**Strategy report call:** "
-                f"{api_call_estimate['strategy_report_calls']}"
-            )
-            st.write(
-                "**GEO Content Roadmap call:** "
-                f"{api_call_estimate['geo_content_roadmap_calls']}"
-            )
-            st.caption(
-                "Content Asset Generator calls are excluded until the user explicitly "
-                "generates a content pack."
-            )
-
-        col_confirm, col_cancel = st.columns(2)
-
-        with col_confirm:
-            confirm_run = st.button("Confirm & Run")
-
-        with col_cancel:
-            cancel_run = st.button("Cancel")
-
-    if confirm_run:
-        if validation_errors:
-            for error in validation_errors:
-                st.error(error)
-        else:
-            st.session_state["pending_run_confirmation"] = False
-            confirmation_panel.empty()
-            st.session_state["analysis_running"] = True
-            try:
-                clear_analysis_results()
-                run_analysis()
-            finally:
-                st.session_state["analysis_running"] = False
-
-    if cancel_run:
-        st.session_state["pending_run_confirmation"] = False
-        st.rerun()
 
 if st.session_state.get("analysis_done", False):
     display_results()
