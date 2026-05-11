@@ -67,9 +67,13 @@ from geo_audit.ui.results_sections import (
     render_action_plan,
     render_competitive_benchmark,
     render_executive_snapshot,
+    render_geo_content_roadmap,
+    render_geo_recommendations,
     render_prompt_level_results,
     render_prompt_matrix,
     render_query_intent_coverage,
+    render_run_input_summary,
+    render_run_status_messages,
 )
 
 from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
@@ -550,30 +554,21 @@ def display_results():
             "Development-only limited-prompt output. Not client-deliverable."
         )
 
-    st.success(t["complete"])
-
     stored_context = st.session_state.get("analysis_context")
-    if stored_context and stored_context != current_analysis_context:
-        st.warning(
-            "Sidebar inputs have changed since this analysis was generated. "
-            "Run the analysis again to refresh results."
-        )
+    render_run_status_messages(
+        t=t,
+        stored_context=stored_context,
+        current_analysis_context=current_analysis_context,
+        is_quick_test_mode=is_quick_test_mode,
+        prompt_limit=prompt_limit,
+    )
 
-    if is_quick_test_mode:
-        prompt_word = "prompt" if prompt_limit == 1 else "prompts"
-        st.warning(
-            f"TEST VERSION ONLY - Quick Test Mode: this report used only {prompt_limit} {prompt_word} "
-            "and is for development only. Not client-deliverable."
-        )
-
-    st.write("**Configured Competitors:**")
-    st.write(", ".join(competitors))
-
-    if show_prompt_debug:
-        with st.expander("AI Generated Prompts Debug", expanded=False):
-            st.write(ai_prompts)
-
-    st.write(f"Total prompts: {len(prompts)}")
+    render_run_input_summary(
+        competitors=competitors,
+        prompts=prompts,
+        show_prompt_debug=show_prompt_debug,
+        ai_prompts=ai_prompts,
+    )
 
     render_api_usage_summary(api_usage_summary)
 
@@ -781,8 +776,7 @@ def display_results():
     # =========================
     # 11. GEO Recommendations
     # =========================
-    with st.expander(t["recommendations"], expanded=False):
-        st.write(recommendations)
+    render_geo_recommendations(t, recommendations)
 
     # =========================
     # 12. AI Association Gap
@@ -818,12 +812,10 @@ def display_results():
 
         render_brand_intelligence_panel(brand_intelligence)
 
-    if st.session_state.get("geo_content_roadmap_done", False):
-        st.subheader("GEO Content Roadmap")
-        st.caption(
-            "Strategic execution plan. Not part of visibility scoring or share of voice."
-        )
-        st.markdown(st.session_state["geo_content_roadmap"])
+    render_geo_content_roadmap(
+        st.session_state.get("geo_content_roadmap_done", False),
+        st.session_state.get("geo_content_roadmap"),
+    )
 
     # =========================
     # 13. Level 3 Strategic Insight

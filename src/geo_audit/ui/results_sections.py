@@ -13,6 +13,45 @@ def render_query_intent_coverage(prompt_categories):
     st.write(prompt_categories)
 
 
+def render_run_status_messages(
+    t,
+    stored_context,
+    current_analysis_context,
+    is_quick_test_mode,
+    prompt_limit,
+):
+    st.success(t["complete"])
+
+    if stored_context and stored_context != current_analysis_context:
+        st.warning(
+            "Sidebar inputs have changed since this analysis was generated. "
+            "Run the analysis again to refresh results."
+        )
+
+    if is_quick_test_mode:
+        prompt_word = "prompt" if prompt_limit == 1 else "prompts"
+        st.warning(
+            f"TEST VERSION ONLY - Quick Test Mode: this report used only {prompt_limit} {prompt_word} "
+            "and is for development only. Not client-deliverable."
+        )
+
+
+def render_run_input_summary(
+    competitors,
+    prompts,
+    show_prompt_debug,
+    ai_prompts,
+):
+    st.write("**Configured Competitors:**")
+    st.write(", ".join(competitors))
+
+    if show_prompt_debug:
+        with st.expander("AI Generated Prompts Debug", expanded=False):
+            st.write(ai_prompts)
+
+    st.write(f"Total prompts: {len(prompts)}")
+
+
 def build_executive_snapshot_metrics(summary_df, detailed_df, brand):
     target_detailed = detailed_df[
         detailed_df["brand"].str.lower() == brand.lower()
@@ -107,3 +146,17 @@ def render_prompt_level_results(t, detailed_display_df):
 def render_action_plan(t, plan):
     st.subheader(t["action_plan"])
     st.markdown(plan)
+
+
+def render_geo_recommendations(t, recommendations):
+    with st.expander(t["recommendations"], expanded=False):
+        st.write(recommendations)
+
+
+def render_geo_content_roadmap(geo_content_roadmap_done, geo_content_roadmap):
+    if geo_content_roadmap_done:
+        st.subheader("GEO Content Roadmap")
+        st.caption(
+            "Strategic execution plan. Not part of visibility scoring or share of voice."
+        )
+        st.markdown(geo_content_roadmap)
