@@ -28,7 +28,6 @@ from geo_audit.brand_intelligence_prompts import (
 from geo_audit.benchmark_snapshot import (
     build_benchmark_snapshot,
 )
-from geo_audit.competitor_suggestions import suggest_competitors_with_ai
 from geo_audit.geo_roadmap import generate_geo_content_roadmap
 from geo_audit.prompts import build_fixed_prompts
 from geo_audit.run_progress import (
@@ -75,7 +74,11 @@ from geo_audit.ui.results_sections import (
 )
 from geo_audit.ui.sidebar_sections import (
     render_advanced_developer_options,
+    render_brand_strengths_input,
+    render_brand_strengths_summary,
+    render_competitor_discovery_section,
     render_page_header,
+    render_prompt_mode_label,
     render_run_mode_controls,
     render_sidebar_base_inputs,
     render_sidebar_preset_loader,
@@ -804,78 +807,29 @@ competitor_suggestions_context = build_competitor_suggestions_context(
     target_market,
     target_audience,
 )
-stored_suggestions_context = st.session_state.get(
-    "competitor_suggestions_context"
+render_competitor_discovery_section(
+    target_brand=target_brand,
+    target_category=target_category,
+    target_market=target_market,
+    target_audience=target_audience,
+    parsed_competitors=parsed_competitors,
+    competitor_suggestions_context=competitor_suggestions_context,
+    answer_language=ANSWER_LANGUAGE,
+    clear_competitor_suggestions_fn=clear_competitor_suggestions,
+    clear_competitor_suggestion_selections_fn=clear_competitor_suggestion_selections,
+    get_competitor_suggestion_checkbox_key_fn=get_competitor_suggestion_checkbox_key,
+    add_selected_competitor_suggestions_fn=add_selected_competitor_suggestions,
 )
 
-if (
-    stored_suggestions_context
-    and stored_suggestions_context != competitor_suggestions_context
-):
-    clear_competitor_suggestions()
-
-required_competitor_context_exists = all(
-    competitor_suggestions_context.values()
-)
-
-st.sidebar.markdown("**Competitor Discovery**")
-find_competitors = st.sidebar.button(
-    "Find AI-suggested competitors",
-    disabled=not required_competitor_context_exists
-)
-
-if find_competitors:
-    with st.spinner("Finding relevant competitors..."):
-        suggestions = suggest_competitors_with_ai(
-            brand=target_brand,
-            category=target_category,
-            market=target_market,
-            audience=target_audience,
-            existing_competitors=parsed_competitors,
-            max_suggestions=8,
-            answer_language=ANSWER_LANGUAGE,
-        )
-
-    st.session_state["competitor_suggestions"] = suggestions
-    st.session_state["competitor_suggestions_context"] = (
-        competitor_suggestions_context
-    )
-    clear_competitor_suggestion_selections()
-
-suggestions = st.session_state.get("competitor_suggestions", [])
-if suggestions:
-    for index, suggestion in enumerate(suggestions):
-        st.sidebar.checkbox(
-            suggestion,
-            key=get_competitor_suggestion_checkbox_key(index)
-        )
-
-    st.sidebar.button(
-        "Add selected competitors",
-        on_click=add_selected_competitor_suggestions
-    )
-elif find_competitors:
-    st.sidebar.info("No new competitor suggestions found.")
-
-brand_strengths_text = st.sidebar.text_area(
-    "Brand Strengths / Positioning Notes",
-    help=(
-        "Optional. Enter one strength, proof point, or positioning note per line. "
-        "These notes are not used for visibility scoring."
-    ),
-    key="brand_strengths_input"
-)
+brand_strengths_text = render_brand_strengths_input()
 display_brand = format_display_text(target_brand)
 display_category = format_display_text(target_category)
 display_market = format_display_text(target_market)
 display_audience = format_display_text(target_audience)
 
 parsed_user_brand_strengths = parse_user_brand_strengths(brand_strengths_text)
-if parsed_user_brand_strengths:
-    st.sidebar.caption(f"Brand strengths / notes: {len(parsed_user_brand_strengths)}")
-    st.sidebar.write(parsed_user_brand_strengths)
-
-st.sidebar.write("**Prompt Mode:** Fixed + AI Generated")
+render_brand_strengths_summary(parsed_user_brand_strengths)
+render_prompt_mode_label()
 
 show_prompt_debug = render_advanced_developer_options()
 

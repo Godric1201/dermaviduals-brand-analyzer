@@ -1,5 +1,7 @@
 import streamlit as st
 
+from geo_audit.competitor_suggestions import suggest_competitors_with_ai
+
 
 def render_sidebar_preset_loader(client_presets):
     st.sidebar.header("Analysis Setup")
@@ -67,6 +69,94 @@ def render_sidebar_base_inputs(
         target_audience,
         competitors_text,
     )
+
+
+def render_competitor_discovery_section(
+    target_brand,
+    target_category,
+    target_market,
+    target_audience,
+    parsed_competitors,
+    competitor_suggestions_context,
+    answer_language,
+    clear_competitor_suggestions_fn,
+    clear_competitor_suggestion_selections_fn,
+    get_competitor_suggestion_checkbox_key_fn,
+    add_selected_competitor_suggestions_fn,
+):
+    stored_suggestions_context = st.session_state.get(
+        "competitor_suggestions_context"
+    )
+
+    if (
+        stored_suggestions_context
+        and stored_suggestions_context != competitor_suggestions_context
+    ):
+        clear_competitor_suggestions_fn()
+
+    required_competitor_context_exists = all(
+        competitor_suggestions_context.values()
+    )
+
+    st.sidebar.markdown("**Competitor Discovery**")
+    find_competitors = st.sidebar.button(
+        "Find AI-suggested competitors",
+        disabled=not required_competitor_context_exists
+    )
+
+    if find_competitors:
+        with st.spinner("Finding relevant competitors..."):
+            suggestions = suggest_competitors_with_ai(
+                brand=target_brand,
+                category=target_category,
+                market=target_market,
+                audience=target_audience,
+                existing_competitors=parsed_competitors,
+                max_suggestions=8,
+                answer_language=answer_language,
+            )
+
+        st.session_state["competitor_suggestions"] = suggestions
+        st.session_state["competitor_suggestions_context"] = (
+            competitor_suggestions_context
+        )
+        clear_competitor_suggestion_selections_fn()
+
+    suggestions = st.session_state.get("competitor_suggestions", [])
+    if suggestions:
+        for index, suggestion in enumerate(suggestions):
+            st.sidebar.checkbox(
+                suggestion,
+                key=get_competitor_suggestion_checkbox_key_fn(index)
+            )
+
+        st.sidebar.button(
+            "Add selected competitors",
+            on_click=add_selected_competitor_suggestions_fn
+        )
+    elif find_competitors:
+        st.sidebar.info("No new competitor suggestions found.")
+
+
+def render_brand_strengths_input():
+    return st.sidebar.text_area(
+        "Brand Strengths / Positioning Notes",
+        help=(
+            "Optional. Enter one strength, proof point, or positioning note per line. "
+            "These notes are not used for visibility scoring."
+        ),
+        key="brand_strengths_input"
+    )
+
+
+def render_brand_strengths_summary(parsed_user_brand_strengths):
+    if parsed_user_brand_strengths:
+        st.sidebar.caption(f"Brand strengths / notes: {len(parsed_user_brand_strengths)}")
+        st.sidebar.write(parsed_user_brand_strengths)
+
+
+def render_prompt_mode_label():
+    st.sidebar.write("**Prompt Mode:** Fixed + AI Generated")
 
 
 def render_page_header(display_brand, display_market, display_category):
