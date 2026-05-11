@@ -421,6 +421,7 @@ Scores reflect AI answer visibility, not market share, sales performance, custom
 
 For more detail, see:
 
+- [Methodology](docs/methodology.md)
 - [Usage Guide](docs/usage-guide.md)
 - [Output Examples](docs/output-examples.md)
 - [Report Style Guide](docs/report-style-guide.md)
