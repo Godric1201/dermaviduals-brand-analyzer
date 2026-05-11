@@ -3,6 +3,15 @@ import pandas as pd
 from geo_audit.report_diagnosis import (
     ASSOCIATION_GROWTH_STRATEGY,
     CATEGORY_OWNERSHIP_STRATEGY,
+    RELIABILITY_DIRECTIONAL,
+    RELIABILITY_EXPLORATORY,
+    RELIABILITY_INSUFFICIENT,
+    RELIABILITY_STRONG,
+    RETRIEVAL_ROLE_COMPARISON,
+    RETRIEVAL_ROLE_LOCAL,
+    RETRIEVAL_ROLE_TECHNICAL,
+    RETRIEVAL_ROLE_TRUST,
+    RETRIEVAL_ROLE_UNCLEAR,
     EVIDENCE_TAXONOMY,
     FIRST_DETECTION_STRATEGY,
     VISIBILITY_CATEGORY_ANCHOR,
@@ -11,11 +20,15 @@ from geo_audit.report_diagnosis import (
     VISIBILITY_PARTIALLY_VISIBLE,
     VISIBILITY_WEAKLY_DETECTED,
     VisibilityMetrics,
+    build_first_three_evidence_assets,
     build_evidence_gap_map,
     build_first_detection_task_roadmap,
+    build_retrieved_brand_profiles,
     build_market_relevance_interpretation,
     build_validation_plan,
     build_visible_reference_brands,
+    classify_benchmark_reliability,
+    classify_retrieval_role,
     classify_visibility_state,
     format_reference_brand_names,
     get_target_visibility_metrics,
@@ -178,6 +191,84 @@ def test_market_relevance_interpretation_uses_natural_two_brand_list():
     assert "dedicated market-relevance probes" in interpretation
 
 
+def test_benchmark_reliability_uses_conservative_labels():
+    assert classify_benchmark_reliability(
+        run_mode="Full Report Mode",
+        prompt_categories=["Best Options"],
+        reference_brands=[],
+    )["label"] == RELIABILITY_INSUFFICIENT
+
+    assert classify_benchmark_reliability(
+        run_mode="Quick Test Mode",
+        prompt_categories=["Best Options"],
+        reference_brands=[{"Brand": "Reference Brand"}],
+    )["label"] == RELIABILITY_EXPLORATORY
+
+    directional = classify_benchmark_reliability(
+        run_mode="Full Report Mode",
+        prompt_categories=["Best Options", "Local Recommendations"],
+        reference_brands=[{"Brand": "Reference Brand"}, {"Brand": "Second Brand"}],
+    )
+    assert directional["label"] == RELIABILITY_DIRECTIONAL
+    assert directional["label"] != RELIABILITY_STRONG
+
+
+def test_retrieval_role_classification_uses_prompt_signals():
+    assert classify_retrieval_role(
+        prompt_categories=["Alternatives and comparison prompts"]
+    ) == RETRIEVAL_ROLE_COMPARISON
+    assert classify_retrieval_role(
+        prompt_categories=["Local Recommendations"]
+    ) == RETRIEVAL_ROLE_LOCAL
+    assert classify_retrieval_role(
+        prompt_categories=["Technical infrastructure providers"]
+    ) == RETRIEVAL_ROLE_TECHNICAL
+    assert classify_retrieval_role(
+        prompt_categories=["Best premium enterprise options"]
+    ) == RETRIEVAL_ROLE_TRUST
+    assert classify_retrieval_role(
+        prompt_categories=["General prompts"]
+    ) == RETRIEVAL_ROLE_UNCLEAR
+
+
+def test_retrieved_brand_profiles_are_cautious_and_structured():
+    summary_df = pd.DataFrame([
+        {
+            "brand": "Target Brand",
+            "total_mentions": 0,
+            "average_visibility_score": 0,
+            "prompts_visible": 0,
+            "share_of_voice_percent": 0,
+        },
+        {
+            "brand": "Global Reference",
+            "total_mentions": 18,
+            "average_visibility_score": 75,
+            "prompts_visible": 6,
+            "share_of_voice_percent": 45,
+        },
+    ])
+    top_brands_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Global Reference",
+            "visibility_score": 75,
+        }
+    ])
+
+    profiles = build_retrieved_brand_profiles(
+        summary_df,
+        "Target Brand",
+        top_brands_df=top_brands_df,
+    )
+
+    assert profiles[0]["brand"] == "Global Reference"
+    assert profiles[0]["competitor_tier"] == "Category anchor"
+    assert profiles[0]["retrieval_role"] == RETRIEVAL_ROLE_TRUST
+    assert "Based on this benchmark" in profiles[0]["inferred_reason"]
+    assert "requires validation" in profiles[0]["required_validation"]
+
+
 def test_evidence_gap_map_and_task_roadmap_are_actionable():
     gaps = build_evidence_gap_map(
         "Target Brand",
@@ -211,6 +302,43 @@ def test_evidence_gap_map_and_task_roadmap_are_actionable():
         assert row["Expected Influence"]
         assert "create more content" not in row["Action"].lower()
         assert "improve brand marketing" not in row["Action"].lower()
+
+
+def test_first_three_evidence_assets_prioritize_entity_and_market_gaps():
+    assets = build_first_three_evidence_assets(
+        brand="Target Brand",
+        category="reinsurance",
+        market="Taiwan and Asia-Pacific",
+        audience="enterprise buyers",
+        reference_brands=[{"Brand": "Munich Re"}],
+        retrieved_brand_profiles=[{
+            "retrieval_role": RETRIEVAL_ROLE_COMPARISON,
+        }],
+        brand_understanding=None,
+        market_relevance={
+            "market_lock_status": "Global-default risk",
+            "local_brand_presence_signal": "Weak",
+        },
+        prompt_categories=["Best Options", "Local Recommendations"],
+    )
+
+    assert len(assets) == 3
+    assert assets[0]["asset_name"].startswith("Canonical Target Brand")
+    assert "market relevance" in assets[1]["asset_name"].lower()
+    assert assets[2]["asset_name"] == "Comparison and alternatives evidence"
+
+    for asset in assets:
+        assert asset["priority"]
+        assert asset["asset_name"]
+        assert asset["what_to_build"]
+        assert asset["why_it_matters"]
+        assert asset["target_retrieval_driver"]
+        assert asset["targets_or_prompt_groups"]
+        assert asset["validation"]
+        combined = " ".join(str(value).lower() for value in asset.values())
+        assert "improve marketing" not in combined
+        assert "create more content" not in combined
+        assert "get more reviews" not in combined
 
 
 def test_validation_plan_defines_first_measurable_inclusion_without_timeline_promise():
