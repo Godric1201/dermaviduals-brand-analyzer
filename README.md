@@ -60,7 +60,7 @@ It measures:
 
 ## Example Output
 
-The app can generate:
+The app produces report-ready benchmark outputs in Full Report Mode, including:
 
 - Executive Snapshot
 - Competitive Benchmark
@@ -75,11 +75,11 @@ The app can generate:
 - Benchmark snapshot JSON
 - Snapshot comparison outputs
 
-Example report:
+Public example materials:
 
-- [Demo Executive Report](examples/demo-executive-report.md)
-
-> Recommended: add at least one full report example under `examples/` and include screenshots of the benchmark tables, trigger-level visibility view, and export panel.
+- [Demo Executive Report](examples/demo-executive-report.md): anonymized, condensed Full Report Mode-style output for portfolio review. It is not live client data and not a Quick Test Mode result.
+- [Output Examples](docs/output-examples.md): overview of generated report sections and benchmark artifacts.
+- [Methodology](docs/methodology.md): scoring approach, benchmark assumptions, and interpretation guidance.
 
 ---
 
@@ -535,10 +535,4 @@ The tool is usable locally, includes a regression test suite, and can generate c
 
 ## License
 
-Add your project license here.
-
-Recommended options:
-
-- MIT License for maximum open-source reuse
-- Apache 2.0 if you want explicit patent language
-- No license if you do not want others to freely reuse the code yet
+No open-source license file is currently included. Until a license is added, all rights are reserved by default.
