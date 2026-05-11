@@ -63,6 +63,7 @@ from geo_audit.ui.exports import (
     render_report_download_exports,
 )
 from geo_audit.ui.raw_answers_panel import render_raw_answers_panel
+from geo_audit.ui.results_sections import render_query_intent_coverage
 
 from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
 from geo_audit.report_generator import (
@@ -569,11 +570,7 @@ def display_results():
 
     render_api_usage_summary(api_usage_summary)
 
-    st.subheader("Query Intent Coverage")
-    st.caption(
-        "This benchmark covers multiple AI recommendation contexts, not only generic best-brand queries."
-    )
-    st.write(prompt_categories)
+    render_query_intent_coverage(prompt_categories)
 
     # =========================
     # 1. Executive Snapshot
