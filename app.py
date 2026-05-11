@@ -65,6 +65,7 @@ from geo_audit.ui.exports import (
 from geo_audit.ui.raw_answers_panel import render_raw_answers_panel
 from geo_audit.ui.results_sections import (
     render_executive_snapshot,
+    render_prompt_matrix,
     render_query_intent_coverage,
 )
 
@@ -589,12 +590,7 @@ def display_results():
     # =========================
     # 2. Prompts
     # =========================
-    st.subheader(t["prompts"])
-    prompt_table = pd.DataFrame(prompts)
-    st.dataframe(
-        translate_dataframe_columns(prompt_table),
-        use_container_width=True
-    )
+    render_prompt_matrix(prompts)
 
     # =========================
     # 3. Competitor Benchmark

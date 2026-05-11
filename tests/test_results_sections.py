@@ -1,6 +1,9 @@
 import pandas as pd
 
-from geo_audit.ui.results_sections import build_executive_snapshot_metrics
+from geo_audit.ui.results_sections import (
+    build_executive_snapshot_metrics,
+    build_prompt_matrix_display_df,
+)
 
 
 def test_build_executive_snapshot_metrics_finds_target_brand():
@@ -106,3 +109,40 @@ def test_build_executive_snapshot_metrics_uses_zero_for_nan_organic_score():
 
     assert metrics["target_found"] is True
     assert metrics["organic_score"] == 0
+
+
+def test_build_prompt_matrix_display_df_translates_expected_columns():
+    display_df = build_prompt_matrix_display_df([
+        {
+            "category": "Best Options",
+            "prompt_category": "Local Recommendations",
+            "prompt": "Which cafes are best for remote work?",
+        }
+    ])
+
+    assert list(display_df.columns) == [
+        "Category",
+        "Prompt Category",
+        "Prompt",
+    ]
+
+
+def test_build_prompt_matrix_display_df_handles_empty_prompt_list():
+    display_df = build_prompt_matrix_display_df([])
+
+    assert display_df.empty
+    assert list(display_df.columns) == []
+
+
+def test_build_prompt_matrix_display_df_preserves_prompt_values():
+    display_df = build_prompt_matrix_display_df([
+        {
+            "category": "Best Options",
+            "prompt_category": "Local Recommendations",
+            "prompt": "Which cafes are best for remote work?",
+        }
+    ])
+
+    assert display_df.iloc[0]["Category"] == "Best Options"
+    assert display_df.iloc[0]["Prompt Category"] == "Local Recommendations"
+    assert display_df.iloc[0]["Prompt"] == "Which cafes are best for remote work?"

@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 
+from geo_audit.app_constants import TRANSLATIONS
+from geo_audit.ui_formatters import translate_dataframe_columns
+
 
 def render_query_intent_coverage(prompt_categories):
     st.subheader("Query Intent Coverage")
@@ -62,3 +65,16 @@ def render_executive_snapshot(t, summary_df, detailed_df, brand, prompt_count):
         )
     else:
         st.warning(f"{brand} was not detected in the AI answers.")
+
+
+def build_prompt_matrix_display_df(prompts):
+    prompt_table = pd.DataFrame(prompts)
+    return translate_dataframe_columns(prompt_table)
+
+
+def render_prompt_matrix(prompts):
+    st.subheader(TRANSLATIONS["prompts"])
+    st.dataframe(
+        build_prompt_matrix_display_df(prompts),
+        use_container_width=True
+    )
