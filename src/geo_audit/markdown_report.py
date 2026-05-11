@@ -19,6 +19,13 @@ from .output_quality import (
     sanitize_report_text,
     validate_output_quality,
 )
+from .brand_understanding import (
+    STATUS_CLEAR,
+    STATUS_MISALIGNED,
+    STATUS_PARTIAL,
+    STATUS_UNCLEAR,
+    STATUS_NOT_ENOUGH_EVIDENCE,
+)
 from .report_diagnosis import (
     build_evidence_gap_map,
     build_first_detection_task_roadmap,
@@ -84,6 +91,137 @@ def _build_methodology_notes_md(category, prompt_categories):
     return "\n".join(notes)
 
 
+def _get_probe_field(brand_understanding, field, default=""):
+    if brand_understanding is None:
+        return default
+
+    if isinstance(brand_understanding, dict):
+        return brand_understanding.get(field, default)
+
+    return getattr(brand_understanding, field, default)
+
+
+def _build_brand_understanding_probe_md(brand_understanding, display_brand):
+    if not brand_understanding:
+        return ""
+
+    brand_known_status = _get_probe_field(
+        brand_understanding,
+        "brand_known_status",
+        STATUS_NOT_ENOUGH_EVIDENCE,
+    )
+    category_alignment = _get_probe_field(
+        brand_understanding,
+        "category_alignment",
+        STATUS_NOT_ENOUGH_EVIDENCE,
+    )
+    market_alignment = _get_probe_field(
+        brand_understanding,
+        "market_alignment",
+        STATUS_NOT_ENOUGH_EVIDENCE,
+    )
+    audience_alignment = _get_probe_field(
+        brand_understanding,
+        "audience_alignment",
+        STATUS_NOT_ENOUGH_EVIDENCE,
+    )
+    recommended_interpretation = _get_probe_field(
+        brand_understanding,
+        "recommended_interpretation",
+        "Mixed diagnosis",
+    )
+    diagnosis_summary = _get_probe_field(
+        brand_understanding,
+        "diagnosis_summary",
+        "",
+    )
+    validation_note = _get_probe_field(
+        brand_understanding,
+        "validation_note",
+        "AI-inferred brand understanding probe. Validate before using as client-facing fact.",
+    )
+    misaligned_fields = [
+        label
+        for label, value in [
+            ("category", category_alignment),
+            ("market", market_alignment),
+            ("audience", audience_alignment),
+        ]
+        if value == STATUS_MISALIGNED
+    ]
+    if len(misaligned_fields) == 1:
+        misaligned_context = f"{misaligned_fields[0]} context"
+    elif len(misaligned_fields) == 2:
+        misaligned_context = (
+            f"{misaligned_fields[0]} and {misaligned_fields[1]} contexts"
+        )
+    else:
+        misaligned_context = (
+            f"{', '.join(misaligned_fields[:-1])}, and {misaligned_fields[-1]} contexts"
+            if misaligned_fields
+            else ""
+        )
+
+    if misaligned_fields:
+        interpretation = (
+            "AI-inferred alignment signals suggest the non-visibility may reflect "
+            f"an alignment problem in {misaligned_context}, not only a lack of evidence. "
+            "This requires validation before being treated as fact."
+        )
+    elif brand_known_status in {STATUS_CLEAR, STATUS_PARTIAL}:
+        interpretation = (
+            f"The AI-inferred probe suggests {display_brand} appears to be recognized at least partially. "
+            "Because the benchmark still recorded zero recommendation visibility, the issue appears more likely "
+            "to involve recommendation retrieval, evidence depth, or market relevance than basic brand recognition. "
+            "This requires validation."
+        )
+    elif brand_known_status in {STATUS_UNCLEAR, STATUS_NOT_ENOUGH_EVIDENCE}:
+        interpretation = (
+            "The AI-inferred probe did not provide enough confidence that the model understands the brand as a clear entity. "
+            "Treat the zero-visibility result as a possible entity understanding gap until validated."
+        )
+    else:
+        interpretation = (
+            "The AI-inferred probe is inconclusive. Treat the visibility diagnosis as provisional and validate before acting on it."
+        )
+
+    probe_rows = [
+        {
+            "Probe Signal": "Brand understanding",
+            "AI-Inferred Result": brand_known_status,
+        },
+        {
+            "Probe Signal": "Category alignment",
+            "AI-Inferred Result": category_alignment,
+        },
+        {
+            "Probe Signal": "Market alignment",
+            "AI-Inferred Result": market_alignment,
+        },
+        {
+            "Probe Signal": "Audience alignment",
+            "AI-Inferred Result": audience_alignment,
+        },
+        {
+            "Probe Signal": "Recommended interpretation",
+            "AI-Inferred Result": recommended_interpretation,
+        },
+    ]
+
+    body = (
+        "### Brand Understanding Probe\n\n"
+        f"{interpretation}\n\n"
+        f"{df_to_markdown_table(pd.DataFrame(probe_rows), max_rows=10)}"
+    )
+
+    if diagnosis_summary:
+        body += f"\n\n**Probe summary:** {diagnosis_summary}"
+
+    body += f"\n\n_{validation_note}_"
+
+    return body
+
+
 def _build_zero_visibility_markdown_report(
     *,
     display_brand,
@@ -106,6 +244,8 @@ def _build_zero_visibility_markdown_report(
     top_brands_report_md,
     summary_df,
     brand,
+    brand_understanding=None,
+    brand_understanding_done=False,
 ):
     query_intent_md = "\n".join(
         f"- {item}" for item in prompt_categories
@@ -145,6 +285,19 @@ def _build_zero_visibility_markdown_report(
         pd.DataFrame(build_validation_plan(prompt_categories)),
         max_rows=10,
     )
+    brand_understanding_probe_md = (
+        _build_brand_understanding_probe_md(
+            brand_understanding,
+            display_brand,
+        )
+        if brand_understanding_done
+        else ""
+    )
+    brand_understanding_probe_section = (
+        f"{brand_understanding_probe_md}\n\n"
+        if brand_understanding_probe_md
+        else ""
+    )
 
     return [
         f"# {display_brand} {display_market} AI Visibility Diagnosis Report",
@@ -171,6 +324,7 @@ def _build_zero_visibility_markdown_report(
             f"{target_mentions} total mentions, {target_prompts_visible} prompts visible, "
             f"{target_avg_score} average visibility, and {target_sov}% share of voice.\n\n"
             "This result does not prove that the model has no knowledge of the brand. It means the brand was not retrieved for the tested category, market, use-case, comparison, or decision-stage prompts.\n\n"
+            f"{brand_understanding_probe_section}"
             "The first objective is first measurable inclusion: getting the brand into the AI candidate set for relevant category, market, and use-case prompts. Share-of-voice growth is not the first objective until the brand is detected in relevant answers."
         ),
         (
@@ -233,6 +387,8 @@ def build_executive_markdown_report(
     replacement_strategy=None,
     brand_intelligence=None,
     brand_intelligence_done=False,
+    brand_understanding=None,
+    brand_understanding_done=False,
     geo_content_roadmap=None,
     geo_content_roadmap_done=False,
     prompt_categories=None,
@@ -400,6 +556,8 @@ def build_executive_markdown_report(
             top_brands_report_md=top_brands_report_md,
             summary_df=summary_df,
             brand=brand,
+            brand_understanding=brand_understanding,
+            brand_understanding_done=brand_understanding_done,
         )
         final_report = "\n\n---\n\n".join(parts)
         final_report = sanitize_report_text(final_report, context)

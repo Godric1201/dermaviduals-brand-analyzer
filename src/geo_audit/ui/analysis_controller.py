@@ -2,6 +2,7 @@ import streamlit as st
 
 from geo_audit.analysis_pipeline import run_visibility_analysis
 from geo_audit.brand_intelligence import run_brand_intelligence_analysis
+from geo_audit.brand_understanding import run_brand_understanding_probe
 from geo_audit.geo_roadmap import generate_geo_content_roadmap
 from geo_audit.prompts import build_fixed_prompts
 from geo_audit.run_progress import (
@@ -55,6 +56,7 @@ def run_analysis_controller(
     market = target_market
     audience = target_audience
     language = answer_language
+    is_full_report_mode = run_mode == "Full Report Mode"
     fixed_prompts = build_fixed_prompts(
         category=category,
         market=market,
@@ -105,6 +107,21 @@ def run_analysis_controller(
 
     try:
         set_progress_phase(1)
+        if is_full_report_mode:
+            set_progress_phase(1, "Brand Understanding Probe")
+            brand_understanding_result = run_brand_understanding_probe(
+                brand=brand,
+                category=category,
+                market=market,
+                audience=audience,
+                report_language=report_language,
+            )
+            st.session_state["brand_understanding"] = brand_understanding_result
+            st.session_state["brand_understanding_done"] = True
+        else:
+            st.session_state.pop("brand_understanding", None)
+            st.session_state["brand_understanding_done"] = False
+
         set_progress_phase(2)
 
         with st.spinner(translations["running"]):
