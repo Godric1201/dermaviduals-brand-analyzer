@@ -78,3 +78,15 @@ def render_prompt_matrix(prompts):
         build_prompt_matrix_display_df(prompts),
         use_container_width=True
     )
+
+
+def build_competitive_benchmark_display_df(summary_display_df):
+    return translate_dataframe_columns(summary_display_df)
+
+
+def render_competitive_benchmark(t, summary_display_df):
+    st.subheader(t["benchmark"])
+    st.dataframe(
+        build_competitive_benchmark_display_df(summary_display_df),
+        use_container_width=True
+    )

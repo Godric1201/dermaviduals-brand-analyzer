@@ -1,6 +1,7 @@
 import pandas as pd
 
 from geo_audit.ui.results_sections import (
+    build_competitive_benchmark_display_df,
     build_executive_snapshot_metrics,
     build_prompt_matrix_display_df,
 )
@@ -146,3 +147,35 @@ def test_build_prompt_matrix_display_df_preserves_prompt_values():
     assert display_df.iloc[0]["Category"] == "Best Options"
     assert display_df.iloc[0]["Prompt Category"] == "Local Recommendations"
     assert display_df.iloc[0]["Prompt"] == "Which cafes are best for remote work?"
+
+
+def test_build_competitive_benchmark_display_df_translates_columns():
+    summary_display_df = pd.DataFrame([
+        {
+            "brand": "Espresso House",
+            "total_mentions": 3,
+            "average_visibility_score": 1.5,
+            "share_of_voice_percent": 42.5,
+        }
+    ])
+
+    display_df = build_competitive_benchmark_display_df(summary_display_df)
+
+    assert list(display_df.columns) == [
+        "Brand",
+        "Total Mentions",
+        "Average Visibility Score",
+        "Share of Voice %",
+    ]
+    assert display_df.iloc[0]["Brand"] == "Espresso House"
+
+
+def test_build_competitive_benchmark_display_df_preserves_empty_dataframe():
+    summary_display_df = pd.DataFrame(
+        columns=["brand", "average_visibility_score"]
+    )
+
+    display_df = build_competitive_benchmark_display_df(summary_display_df)
+
+    assert display_df.empty
+    assert list(display_df.columns) == ["Brand", "Average Visibility Score"]

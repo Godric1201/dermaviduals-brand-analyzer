@@ -64,6 +64,7 @@ from geo_audit.ui.exports import (
 )
 from geo_audit.ui.raw_answers_panel import render_raw_answers_panel
 from geo_audit.ui.results_sections import (
+    render_competitive_benchmark,
     render_executive_snapshot,
     render_prompt_matrix,
     render_query_intent_coverage,
@@ -595,11 +596,7 @@ def display_results():
     # =========================
     # 3. Competitor Benchmark
     # =========================
-    st.subheader(t["benchmark"])
-    st.dataframe(
-        translate_dataframe_columns(summary_display_df),
-        use_container_width=True
-    )
+    render_competitive_benchmark(t, summary_display_df)
 
     # =========================
     # 4. Trigger-Level Visibility
