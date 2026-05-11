@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 from geo_audit.app_constants import TRANSLATIONS
 from geo_audit.ui_formatters import translate_dataframe_columns
@@ -129,6 +130,40 @@ def render_competitive_benchmark(t, summary_display_df):
         build_competitive_benchmark_display_df(summary_display_df),
         use_container_width=True
     )
+
+
+def build_trigger_visibility_pivot(detailed_df):
+    return detailed_df.pivot_table(
+        index="prompt_category",
+        columns="brand",
+        values="visibility_score",
+        aggfunc="mean"
+    ).fillna(0)
+
+
+def render_trigger_level_visibility(detailed_df):
+    st.subheader("Trigger-Level Brand Visibility (Core Insight)")
+
+    pivot = build_trigger_visibility_pivot(detailed_df)
+
+    st.dataframe(pivot, use_container_width=True)
+
+    if not pivot.empty:
+        fig_heatmap = px.imshow(
+            pivot,
+            text_auto=True,
+            aspect="auto",
+            title="AI Brand Visibility Heatmap (by Query Type)"
+    )
+
+        fig_heatmap.update_layout(height=650)
+        fig_heatmap.update_xaxes(tickangle=45)
+
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+    else:
+        st.warning("No data available for heatmap.")
+
+    return pivot
 
 
 def build_prompt_level_results_display_df(detailed_display_df):

@@ -5,6 +5,7 @@ from geo_audit.ui.results_sections import (
     build_executive_snapshot_metrics,
     build_prompt_level_results_display_df,
     build_prompt_matrix_display_df,
+    build_trigger_visibility_pivot,
 )
 
 
@@ -216,3 +217,58 @@ def test_build_prompt_level_results_display_df_preserves_empty_dataframe():
         "Brand",
         "Visibility Score",
     ]
+
+
+def test_build_trigger_visibility_pivot_computes_mean_by_category_and_brand():
+    detailed_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 1,
+        },
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 3,
+        },
+        {
+            "prompt_category": "Best Options",
+            "brand": "Coffee Fellows",
+            "visibility_score": 4,
+        },
+    ])
+
+    pivot = build_trigger_visibility_pivot(detailed_df)
+
+    assert pivot.loc["Best Options", "Espresso House"] == 2
+    assert pivot.loc["Best Options", "Coffee Fellows"] == 4
+
+
+def test_build_trigger_visibility_pivot_fills_missing_combinations_with_zero():
+    detailed_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 1,
+        },
+        {
+            "prompt_category": "Local Recommendations",
+            "brand": "Coffee Fellows",
+            "visibility_score": 4,
+        },
+    ])
+
+    pivot = build_trigger_visibility_pivot(detailed_df)
+
+    assert pivot.loc["Best Options", "Coffee Fellows"] == 0
+    assert pivot.loc["Local Recommendations", "Espresso House"] == 0
+
+
+def test_build_trigger_visibility_pivot_handles_empty_detailed_dataframe():
+    detailed_df = pd.DataFrame(
+        columns=["prompt_category", "brand", "visibility_score"]
+    )
+
+    pivot = build_trigger_visibility_pivot(detailed_df)
+
+    assert pivot.empty
