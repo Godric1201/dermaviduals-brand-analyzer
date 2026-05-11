@@ -245,6 +245,31 @@ def test_build_executive_markdown_report_uses_first_detection_strategy_for_zero_
     assert "Market Relevance Probe" not in report
 
 
+def test_zero_visibility_diagnosis_sections_use_cards_instead_of_wide_tables():
+    report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())
+
+    assert "Evidence Gap Map" in report
+    assert "Evidence-Building Task Roadmap" in report
+    assert "Validation Plan" in report
+    assert (
+        "| Evidence Type | Current Diagnosis | Gap Addressed | Why It Matters | Validation Method |"
+        not in report
+    )
+    assert (
+        "| Action | Gap Addressed | Evidence Type | Why It Matters | Where Evidence Should Live |"
+        not in report
+    )
+    assert "**Entity Evidence**" in report
+    assert "- Current diagnosis:" in report
+    assert "- Gap addressed:" in report
+    assert "- Why it matters:" in report
+    assert "- Validation:" in report
+    assert "**1. Create or update a canonical Regional Re entity page for Reinsurance.**" in report
+    assert "- Evidence type:" in report
+    assert "- Where it should live:" in report
+    assert "- Expected influence:" in report
+
+
 def test_zero_visibility_markdown_uses_clear_brand_understanding_probe_cautiously():
     inputs = create_zero_visibility_markdown_inputs()
     inputs["brand_understanding"] = create_brand_understanding_result()
@@ -258,6 +283,10 @@ def test_zero_visibility_markdown_uses_clear_brand_understanding_probe_cautiousl
     assert "recommendation retrieval, evidence depth, or market relevance" in report
     assert "requires validation" in report.lower()
     assert "Recommendation retrieval gap" in report
+    assert "| Probe Signal | AI-Inferred Result |" not in report
+    assert "- Brand understanding: Clear" in report
+    assert "- Category alignment: Clear" in report
+    assert "- Recommended interpretation: Recommendation retrieval gap" in report
 
 
 def test_zero_visibility_markdown_flags_probe_alignment_problem_cautiously():
@@ -305,6 +334,11 @@ def test_zero_visibility_markdown_uses_global_default_market_probe_cautiously():
     assert "requires validation" in report.lower()
     assert "not a verified market fact" in report
     assert "Global-default retrieval risk" in report
+    assert "| Probe Signal | AI-Inferred Result |" not in report
+    assert "| Visible Brand | Market Fit | Rationale |" not in report
+    assert "- Market lock status: Global-default risk" in report
+    assert "- Local brand presence: Weak" in report
+    assert "- Munich Re — Global-default: Highly visible global category anchor." in report
 
 
 def test_zero_visibility_market_specific_probe_does_not_confirm_global_default_behavior():

@@ -107,6 +107,73 @@ def _get_probe_field(brand_understanding, field, default=""):
     return getattr(brand_understanding, field, default)
 
 
+def _format_key_value_bullets(items):
+    return "\n".join(
+        f"- {label}: {value}"
+        for label, value in items
+        if str(value or "").strip()
+    )
+
+
+def _build_evidence_gap_cards_md(gaps):
+    cards = []
+
+    for row in gaps:
+        evidence_type = row.get("Evidence Type", "Evidence Gap")
+        cards.append(
+            f"**{evidence_type}**\n"
+            f"- Current diagnosis: {row.get('Current Diagnosis', '')}\n"
+            f"- Gap addressed: {row.get('Gap Addressed', '')}\n"
+            f"- Why it matters: {row.get('Why It Matters', '')}\n"
+            f"- Validation: {row.get('Validation Method', '')}"
+        )
+
+    return "\n\n".join(cards)
+
+
+def _build_task_roadmap_cards_md(tasks):
+    cards = []
+
+    for index, row in enumerate(tasks, start=1):
+        cards.append(
+            f"**{index}. {row.get('Action', '')}**\n"
+            f"- Gap addressed: {row.get('Gap Addressed', '')}\n"
+            f"- Evidence type: {row.get('Evidence Type', '')}\n"
+            f"- Why it matters: {row.get('Why It Matters', '')}\n"
+            f"- Where it should live: {row.get('Where Evidence Should Live', '')}\n"
+            f"- Validation: {row.get('Benchmark Validation Method', '')}\n"
+            f"- Expected influence: {row.get('Expected Influence', '')}"
+        )
+
+    return "\n\n".join(cards)
+
+
+def _build_visible_market_fit_bullets(rows):
+    bullets = []
+
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+
+        brand = str(row.get("brand", "")).strip()
+        market_fit = str(row.get("market_fit", "")).strip()
+        rationale = str(row.get("rationale", "")).strip()
+
+        if not brand:
+            continue
+
+        if market_fit and rationale:
+            bullets.append(f"- {brand} — {market_fit}: {rationale}")
+        elif market_fit:
+            bullets.append(f"- {brand} — {market_fit}")
+        elif rationale:
+            bullets.append(f"- {brand}: {rationale}")
+        else:
+            bullets.append(f"- {brand}")
+
+    return "\n".join(bullets)
+
+
 def _build_brand_understanding_probe_md(brand_understanding, display_brand):
     if not brand_understanding:
         return ""
@@ -191,33 +258,18 @@ def _build_brand_understanding_probe_md(brand_understanding, display_brand):
             "The AI-inferred probe is inconclusive. Treat the visibility diagnosis as provisional and validate before acting on it."
         )
 
-    probe_rows = [
-        {
-            "Probe Signal": "Brand understanding",
-            "AI-Inferred Result": brand_known_status,
-        },
-        {
-            "Probe Signal": "Category alignment",
-            "AI-Inferred Result": category_alignment,
-        },
-        {
-            "Probe Signal": "Market alignment",
-            "AI-Inferred Result": market_alignment,
-        },
-        {
-            "Probe Signal": "Audience alignment",
-            "AI-Inferred Result": audience_alignment,
-        },
-        {
-            "Probe Signal": "Recommended interpretation",
-            "AI-Inferred Result": recommended_interpretation,
-        },
-    ]
+    probe_bullets = _format_key_value_bullets([
+        ("Brand understanding", brand_known_status),
+        ("Category alignment", category_alignment),
+        ("Market alignment", market_alignment),
+        ("Audience alignment", audience_alignment),
+        ("Recommended interpretation", recommended_interpretation),
+    ])
 
     body = (
         "### Brand Understanding Probe\n\n"
         f"{interpretation}\n\n"
-        f"{df_to_markdown_table(pd.DataFrame(probe_rows), max_rows=10)}"
+        f"{probe_bullets}"
     )
 
     if diagnosis_summary:
@@ -289,40 +341,23 @@ def _build_market_relevance_probe_md(market_relevance):
             "Treat this as insufficient evidence, not verified market fact."
         )
 
-    probe_rows = [
-        {
-            "Probe Signal": "Market lock status",
-            "AI-Inferred Result": market_lock_status,
-        },
-        {
-            "Probe Signal": "Local brand presence",
-            "AI-Inferred Result": local_brand_presence_signal,
-        },
-        {
-            "Probe Signal": "Recommended interpretation",
-            "AI-Inferred Result": recommended_interpretation,
-        },
-    ]
+    probe_bullets = _format_key_value_bullets([
+        ("Market lock status", market_lock_status),
+        ("Local brand presence", local_brand_presence_signal),
+        ("Recommended interpretation", recommended_interpretation),
+    ])
     body = (
         "### Market Relevance Probe\n\n"
         f"{interpretation}\n\n"
-        f"{df_to_markdown_table(pd.DataFrame(probe_rows), max_rows=10)}"
+        f"{probe_bullets}"
     )
 
     if visible_market_fit:
-        fit_rows = [
-            {
-                "Visible Brand": row.get("brand", ""),
-                "Market Fit": row.get("market_fit", ""),
-                "Rationale": row.get("rationale", ""),
-            }
-            for row in visible_market_fit
-            if isinstance(row, dict)
-        ]
-        if fit_rows:
+        fit_bullets = _build_visible_market_fit_bullets(visible_market_fit)
+        if fit_bullets:
             body += (
                 "\n\nVisible brand market-fit signals:\n\n"
-                f"{df_to_markdown_table(pd.DataFrame(fit_rows), max_rows=5)}"
+                f"{fit_bullets}"
             )
 
     if global_default_risk_reason:
@@ -377,24 +412,22 @@ def _build_zero_visibility_markdown_report(
         display_category,
         reference_brands,
     )
-    evidence_gap_md = df_to_markdown_table(
-        pd.DataFrame(build_evidence_gap_map(
+    evidence_gap_md = _build_evidence_gap_cards_md(
+        build_evidence_gap_map(
             display_brand,
             display_category,
             display_market,
             display_audience,
-        )),
-        max_rows=10,
+        )
     )
-    task_roadmap_md = df_to_markdown_table(
-        pd.DataFrame(build_first_detection_task_roadmap(
+    task_roadmap_md = _build_task_roadmap_cards_md(
+        build_first_detection_task_roadmap(
             display_brand,
             display_category,
             display_market,
             display_audience,
             reference_brands,
-        )),
-        max_rows=10,
+        )
     )
     validation_plan_md = df_to_markdown_table(
         pd.DataFrame(build_validation_plan(prompt_categories)),
