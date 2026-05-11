@@ -1,7 +1,7 @@
 # Demo Executive Report: Example Brand AI Visibility Audit
 
-> This is an anonymized demonstration report for portfolio review.  
-> It does not represent a real client engagement or confidential brand data.
+> This is an anonymized, condensed demonstration report for portfolio review.
+> It does not represent a real client engagement, confidential brand data, live client data, or Quick Test Mode output.
 
 ---
 
@@ -120,19 +120,19 @@ The audit identifies several positioning gaps:
 
 ## Strategic Priorities
 
-1. **Strengthen category ownership**  
+1. **Strengthen category ownership**
    Build content that repeatedly connects Example Brand with specific skincare use cases and audience needs.
 
-2. **Increase trust signals**  
+2. **Increase trust signals**
    Add structured evidence such as expert commentary, ingredient explanations, customer proof points, and usage guidance.
 
-3. **Improve comparison readiness**  
+3. **Improve comparison readiness**
    Create content that helps AI systems compare Example Brand against known competitors using clear criteria.
 
-4. **Target high-intent prompts**  
+4. **Target high-intent prompts**
    Focus on prompts where users ask for recommendations, comparisons, and purchase decision support.
 
-5. **Measure changes over time**  
+5. **Measure changes over time**
    Export benchmark snapshots after content updates to compare visibility improvements across audit runs.
 
 ---
