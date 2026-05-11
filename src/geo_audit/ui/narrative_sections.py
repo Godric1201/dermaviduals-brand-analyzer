@@ -3,6 +3,7 @@ import streamlit as st
 from geo_audit.analyzer import ask_ai
 from geo_audit.narrative_prompts import (
     build_ai_decision_explanation_prompt,
+    build_gap_analysis_prompt,
     build_replacement_strategy_prompt,
 )
 from geo_audit.output_quality import (
@@ -90,3 +91,40 @@ def render_replacement_strategy(
                 )
 
             st.write(st.session_state["replacement_strategy"])
+
+
+def render_ai_association_gap(
+    brand,
+    category,
+    market,
+    audience,
+    competitors,
+    run_mode,
+    summary_df,
+    detailed_df,
+):
+    with st.expander("AI Association Gap (Why You Are Not Recommended)", expanded=False):
+        gap_prompt = build_gap_analysis_prompt(
+            brand=brand,
+            category=category,
+            market=market,
+            audience=audience,
+            competitors=competitors,
+            summary_df=summary_df,
+            detailed_df=detailed_df,
+        )
+
+        if "gap_analysis" not in st.session_state:
+            st.session_state["gap_analysis"] = sanitize_narrative_appendix_text(
+                ask_ai(gap_prompt),
+                OutputQualityContext(
+                    category=category,
+                    run_mode=run_mode,
+                    brand=brand,
+                    market=market,
+                    audience=audience,
+                    tracked_competitors=competitors,
+                ),
+            )
+
+    st.write(st.session_state["gap_analysis"])
