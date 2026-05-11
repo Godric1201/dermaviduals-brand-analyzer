@@ -77,7 +77,9 @@ from geo_audit.ui.sidebar_sections import (
     render_advanced_developer_options,
     render_page_header,
     render_run_mode_controls,
+    render_sidebar_base_inputs,
     render_sidebar_methodology_info,
+    render_sidebar_preset_loader,
 )
 
 from geo_audit.analyzer import DEFAULT_MODEL
@@ -778,54 +780,16 @@ def display_results():
 
 t = TRANSLATIONS
 
-st.sidebar.header("Analysis Setup")
+render_sidebar_preset_loader(CLIENT_PRESETS)
 
-preset_options = ["Custom"] + list(CLIENT_PRESETS)
-selected_preset = st.sidebar.selectbox(
-    "Client Preset",
-    preset_options,
-    index=0
-)
-
-load_preset = st.sidebar.button("Load Preset")
-
-if load_preset:
-    if selected_preset == "Custom":
-        st.sidebar.info("Select a preset to load.")
-    else:
-        preset = CLIENT_PRESETS[selected_preset]
-        st.session_state["target_brand_input"] = preset["brand"]
-        st.session_state["target_category_input"] = preset["category"]
-        st.session_state["target_market_input"] = preset["market"]
-        st.session_state["target_audience_input"] = preset["audience"]
-        st.session_state["competitors_input"] = "\n".join(preset["competitors"])
-        st.rerun()
-
-target_brand = st.sidebar.text_input(
-    "Target Brand",
-    value=BRAND,
-    key="target_brand_input"
-)
-target_category = st.sidebar.text_input(
-    "Category",
-    value=CATEGORY,
-    key="target_category_input"
-)
-target_market = st.sidebar.text_input(
-    "Market",
-    value=MARKET,
-    key="target_market_input"
-)
-target_audience = st.sidebar.text_area(
-    "Audience",
-    value=AUDIENCE,
-    key="target_audience_input"
-)
-competitors_text = st.sidebar.text_area(
-    "Competitors",
-    value="\n".join(get_competitors()),
-    help="Enter one competitor per line.",
-    key="competitors_input"
+target_brand, target_category, target_market, target_audience, competitors_text = (
+    render_sidebar_base_inputs(
+        brand_default=BRAND,
+        category_default=CATEGORY,
+        market_default=MARKET,
+        audience_default=AUDIENCE,
+        competitors_default=get_competitors(),
+    )
 )
 parsed_competitors = parse_competitors(competitors_text)
 configured_competitors = parsed_competitors if parsed_competitors else get_competitors()

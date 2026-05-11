@@ -1,6 +1,74 @@
 import streamlit as st
 
 
+def render_sidebar_preset_loader(client_presets):
+    st.sidebar.header("Analysis Setup")
+
+    preset_options = ["Custom"] + list(client_presets)
+    selected_preset = st.sidebar.selectbox(
+        "Client Preset",
+        preset_options,
+        index=0
+    )
+
+    load_preset = st.sidebar.button("Load Preset")
+
+    if load_preset:
+        if selected_preset == "Custom":
+            st.sidebar.info("Select a preset to load.")
+        else:
+            preset = client_presets[selected_preset]
+            st.session_state["target_brand_input"] = preset["brand"]
+            st.session_state["target_category_input"] = preset["category"]
+            st.session_state["target_market_input"] = preset["market"]
+            st.session_state["target_audience_input"] = preset["audience"]
+            st.session_state["competitors_input"] = "\n".join(preset["competitors"])
+            st.rerun()
+
+
+def render_sidebar_base_inputs(
+    brand_default,
+    category_default,
+    market_default,
+    audience_default,
+    competitors_default,
+):
+    target_brand = st.sidebar.text_input(
+        "Target Brand",
+        value=brand_default,
+        key="target_brand_input"
+    )
+    target_category = st.sidebar.text_input(
+        "Category",
+        value=category_default,
+        key="target_category_input"
+    )
+    target_market = st.sidebar.text_input(
+        "Market",
+        value=market_default,
+        key="target_market_input"
+    )
+    target_audience = st.sidebar.text_area(
+        "Audience",
+        value=audience_default,
+        key="target_audience_input"
+    )
+    competitors_text = st.sidebar.text_area(
+        "Competitors",
+        value="\n".join(competitors_default),
+        help="Enter one competitor per line.",
+        key="competitors_input"
+    )
+
+    return (
+        target_brand,
+        target_category,
+        target_market,
+        target_audience,
+        competitors_text,
+    )
+
+
 def render_page_header(display_brand, display_market, display_category):
     st.title(f"{display_brand} {display_market} AI Visibility Analyzer")
     st.caption(
