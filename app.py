@@ -57,6 +57,10 @@ from geo_audit.ui.api_usage_panel import (
 )
 from geo_audit.ui.benchmark_progress import render_benchmark_progress
 from geo_audit.ui.brand_intelligence_panel import render_brand_intelligence_panel
+from geo_audit.ui.charts import (
+    render_benchmark_charts,
+    render_prompt_level_chart,
+)
 from geo_audit.ui.content_generator_panel import render_content_generator_panel
 from geo_audit.ui.exports import (
     render_benchmark_snapshot_export,
@@ -723,50 +727,14 @@ def display_results():
     # =========================
     # 8. Benchmark Charts
     # =========================
-    col_a, col_b = st.columns(2)
-
-    with col_a:
-        fig_score = px.bar(
-            summary_df,
-            x="brand",
-            y="average_visibility_score",
-            title=t["avg_visibility"],
-            text="average_visibility_score",
-            labels={
-                "brand": t["brand_label"],
-                "average_visibility_score": t["avg_visibility"]
-            }
-        )
-        st.plotly_chart(fig_score, use_container_width=True)
-
-    with col_b:
-        fig_sov = px.pie(
-            summary_df,
-            names="brand",
-            values="share_of_voice_percent",
-            title=t["share_of_voice"]
-        )
-        st.plotly_chart(fig_sov, use_container_width=True)
+    render_benchmark_charts(t, summary_df)
 
     # =========================
     # 9. Prompt-Level Results
     # =========================
     render_prompt_level_results(t, detailed_display_df)
 
-    fig_prompt = px.bar(
-        detailed_df,
-        x="prompt_category",
-        y="visibility_score",
-        color="brand",
-        barmode="group",
-        title=t["organic_visibility"],
-        labels={
-            "prompt_category": t["prompt_category_label"],
-            "visibility_score": t["score_label"],
-            "brand": t["brand_label"]
-        }
-    )
-    st.plotly_chart(fig_prompt, use_container_width=True)
+    render_prompt_level_chart(t, detailed_df)
 
     # =========================
     # 10. Raw Answers
