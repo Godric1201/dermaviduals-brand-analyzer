@@ -55,6 +55,10 @@ from geo_audit.ui.charts import (
     render_prompt_level_chart,
 )
 from geo_audit.ui.content_generator_panel import render_content_generator_panel
+from geo_audit.ui.export_builders import (
+    build_docx_top_brands_display_df,
+    build_markdown_top_brands_display_df,
+)
 from geo_audit.ui.exports import (
     render_benchmark_snapshot_export,
     render_report_download_exports,
@@ -741,16 +745,10 @@ def display_results():
     # =========================
     st.subheader(t["exports"])
 
-    top_brands_display_df = (
-        replace_target_brand_for_display(
-            format_brand_names_for_display(
-                top_brands[["prompt_category", "brand", "visibility_score"]]
-            ),
-            raw_brand=brand,
-            display_brand=display_brand
-        )
-        if not top_brands.empty
-        else pd.DataFrame(columns=["prompt_category", "brand", "visibility_score"])
+    top_brands_display_df = build_markdown_top_brands_display_df(
+        top_brands,
+        brand,
+        display_brand,
     )
 
     executive_report = build_executive_markdown_report(
@@ -787,14 +785,10 @@ def display_results():
         category=display_category,
         audience=display_audience,
         summary_df=summary_display_df,
-        top_brands_df=(
-            replace_target_brand_for_display(
-                format_brand_names_for_display(top_brands),
-                raw_brand=brand,
-                display_brand=display_brand
-            )
-            if not top_brands.empty
-            else top_brands
+        top_brands_df=build_docx_top_brands_display_df(
+            top_brands,
+            brand,
+            display_brand,
         ),
         recommendations=recommendations,
         strategy_report=plan,
