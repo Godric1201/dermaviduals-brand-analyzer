@@ -233,23 +233,43 @@ def test_build_executive_markdown_report_returns_string_with_core_sections():
 def test_build_executive_markdown_report_uses_first_detection_strategy_for_zero_visibility():
     report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())
 
+    expected_order = [
+        "## 1. Recommendation Readiness Verdict",
+        "## 2. Brand Understanding Summary",
+        "## 3. Who AI Retrieved Instead",
+        "## 4. Why Those Brands Were Retrieved",
+        "## 5. Target vs Retrieved Brand Gap",
+        "## 6. First 3 Evidence Assets to Build",
+        "## 7. Validation Plan",
+        "## 8. Supporting Benchmark Data",
+        "## 9. Methodology / Reliability Notes",
+    ]
+
+    last_index = -1
+    for heading in expected_order:
+        current_index = report.index(heading)
+        assert current_index > last_index
+        last_index = current_index
+
     assert "Not Detected" in report
     assert "First Detection Strategy" in report
-    assert "AI candidate set" in report
+    assert "candidate-set inclusion" in report
+    assert "Reliability Level" in report
     assert "Evidence Gap Map" in report
-    assert "Evidence-Building Task Roadmap" in report
+    assert "First 3 Evidence Assets to Build" in report
     assert "Validation Plan" in report
     assert "first measurable inclusion" in report
     assert "0 total mentions" in report
-    assert "Brand Understanding Probe" not in report
-    assert "Market Relevance Probe" not in report
+    assert "The Brand Understanding Probe was not available" in report
+    assert "The Market Relevance Probe was not available" in report
+    assert "Evidence-Building Task Roadmap" not in report
 
 
 def test_zero_visibility_diagnosis_sections_use_cards_instead_of_wide_tables():
     report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())
 
     assert "Evidence Gap Map" in report
-    assert "Evidence-Building Task Roadmap" in report
+    assert "First 3 Evidence Assets to Build" in report
     assert "Validation Plan" in report
     assert (
         "| Evidence Type | Current Diagnosis | Gap Addressed | Why It Matters | Validation Method |"
@@ -264,10 +284,37 @@ def test_zero_visibility_diagnosis_sections_use_cards_instead_of_wide_tables():
     assert "- Gap addressed:" in report
     assert "- Why it matters:" in report
     assert "- Validation:" in report
-    assert "**1. Create or update a canonical Regional Re entity page for Reinsurance.**" in report
-    assert "- Evidence type:" in report
-    assert "- Where it should live:" in report
-    assert "- Expected influence:" in report
+    assert "**Priority 1 - Canonical Regional Re entity and Reinsurance category page**" in report
+    assert "- What to build:" in report
+    assert "- Target retrieval driver:" in report
+    assert "- Targets / prompt groups:" in report
+
+
+def test_zero_visibility_report_renders_exactly_three_priority_assets():
+    report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())
+    assets_section = report.split("## 6. First 3 Evidence Assets to Build", 1)[1]
+    assets_section = assets_section.split("## 7. Validation Plan", 1)[0]
+
+    assert assets_section.count("**Priority ") == 3
+    assert assets_section.count("- What to build:") == 3
+    assert assets_section.count("- Why it matters:") == 3
+    assert assets_section.count("- Target retrieval driver:") == 3
+    assert assets_section.count("- Targets / prompt groups:") == 3
+    assert assets_section.count("- Validation:") == 3
+
+
+def test_zero_visibility_supporting_data_contains_demoted_evidence_gap_and_tables():
+    report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())
+    supporting_section = report.split("## 8. Supporting Benchmark Data", 1)[1]
+    supporting_section = supporting_section.split("## 9. Methodology / Reliability Notes", 1)[0]
+
+    assert "### Evidence Gap Map" in supporting_section
+    assert "### Competitive Benchmark" in supporting_section
+    assert "### Trigger-Level Visibility Findings" in supporting_section
+    assert "### Top Brand Winners by Query Type" in supporting_section
+    assert report.index("### Evidence Gap Map") > report.index("## 8. Supporting Benchmark Data")
+    assert "## 4. Evidence Gap Map" not in report
+    assert "## 5. Evidence-Building Task Roadmap" not in report
 
 
 def test_zero_visibility_markdown_uses_clear_brand_understanding_probe_cautiously():
@@ -311,8 +358,14 @@ def test_zero_visibility_markdown_uses_reference_brand_and_market_risk_language(
     report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())
 
     assert "AI-visible reference brands" in report
-    assert "visible category anchors" in report
+    assert "category anchors" in report
     assert "retrieved alternatives" in report
+    assert "Benchmark-based retrieval role" in report
+    assert "Target vs Retrieved Brand Gap" in report
+    assert "Observed benchmark signal" in report
+    assert "Inferred retrieval role" in report
+    assert "Required validation" in report
+    assert "not verified competitive intelligence" in report
     assert "may indicate" in report
     assert "interpretation risk" in report
     assert "not a confirmed fact" in report
@@ -329,7 +382,7 @@ def test_zero_visibility_markdown_uses_global_default_market_probe_cautiously():
 
     assert "Market Relevance Probe" in report
     assert "AI-inferred" in report
-    assert "appears to lean toward globally visible category leaders" in report
+    assert "appears to lean toward globally visible category anchors" in report
     assert "may indicate a market evidence gap" in report
     assert "requires validation" in report.lower()
     assert "not a verified market fact" in report
@@ -379,6 +432,7 @@ def test_zero_visibility_markdown_avoids_generic_or_overpromised_objectives():
         "guarantee ai mentions",
         "will get mentioned",
         "will improve share of voice",
+        "proven market leader",
         "share-of-voice growth is the first objective",
         "30 / 60 / 90 Day Roadmap",
     ]
@@ -387,7 +441,9 @@ def test_zero_visibility_markdown_avoids_generic_or_overpromised_objectives():
         assert phrase not in report_lower
 
     assert "no fixed timeline should be promised" in report_lower
-    assert "share-of-voice growth is not the first objective" in report_lower
+    assert "candidate-set inclusion" in report_lower
+    assert "share-of-voice growth should come after" in report_lower
+    assert "not verified market fact" in report_lower
 
 
 def test_non_zero_markdown_stays_on_existing_report_path():

@@ -13,6 +13,25 @@ FIRST_DETECTION_STRATEGY = "First Detection Strategy"
 ASSOCIATION_GROWTH_STRATEGY = "Association Growth Strategy"
 CATEGORY_OWNERSHIP_STRATEGY = "Category Ownership Strategy"
 
+RELIABILITY_STRONG = "Strong"
+RELIABILITY_DIRECTIONAL = "Directional"
+RELIABILITY_EXPLORATORY = "Exploratory"
+RELIABILITY_INSUFFICIENT = "Insufficient evidence"
+
+COMPETITOR_TIER_PEER = "Peer competitor"
+COMPETITOR_TIER_ASPIRATIONAL = "Aspirational competitor"
+COMPETITOR_TIER_CATEGORY_ANCHOR = "Category anchor"
+COMPETITOR_TIER_UNCLEAR = "Unclear / needs validation"
+
+RETRIEVAL_ROLE_PLANNING = "Planning / consulting authority"
+RETRIEVAL_ROLE_TECHNICAL = "Technical infrastructure provider"
+RETRIEVAL_ROLE_LOCAL = "Local market provider"
+RETRIEVAL_ROLE_TRUST = "Trust / premium reference"
+RETRIEVAL_ROLE_BUDGET = "Budget / practical option"
+RETRIEVAL_ROLE_NICHE = "Niche specialist"
+RETRIEVAL_ROLE_COMPARISON = "Comparison anchor"
+RETRIEVAL_ROLE_UNCLEAR = "Unclear retrieved reference"
+
 EVIDENCE_TAXONOMY = (
     "Entity Evidence",
     "Market Evidence",
@@ -43,6 +62,73 @@ def _coerce_number(value, default=0):
         return default
 
     return numeric_value.item() if hasattr(numeric_value, "item") else numeric_value
+
+
+def _get_field(value, field, default=""):
+    if value is None:
+        return default
+    if isinstance(value, dict):
+        return value.get(field, default)
+    return getattr(value, field, default)
+
+
+def _normalize_text(value):
+    return " ".join(str(value or "").strip().split())
+
+
+def _normalize_label_text(value):
+    return _normalize_text(value).lower()
+
+
+def _contains_any(text, terms):
+    normalized_text = _normalize_label_text(text)
+    return any(term in normalized_text for term in terms)
+
+
+def _visible_market_fit_for_brand(market_relevance, brand):
+    visible_market_fit = _get_field(market_relevance, "visible_market_fit", [])
+    if not isinstance(visible_market_fit, list):
+        return {}
+
+    target = _normalize_label_text(brand)
+    for row in visible_market_fit:
+        if not isinstance(row, dict):
+            continue
+        if _normalize_label_text(row.get("brand")) == target:
+            return row
+
+    return {}
+
+
+def _prompt_categories_for_brand(top_brands_df, brand):
+    if top_brands_df is None or getattr(top_brands_df, "empty", True):
+        return []
+    if "brand" not in top_brands_df.columns or "prompt_category" not in top_brands_df.columns:
+        return []
+
+    target = _normalize_label_text(brand)
+    matching_rows = top_brands_df[
+        top_brands_df["brand"].astype(str).str.lower() == target
+    ]
+
+    return [
+        str(item).strip()
+        for item in matching_rows["prompt_category"].dropna().tolist()
+        if str(item).strip()
+    ]
+
+
+def _metrics_from_reference_brand(reference_brand):
+    return VisibilityMetrics(
+        total_mentions=int(_coerce_number(reference_brand.get("Mentions", 0))),
+        average_visibility_score=float(
+            _coerce_number(reference_brand.get("Average Visibility Score", 0))
+        ),
+        prompts_visible=int(_coerce_number(reference_brand.get("Prompts Visible", 0))),
+        share_of_voice_percent=float(
+            _coerce_number(reference_brand.get("Share of Voice %", 0))
+        ),
+    )
 
 
 def get_target_visibility_metrics(summary_df, brand):
@@ -175,6 +261,7 @@ def build_visible_reference_brands(summary_df, brand, limit=5):
             "Brand": row.get("brand", ""),
             "Reference Role": role,
             "Mentions": metrics.total_mentions,
+            "Average Visibility Score": metrics.average_visibility_score,
             "Prompts Visible": metrics.prompts_visible,
             "Share of Voice %": metrics.share_of_voice_percent,
             "Interpretation": (
@@ -218,6 +305,331 @@ def build_market_relevance_interpretation(brand, market, category, reference_bra
         f"answers are defaulting away from {market}. The next useful check is still whether {brand} can earn first "
         "measurable inclusion in relevant category, market, and use-case prompts."
     )
+
+
+def classify_benchmark_reliability(
+    *,
+    run_mode,
+    prompt_categories=None,
+    reference_brands=None,
+    source_grounded_evidence_available=False,
+):
+    reference_brands = reference_brands or []
+    prompt_count = len([
+        item for item in prompt_categories or []
+        if str(item).strip()
+    ])
+    is_quick_test = str(run_mode or "").strip().lower() == "quick test mode"
+
+    if not reference_brands:
+        return {
+            "label": RELIABILITY_INSUFFICIENT,
+            "rationale": (
+                "The benchmark did not provide a meaningful retrieved-brand reference set, "
+                "so recommendation-readiness interpretation is limited."
+            ),
+        }
+
+    if (
+        source_grounded_evidence_available
+        and len(reference_brands) >= 2
+        and prompt_count >= 3
+        and not is_quick_test
+    ):
+        return {
+            "label": RELIABILITY_STRONG,
+            "rationale": (
+                "The benchmark has multiple visible retrieved brands and source-grounded evidence support."
+            ),
+        }
+
+    if is_quick_test or prompt_count == 1 or len(reference_brands) == 1:
+        return {
+            "label": RELIABILITY_EXPLORATORY,
+            "rationale": (
+                "The benchmark has useful early signal, but prompt coverage or retrieved-brand context is limited."
+            ),
+        }
+
+    return {
+        "label": RELIABILITY_DIRECTIONAL,
+        "rationale": (
+            "The benchmark has visible retrieved brands and enough context for directional diagnosis, "
+            "but no source-grounded research is available in this report."
+        ),
+    }
+
+
+def classify_retrieved_brand_tier(
+    metrics,
+    *,
+    market_fit=None,
+    source_grounded_peer=False,
+):
+    if source_grounded_peer:
+        return COMPETITOR_TIER_PEER
+
+    visibility_state = classify_visibility_state(metrics)
+
+    if visibility_state == VISIBILITY_CATEGORY_ANCHOR:
+        return COMPETITOR_TIER_CATEGORY_ANCHOR
+
+    if (
+        str(market_fit or "").strip() == "Market-relevant"
+        and metrics.prompts_visible >= 2
+        and metrics.average_visibility_score >= 20
+    ):
+        return COMPETITOR_TIER_PEER
+
+    if visibility_state == VISIBILITY_COMPETITIVELY_VISIBLE:
+        return COMPETITOR_TIER_ASPIRATIONAL
+
+    return COMPETITOR_TIER_UNCLEAR
+
+
+def classify_retrieval_role(
+    *,
+    prompt_categories=None,
+    visible_market_fit=None,
+    metrics=None,
+):
+    prompt_text = " ".join(
+        str(item)
+        for item in prompt_categories or []
+        if str(item).strip()
+    )
+    market_fit = str(visible_market_fit or "").strip()
+
+    if market_fit == "Market-relevant":
+        return RETRIEVAL_ROLE_LOCAL
+
+    if _contains_any(prompt_text, [
+        "compare",
+        "comparison",
+        "alternative",
+        "alternatives",
+        "shortlist",
+        "versus",
+        " vs ",
+    ]):
+        return RETRIEVAL_ROLE_COMPARISON
+
+    if _contains_any(prompt_text, [
+        "local",
+        "regional",
+        "market",
+        "near",
+        "geography",
+        "location",
+    ]):
+        return RETRIEVAL_ROLE_LOCAL
+
+    if _contains_any(prompt_text, [
+        "technical",
+        "infrastructure",
+        "platform",
+        "system",
+        "systems",
+        "facility",
+        "facilities",
+        "architecture",
+        "operational",
+        "data center",
+        "datacenter",
+        "cloud",
+    ]):
+        return RETRIEVAL_ROLE_TECHNICAL
+
+    if _contains_any(prompt_text, [
+        "planning",
+        "consulting",
+        "consultant",
+        "advisory",
+        "strategy",
+        "strategic",
+        "evaluate",
+        "evaluation",
+        "expert",
+    ]):
+        return RETRIEVAL_ROLE_PLANNING
+
+    if _contains_any(prompt_text, [
+        "budget",
+        "affordable",
+        "pricing",
+        "cost",
+        "practical",
+        "easy",
+        "small business",
+    ]):
+        return RETRIEVAL_ROLE_BUDGET
+
+    if _contains_any(prompt_text, [
+        "niche",
+        "specialist",
+        "specialized",
+        "use case",
+        "use-case",
+        "audience",
+        "segment",
+        "industry-specific",
+    ]):
+        return RETRIEVAL_ROLE_NICHE
+
+    if _contains_any(prompt_text, [
+        "best",
+        "top",
+        "premium",
+        "trusted",
+        "trust",
+        "enterprise",
+        "reliable",
+        "credible",
+        "quality",
+    ]):
+        return RETRIEVAL_ROLE_TRUST
+
+    if metrics and classify_visibility_state(metrics) == VISIBILITY_CATEGORY_ANCHOR:
+        return RETRIEVAL_ROLE_TRUST
+
+    if market_fit == "Global-default":
+        return RETRIEVAL_ROLE_TRUST
+
+    return RETRIEVAL_ROLE_UNCLEAR
+
+
+def _inferred_reason_for_role(role):
+    if role == RETRIEVAL_ROLE_COMPARISON:
+        return (
+            "Based on this benchmark, the brand appears to provide a familiar alternative "
+            "or comparison reference in tested recommendation contexts."
+        )
+    if role == RETRIEVAL_ROLE_LOCAL:
+        return (
+            "Based on this benchmark, the brand appears to have market-qualified relevance "
+            "in the tested answer set; this requires validation and is not verified market fact."
+        )
+    if role == RETRIEVAL_ROLE_TECHNICAL:
+        return (
+            "Based on this benchmark, the brand appears to be retrieved for technical capability "
+            "or infrastructure-oriented contexts."
+        )
+    if role == RETRIEVAL_ROLE_PLANNING:
+        return (
+            "Based on this benchmark, the brand appears to be retrieved for planning, advisory, "
+            "or evaluation-oriented contexts."
+        )
+    if role == RETRIEVAL_ROLE_TRUST:
+        return (
+            "Based on this benchmark, the brand appears to act as a trust or premium reference "
+            "within the tested answer set."
+        )
+    if role == RETRIEVAL_ROLE_BUDGET:
+        return (
+            "Based on this benchmark, the brand appears to be retrieved for practical, pricing, "
+            "or accessibility-oriented contexts."
+        )
+    if role == RETRIEVAL_ROLE_NICHE:
+        return (
+            "Based on this benchmark, the brand appears to be retrieved for a narrower use case, "
+            "audience, or specialist context."
+        )
+
+    return (
+        "Based on this benchmark, the reason this brand was retrieved is unclear and requires validation."
+    )
+
+
+def _evidence_implication_for_role(role):
+    if role == RETRIEVAL_ROLE_COMPARISON:
+        return "Build comparison and alternatives evidence that explains when the target is a relevant option."
+    if role == RETRIEVAL_ROLE_LOCAL:
+        return "Build market evidence that connects the target to the requested geography and buyer context."
+    if role == RETRIEVAL_ROLE_TECHNICAL:
+        return "Build offering and capability evidence that clarifies the target's technical or operational fit."
+    if role == RETRIEVAL_ROLE_PLANNING:
+        return "Build advisory, methodology, or decision-support evidence that makes the target eligible for planning prompts."
+    if role == RETRIEVAL_ROLE_TRUST:
+        return "Build trust evidence with substantiated proof points that can support shortlist and decision-stage prompts."
+    if role == RETRIEVAL_ROLE_BUDGET:
+        return "Build practical buyer guidance that clarifies fit, tradeoffs, and selection criteria."
+    if role == RETRIEVAL_ROLE_NICHE:
+        return "Build use-case and audience evidence that makes the target eligible for specialist prompts."
+
+    return "Build entity, offering, and market evidence before drawing a stronger retrieval-role conclusion."
+
+
+def _target_gap_for_role(role):
+    if role == RETRIEVAL_ROLE_COMPARISON:
+        return "The target may lack retrievable comparison evidence for alternative and shortlist prompts."
+    if role == RETRIEVAL_ROLE_LOCAL:
+        return "The target may lack retrievable market evidence for the requested geography."
+    if role == RETRIEVAL_ROLE_TECHNICAL:
+        return "The target may lack retrievable capability evidence for technical or operational prompts."
+    if role == RETRIEVAL_ROLE_PLANNING:
+        return "The target may lack retrievable decision-support evidence for planning or evaluation prompts."
+    if role == RETRIEVAL_ROLE_TRUST:
+        return "The target may lack retrievable trust evidence for shortlist and decision-stage prompts."
+    if role == RETRIEVAL_ROLE_BUDGET:
+        return "The target may lack retrievable practical-selection evidence for value or fit prompts."
+    if role == RETRIEVAL_ROLE_NICHE:
+        return "The target may lack retrievable use-case evidence for audience-specific prompts."
+
+    return "The target needs clearer entity, offering, market, and comparison evidence before the gap can be diagnosed more specifically."
+
+
+def build_retrieved_brand_profiles(
+    summary_df,
+    brand,
+    *,
+    top_brands_df=None,
+    market_relevance=None,
+    limit=5,
+):
+    reference_brands = build_visible_reference_brands(summary_df, brand, limit=limit)
+    profiles = []
+
+    for reference_brand in reference_brands:
+        brand_name = str(reference_brand.get("Brand", "")).strip()
+        if not brand_name:
+            continue
+
+        metrics = _metrics_from_reference_brand(reference_brand)
+        brand_prompt_categories = _prompt_categories_for_brand(top_brands_df, brand_name)
+        fit_row = _visible_market_fit_for_brand(market_relevance, brand_name)
+        market_fit = fit_row.get("market_fit")
+        retrieval_role = classify_retrieval_role(
+            prompt_categories=brand_prompt_categories,
+            visible_market_fit=market_fit,
+            metrics=metrics,
+        )
+        competitor_tier = classify_retrieved_brand_tier(
+            metrics,
+            market_fit=market_fit,
+        )
+        observed_signal = (
+            f"{brand_name} generated {metrics.total_mentions} mentions, appeared in "
+            f"{metrics.prompts_visible} prompts, and recorded {metrics.share_of_voice_percent}% "
+            "share of voice in this benchmark."
+        )
+
+        profiles.append({
+            "brand": brand_name,
+            "observed_signal": observed_signal,
+            "competitor_tier": competitor_tier,
+            "retrieval_role": retrieval_role,
+            "inferred_reason": _inferred_reason_for_role(retrieval_role),
+            "inferred_target_gap": _target_gap_for_role(retrieval_role),
+            "evidence_implication": _evidence_implication_for_role(retrieval_role),
+            "required_validation": (
+                "This requires validation with source-grounded research and a comparable future benchmark before treating it as competitive fact."
+            ),
+            "prompt_categories": brand_prompt_categories,
+            "market_fit": market_fit or "",
+            "market_fit_rationale": fit_row.get("rationale", ""),
+        })
+
+    return profiles
 
 
 def build_evidence_gap_map(brand, category, market, audience):
@@ -344,6 +756,182 @@ def build_first_detection_task_roadmap(brand, category, market, audience, refere
             "Expected Influence": "Corroboration, entity clarity, and market association.",
         },
     ]
+
+
+def _task_by_evidence_type(tasks):
+    mapped_tasks = {}
+    for task in tasks:
+        evidence_type = str(task.get("Evidence Type", "")).strip()
+        if evidence_type and evidence_type not in mapped_tasks:
+            mapped_tasks[evidence_type] = task
+    return mapped_tasks
+
+
+def _asset_name_for_evidence_type(evidence_type, brand, category, market):
+    names = {
+        "Entity Evidence": f"Canonical {brand} entity and {category} category page",
+        "Market Evidence": f"{market} market relevance proof page",
+        "Offering Evidence": "Offering and use-case evidence pages",
+        "Trust Evidence": "Substantiated trust proof page",
+        "Comparison Evidence": "Comparison and alternatives evidence",
+        "Third-Party Evidence / Structured Evidence": "Third-party and structured corroboration",
+    }
+    return names.get(evidence_type, evidence_type or "Recommendation readiness evidence")
+
+
+def _target_prompt_groups_for_evidence_type(evidence_type, prompt_categories, market, audience):
+    prompt_scope = ", ".join([
+        str(item).strip()
+        for item in prompt_categories or []
+        if str(item).strip()
+    ])
+    prompt_suffix = f" Covered prompt groups: {prompt_scope}." if prompt_scope else ""
+    targets = {
+        "Entity Evidence": "Category, entity, and use-case prompts.",
+        "Market Evidence": f"Prompts explicitly qualified for {market}.",
+        "Offering Evidence": f"Use-case and audience-specific prompts for {audience}.",
+        "Trust Evidence": "Trust, shortlist, and decision-stage prompts.",
+        "Comparison Evidence": "Comparison, alternatives, and shortlist prompts.",
+        "Third-Party Evidence / Structured Evidence": "Entity, category, market, and corroboration prompts.",
+    }
+    return f"{targets.get(evidence_type, 'Relevant category and market prompts.')}{prompt_suffix}"
+
+
+def _evidence_type_for_retrieval_role(role):
+    if role == RETRIEVAL_ROLE_LOCAL:
+        return "Market Evidence"
+    if role in {RETRIEVAL_ROLE_TECHNICAL, RETRIEVAL_ROLE_NICHE, RETRIEVAL_ROLE_PLANNING}:
+        return "Offering Evidence"
+    if role == RETRIEVAL_ROLE_TRUST:
+        return "Trust Evidence"
+    if role == RETRIEVAL_ROLE_COMPARISON:
+        return "Comparison Evidence"
+    if role == RETRIEVAL_ROLE_BUDGET:
+        return "Comparison Evidence"
+    return ""
+
+
+def _brand_understanding_needs_entity_evidence(brand_understanding):
+    if not brand_understanding:
+        return True
+
+    status_values = [
+        _get_field(brand_understanding, "brand_known_status"),
+        _get_field(brand_understanding, "category_alignment"),
+        _get_field(brand_understanding, "market_alignment"),
+        _get_field(brand_understanding, "audience_alignment"),
+    ]
+
+    return any(
+        value in {"Unclear", "Misaligned", "Not Enough Evidence", ""}
+        for value in status_values
+    )
+
+
+def _market_relevance_needs_market_evidence(market_relevance):
+    if not market_relevance:
+        return True
+
+    market_lock_status = _get_field(market_relevance, "market_lock_status")
+    local_signal = _get_field(market_relevance, "local_brand_presence_signal")
+
+    return (
+        market_lock_status in {"Global-default risk", "Insufficient evidence", ""}
+        or local_signal in {"Weak", "Not Enough Evidence", ""}
+    )
+
+
+def _build_evidence_asset(task, priority, brand, category, market, audience, prompt_categories):
+    evidence_type = str(task.get("Evidence Type", "")).strip()
+    return {
+        "priority": priority,
+        "asset_name": _asset_name_for_evidence_type(
+            evidence_type,
+            brand,
+            category,
+            market,
+        ),
+        "what_to_build": task.get("Action", ""),
+        "why_it_matters": task.get("Why It Matters", ""),
+        "target_retrieval_driver": task.get("Gap Addressed", ""),
+        "targets_or_prompt_groups": _target_prompt_groups_for_evidence_type(
+            evidence_type,
+            prompt_categories,
+            market,
+            audience,
+        ),
+        "validation": task.get("Benchmark Validation Method", ""),
+    }
+
+
+def build_first_three_evidence_assets(
+    *,
+    brand,
+    category,
+    market,
+    audience,
+    reference_brands=None,
+    retrieved_brand_profiles=None,
+    brand_understanding=None,
+    market_relevance=None,
+    prompt_categories=None,
+):
+    tasks = build_first_detection_task_roadmap(
+        brand,
+        category,
+        market,
+        audience,
+        reference_brands=reference_brands,
+    )
+    tasks_by_type = _task_by_evidence_type(tasks)
+    selected_evidence_types = []
+
+    def select(evidence_type):
+        if evidence_type in tasks_by_type and evidence_type not in selected_evidence_types:
+            selected_evidence_types.append(evidence_type)
+
+    if _brand_understanding_needs_entity_evidence(brand_understanding):
+        select("Entity Evidence")
+
+    if _market_relevance_needs_market_evidence(market_relevance):
+        select("Market Evidence")
+
+    for profile in retrieved_brand_profiles or []:
+        select(_evidence_type_for_retrieval_role(profile.get("retrieval_role")))
+        if len(selected_evidence_types) >= 3:
+            break
+
+    if reference_brands:
+        select("Comparison Evidence")
+        select("Trust Evidence")
+
+    for evidence_type in [
+        "Entity Evidence",
+        "Market Evidence",
+        "Offering Evidence",
+        "Comparison Evidence",
+        "Trust Evidence",
+        "Third-Party Evidence / Structured Evidence",
+    ]:
+        select(evidence_type)
+        if len(selected_evidence_types) >= 3:
+            break
+
+    assets = []
+    for priority, evidence_type in enumerate(selected_evidence_types[:3], start=1):
+        assets.append(
+            _build_evidence_asset(
+                tasks_by_type[evidence_type],
+                priority,
+                brand,
+                category,
+                market,
+                audience,
+                prompt_categories,
+            )
+        )
+
+    return assets
 
 
 def build_validation_plan(prompt_categories):
