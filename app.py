@@ -33,9 +33,7 @@ from geo_audit.competitor_suggestions import suggest_competitors_with_ai
 from geo_audit.geo_roadmap import generate_geo_content_roadmap
 from geo_audit.markdown_report import build_executive_markdown_report
 from geo_audit.narrative_prompts import (
-    build_ai_decision_explanation_prompt,
     build_gap_analysis_prompt,
-    build_replacement_strategy_prompt,
 )
 from geo_audit.prompts import build_fixed_prompts
 from geo_audit.output_quality import OutputQualityContext, sanitize_narrative_appendix_text
@@ -66,6 +64,10 @@ from geo_audit.ui.exports import (
     render_report_download_exports,
 )
 from geo_audit.ui.raw_answers_panel import render_raw_answers_panel
+from geo_audit.ui.narrative_sections import (
+    render_brand_winners_explanation,
+    render_replacement_strategy,
+)
 from geo_audit.ui.results_sections import (
     render_action_plan,
     render_competitive_benchmark,
@@ -617,66 +619,32 @@ def display_results():
     # =========================
     # 6. Why These Brands Win
     # =========================
-
-    with st.expander("Why These Brands Win (AI Decision Explanation)", expanded=False):
-        if top_brands.empty:
-            st.warning("No top brands to explain.")
-        else:
-            explain_prompt = build_ai_decision_explanation_prompt(
-                brand=brand,
-                category=category,
-                market=market,
-                top_brands_df=top_brands,
-                detailed_df=detailed_df,
-            )
-
-            if "brand_win_explanation" not in st.session_state:
-                st.session_state["brand_win_explanation"] = sanitize_narrative_appendix_text(
-                    ask_ai(explain_prompt),
-                    OutputQualityContext(
-                        category=category,
-                        run_mode=run_mode,
-                        brand=brand,
-                        market=market,
-                        audience=audience,
-                        tracked_competitors=competitors,
-                    ),
-                )
-
-            st.write(st.session_state["brand_win_explanation"])
+    render_brand_winners_explanation(
+        brand=brand,
+        category=category,
+        market=market,
+        audience=audience,
+        competitors=competitors,
+        run_mode=run_mode,
+        top_brands=top_brands,
+        detailed_df=detailed_df,
+    )
 
     # =========================
     # 7. How Target Brand Can Replace Winners
     # =========================
-    with st.expander(f"How {brand} Can Replace These Brands", expanded=False):
-        if top_brands.empty:
-            st.warning("No replacement strategy available because no positive brand winners were detected.")
-        else:
-            replace_prompt = build_replacement_strategy_prompt(
-                brand=brand,
-                category=category,
-                market=market,
-                audience=audience,
-                top_brands_df=top_brands,
-                summary_df=summary_df,
-                detailed_df=detailed_df,
-                raw_answers=raw_answers,
-            )
-
-            if "replacement_strategy" not in st.session_state:
-                st.session_state["replacement_strategy"] = sanitize_narrative_appendix_text(
-                    ask_ai(replace_prompt),
-                    OutputQualityContext(
-                        category=category,
-                        run_mode=run_mode,
-                        brand=brand,
-                        market=market,
-                        audience=audience,
-                        tracked_competitors=competitors,
-                    ),
-                )
-
-            st.write(st.session_state["replacement_strategy"])
+    render_replacement_strategy(
+        brand=brand,
+        category=category,
+        market=market,
+        audience=audience,
+        competitors=competitors,
+        run_mode=run_mode,
+        top_brands=top_brands,
+        summary_df=summary_df,
+        detailed_df=detailed_df,
+        raw_answers=raw_answers,
+    )
 
     # =========================
     # 8. Benchmark Charts
