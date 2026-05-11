@@ -73,6 +73,12 @@ from geo_audit.ui.results_sections import (
     render_top_brands_by_query_type,
     render_trigger_level_visibility,
 )
+from geo_audit.ui.sidebar_sections import (
+    render_advanced_developer_options,
+    render_page_header,
+    render_run_mode_controls,
+    render_sidebar_methodology_info,
+)
 
 from geo_audit.analyzer import DEFAULT_MODEL
 
@@ -904,37 +910,11 @@ if parsed_user_brand_strengths:
 
 st.sidebar.write("**Prompt Mode:** Fixed + AI Generated")
 
-with st.sidebar.expander("Advanced / Developer Options"):
-    show_prompt_debug = st.checkbox(
-        "Show prompt debug details",
-        value=False
-    )
+show_prompt_debug = render_advanced_developer_options()
 
-st.title(f"{display_brand} {display_market} AI Visibility Analyzer")
-st.caption(
-    f"AI visibility, competitor recall, and positioning gap analysis for {display_category}."
-)
-st.markdown(
-    f"""
-Benchmark how AI systems recall {display_brand}, compare competitor visibility, and surface positioning opportunities in {display_market}.
-"""
-)
+render_page_header(display_brand, display_market, display_category)
 
-run_mode = st.sidebar.radio(
-    "Run Mode",
-    ["Full Report Mode", "Quick Test Mode"],
-    index=0
-)
-
-prompt_limit = None
-if run_mode == "Quick Test Mode":
-    prompt_limit = st.sidebar.number_input(
-        "Prompt Limit",
-        min_value=1,
-        max_value=10,
-        value=3,
-        step=1
-    )
+run_mode, prompt_limit = render_run_mode_controls()
 
 current_competitors = configured_competitors
 current_analysis_context = build_analysis_context(
@@ -1003,21 +983,7 @@ if reset_button:
     st.session_state.clear()
     st.rerun()
 
-st.sidebar.divider()
-
-st.sidebar.markdown("""
-### What This Analysis Measures
-
-- Brand mentions
-- First appearance position
-- Estimated ranking inside AI answers
-- Visibility score
-- Organic visibility
-- Share of voice
-- Competitor benchmark
-- GEO recommendations
-- Level 3 action plan
-""")
+render_sidebar_methodology_info()
 
 st.sidebar.markdown("""
 ### Report Sections
