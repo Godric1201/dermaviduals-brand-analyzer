@@ -64,6 +64,7 @@ from geo_audit.ui.exports import (
 )
 from geo_audit.ui.raw_answers_panel import render_raw_answers_panel
 from geo_audit.ui.results_sections import (
+    render_action_plan,
     render_competitive_benchmark,
     render_executive_snapshot,
     render_prompt_level_results,
@@ -827,8 +828,7 @@ def display_results():
     # =========================
     # 13. Level 3 Strategic Insight
     # =========================
-    st.subheader(t["action_plan"])
-    st.markdown(plan)
+    render_action_plan(t, plan)
 
     # =========================
     # 14. Level 2 Content Pack

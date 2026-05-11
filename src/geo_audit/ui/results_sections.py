@@ -102,3 +102,8 @@ def render_prompt_level_results(t, detailed_display_df):
         build_prompt_level_results_display_df(detailed_display_df),
         use_container_width=True
     )
+
+
+def render_action_plan(t, plan):
+    st.subheader(t["action_plan"])
+    st.markdown(plan)
