@@ -4,6 +4,7 @@ from geo_audit.analysis_pipeline import run_visibility_analysis
 from geo_audit.brand_intelligence import run_brand_intelligence_analysis
 from geo_audit.brand_understanding import run_brand_understanding_probe
 from geo_audit.geo_roadmap import generate_geo_content_roadmap
+from geo_audit.market_relevance import run_market_relevance_probe
 from geo_audit.prompts import build_fixed_prompts
 from geo_audit.run_progress import (
     build_progress_steps,
@@ -104,6 +105,7 @@ def run_analysis_controller(
         )
 
     st.session_state["analysis_running"] = True
+    brand_understanding_result = None
 
     try:
         set_progress_phase(1)
@@ -138,6 +140,25 @@ def run_analysis_controller(
                 competitors=competitors,
                 run_mode=run_mode,
             )
+
+        if is_full_report_mode:
+            set_progress_phase(4, "Market Relevance Probe")
+            market_relevance_result = run_market_relevance_probe(
+                brand=brand,
+                category=category,
+                market=market,
+                audience=audience,
+                summary_df=result["summary_df"],
+                detailed_df=result["detailed_df"],
+                prompt_categories=get_prompt_categories(result["prompts"]),
+                brand_understanding=brand_understanding_result,
+                report_language=report_language,
+            )
+            st.session_state["market_relevance"] = market_relevance_result
+            st.session_state["market_relevance_done"] = True
+        else:
+            st.session_state.pop("market_relevance", None)
+            st.session_state["market_relevance_done"] = False
 
         set_progress_phase(4)
 

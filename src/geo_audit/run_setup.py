@@ -91,9 +91,14 @@ def estimate_api_calls(
     run_mode,
     geo_content_roadmap_calls=1,
     brand_understanding_probe_calls=None,
+    market_relevance_probe_calls=None,
 ):
     if brand_understanding_probe_calls is None:
         brand_understanding_probe_calls = (
+            1 if run_mode == "Full Report Mode" else 0
+        )
+    if market_relevance_probe_calls is None:
+        market_relevance_probe_calls = (
             1 if run_mode == "Full Report Mode" else 0
         )
 
@@ -125,6 +130,7 @@ def estimate_api_calls(
         "strategy_report_calls": strategy_report_calls,
         "geo_content_roadmap_calls": geo_content_roadmap_calls,
         "brand_understanding_probe_calls": brand_understanding_probe_calls,
+        "market_relevance_probe_calls": market_relevance_probe_calls,
         "estimated_pipeline_calls": (
             prompt_generation_calls
             + ai_answer_generation_calls
@@ -132,6 +138,7 @@ def estimate_api_calls(
             + strategy_report_calls
             + geo_content_roadmap_calls
             + brand_understanding_probe_calls
+            + market_relevance_probe_calls
         ),
         "auto_result_narrative_calls_estimate": 3,
     }

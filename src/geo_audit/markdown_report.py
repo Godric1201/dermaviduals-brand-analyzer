@@ -26,6 +26,12 @@ from .brand_understanding import (
     STATUS_UNCLEAR,
     STATUS_NOT_ENOUGH_EVIDENCE,
 )
+from .market_relevance import (
+    MARKET_LOCK_GLOBAL_DEFAULT_RISK,
+    MARKET_LOCK_INSUFFICIENT_EVIDENCE,
+    MARKET_LOCK_MARKET_SPECIFIC,
+    MARKET_LOCK_PARTIALLY_MARKET_SPECIFIC,
+)
 from .report_diagnosis import (
     build_evidence_gap_map,
     build_first_detection_task_roadmap,
@@ -222,6 +228,113 @@ def _build_brand_understanding_probe_md(brand_understanding, display_brand):
     return body
 
 
+def _build_market_relevance_probe_md(market_relevance):
+    if not market_relevance:
+        return ""
+
+    market_lock_status = _get_probe_field(
+        market_relevance,
+        "market_lock_status",
+        MARKET_LOCK_INSUFFICIENT_EVIDENCE,
+    )
+    local_brand_presence_signal = _get_probe_field(
+        market_relevance,
+        "local_brand_presence_signal",
+        "Not Enough Evidence",
+    )
+    recommended_interpretation = _get_probe_field(
+        market_relevance,
+        "recommended_interpretation",
+        "Insufficient evidence",
+    )
+    global_default_risk_reason = _get_probe_field(
+        market_relevance,
+        "global_default_risk_reason",
+        "",
+    )
+    market_evidence_gap_summary = _get_probe_field(
+        market_relevance,
+        "market_evidence_gap_summary",
+        "",
+    )
+    validation_note = _get_probe_field(
+        market_relevance,
+        "validation_note",
+        "AI-inferred market relevance probe. Validate before using as client-facing fact.",
+    )
+    visible_market_fit = _get_probe_field(
+        market_relevance,
+        "visible_market_fit",
+        [],
+    )
+
+    if market_lock_status == MARKET_LOCK_GLOBAL_DEFAULT_RISK:
+        interpretation = (
+            "The AI-inferred Market Relevance Probe suggests the answer set appears to lean toward globally visible category leaders. "
+            "This may indicate a market evidence gap, but it requires validation and is not a verified market fact."
+        )
+    elif market_lock_status == MARKET_LOCK_MARKET_SPECIFIC:
+        interpretation = (
+            "The AI-inferred Market Relevance Probe suggests visible brands appear to have market relevance. "
+            "In this case, non-visibility is less likely to be only a global-default artifact, but this requires validation."
+        )
+    elif market_lock_status == MARKET_LOCK_PARTIALLY_MARKET_SPECIFIC:
+        interpretation = (
+            "The AI-inferred Market Relevance Probe suggests the answer set shows mixed market adherence. "
+            "Some retrieved brands may fit the target market while others may reflect broader category visibility."
+        )
+    else:
+        interpretation = (
+            "The AI-inferred Market Relevance Probe cannot determine market lock confidently from the benchmark context. "
+            "Treat this as insufficient evidence, not verified market fact."
+        )
+
+    probe_rows = [
+        {
+            "Probe Signal": "Market lock status",
+            "AI-Inferred Result": market_lock_status,
+        },
+        {
+            "Probe Signal": "Local brand presence",
+            "AI-Inferred Result": local_brand_presence_signal,
+        },
+        {
+            "Probe Signal": "Recommended interpretation",
+            "AI-Inferred Result": recommended_interpretation,
+        },
+    ]
+    body = (
+        "### Market Relevance Probe\n\n"
+        f"{interpretation}\n\n"
+        f"{df_to_markdown_table(pd.DataFrame(probe_rows), max_rows=10)}"
+    )
+
+    if visible_market_fit:
+        fit_rows = [
+            {
+                "Visible Brand": row.get("brand", ""),
+                "Market Fit": row.get("market_fit", ""),
+                "Rationale": row.get("rationale", ""),
+            }
+            for row in visible_market_fit
+            if isinstance(row, dict)
+        ]
+        if fit_rows:
+            body += (
+                "\n\nVisible brand market-fit signals:\n\n"
+                f"{df_to_markdown_table(pd.DataFrame(fit_rows), max_rows=5)}"
+            )
+
+    if global_default_risk_reason:
+        body += f"\n\n**Global-default risk reason:** {global_default_risk_reason}"
+    if market_evidence_gap_summary:
+        body += f"\n\n**Market evidence gap summary:** {market_evidence_gap_summary}"
+
+    body += f"\n\n_{validation_note}_"
+
+    return body
+
+
 def _build_zero_visibility_markdown_report(
     *,
     display_brand,
@@ -246,6 +359,8 @@ def _build_zero_visibility_markdown_report(
     brand,
     brand_understanding=None,
     brand_understanding_done=False,
+    market_relevance=None,
+    market_relevance_done=False,
 ):
     query_intent_md = "\n".join(
         f"- {item}" for item in prompt_categories
@@ -298,6 +413,16 @@ def _build_zero_visibility_markdown_report(
         if brand_understanding_probe_md
         else ""
     )
+    market_relevance_probe_md = (
+        _build_market_relevance_probe_md(market_relevance)
+        if market_relevance_done
+        else ""
+    )
+    market_relevance_probe_section = (
+        f"{market_relevance_probe_md}\n\n"
+        if market_relevance_probe_md
+        else ""
+    )
 
     return [
         f"# {display_brand} {display_market} AI Visibility Diagnosis Report",
@@ -330,6 +455,7 @@ def _build_zero_visibility_markdown_report(
         (
             "## 3. Market Relevance Risk & Visible Reference Brands\n\n"
             f"{market_relevance_interpretation}\n\n"
+            f"{market_relevance_probe_section}"
             "Visible reference brands should be read as AI-visible reference brands, visible category anchors, or retrieved alternatives. They are evidence context for diagnosis, not simply competitors to attack.\n\n"
             f"{reference_brands_md}"
         ),
@@ -389,6 +515,8 @@ def build_executive_markdown_report(
     brand_intelligence_done=False,
     brand_understanding=None,
     brand_understanding_done=False,
+    market_relevance=None,
+    market_relevance_done=False,
     geo_content_roadmap=None,
     geo_content_roadmap_done=False,
     prompt_categories=None,
@@ -558,6 +686,8 @@ def build_executive_markdown_report(
             brand=brand,
             brand_understanding=brand_understanding,
             brand_understanding_done=brand_understanding_done,
+            market_relevance=market_relevance,
+            market_relevance_done=market_relevance_done,
         )
         final_report = "\n\n---\n\n".join(parts)
         final_report = sanitize_report_text(final_report, context)

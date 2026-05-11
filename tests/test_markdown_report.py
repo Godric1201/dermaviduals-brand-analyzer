@@ -1,6 +1,7 @@
 import pandas as pd
 
 from geo_audit.brand_understanding import BrandUnderstandingProbeResult
+from geo_audit.market_relevance import MarketRelevanceProbeResult
 from geo_audit.markdown_report import build_executive_markdown_report
 from geo_audit.output_quality import (
     FAILED_LLM_SECTION_PLACEHOLDER,
@@ -184,6 +185,26 @@ def create_brand_understanding_result(**overrides):
     return BrandUnderstandingProbeResult(**values)
 
 
+def create_market_relevance_result(**overrides):
+    values = {
+        "market_lock_status": "Global-default risk",
+        "local_brand_presence_signal": "Weak",
+        "visible_market_fit": [
+            {
+                "brand": "Munich Re",
+                "market_fit": "Global-default",
+                "rationale": "Highly visible global category anchor.",
+            }
+        ],
+        "global_default_risk_reason": "Visible brands are globally famous category leaders.",
+        "market_evidence_gap_summary": "Local and regional market evidence is not visible in the benchmark context.",
+        "recommended_interpretation": "Global-default retrieval risk",
+        "validation_note": "AI-inferred market relevance probe. Validate before using as client-facing fact.",
+    }
+    values.update(overrides)
+    return MarketRelevanceProbeResult(**values)
+
+
 def test_build_executive_markdown_report_returns_string_with_core_sections():
     report = build_executive_markdown_report(**create_markdown_inputs())
 
@@ -221,6 +242,7 @@ def test_build_executive_markdown_report_uses_first_detection_strategy_for_zero_
     assert "first measurable inclusion" in report
     assert "0 total mentions" in report
     assert "Brand Understanding Probe" not in report
+    assert "Market Relevance Probe" not in report
 
 
 def test_zero_visibility_markdown_uses_clear_brand_understanding_probe_cautiously():
@@ -267,6 +289,49 @@ def test_zero_visibility_markdown_uses_reference_brand_and_market_risk_language(
     assert "not a confirmed fact" in report
     assert "Munich Re" in report
     assert "Swiss Re" in report
+
+
+def test_zero_visibility_markdown_uses_global_default_market_probe_cautiously():
+    inputs = create_zero_visibility_markdown_inputs()
+    inputs["market_relevance"] = create_market_relevance_result()
+    inputs["market_relevance_done"] = True
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert "Market Relevance Probe" in report
+    assert "AI-inferred" in report
+    assert "appears to lean toward globally visible category leaders" in report
+    assert "may indicate a market evidence gap" in report
+    assert "requires validation" in report.lower()
+    assert "not a verified market fact" in report
+    assert "Global-default retrieval risk" in report
+
+
+def test_zero_visibility_market_specific_probe_does_not_confirm_global_default_behavior():
+    inputs = create_zero_visibility_markdown_inputs()
+    inputs["market_relevance"] = create_market_relevance_result(
+        market_lock_status="Market-specific",
+        local_brand_presence_signal="Clear",
+        visible_market_fit=[
+            {
+                "brand": "Swiss Re",
+                "market_fit": "Market-relevant",
+                "rationale": "Appears relevant to the target market context.",
+            }
+        ],
+        global_default_risk_reason="No clear global-default risk from the compact context.",
+        market_evidence_gap_summary="Visible brands appear to have market relevance.",
+        recommended_interpretation="Market-specific competitive gap",
+    )
+    inputs["market_relevance_done"] = True
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert "Market Relevance Probe" in report
+    assert "visible brands appear to have market relevance" in report
+    assert "less likely to be only a global-default artifact" in report
+    assert "requires validation" in report.lower()
+    assert "confirmed global-default" not in report.lower()
 
 
 def test_zero_visibility_markdown_avoids_generic_or_overpromised_objectives():
