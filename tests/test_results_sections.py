@@ -5,6 +5,9 @@ from geo_audit.ui.results_sections import (
     build_executive_snapshot_metrics,
     build_prompt_level_results_display_df,
     build_prompt_matrix_display_df,
+    build_top_brands_by_query_type,
+    build_top_brands_display_df,
+    build_trigger_visibility_pivot,
 )
 
 
@@ -216,3 +219,170 @@ def test_build_prompt_level_results_display_df_preserves_empty_dataframe():
         "Brand",
         "Visibility Score",
     ]
+
+
+def test_build_trigger_visibility_pivot_computes_mean_by_category_and_brand():
+    detailed_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 1,
+        },
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 3,
+        },
+        {
+            "prompt_category": "Best Options",
+            "brand": "Coffee Fellows",
+            "visibility_score": 4,
+        },
+    ])
+
+    pivot = build_trigger_visibility_pivot(detailed_df)
+
+    assert pivot.loc["Best Options", "Espresso House"] == 2
+    assert pivot.loc["Best Options", "Coffee Fellows"] == 4
+
+
+def test_build_trigger_visibility_pivot_fills_missing_combinations_with_zero():
+    detailed_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 1,
+        },
+        {
+            "prompt_category": "Local Recommendations",
+            "brand": "Coffee Fellows",
+            "visibility_score": 4,
+        },
+    ])
+
+    pivot = build_trigger_visibility_pivot(detailed_df)
+
+    assert pivot.loc["Best Options", "Coffee Fellows"] == 0
+    assert pivot.loc["Local Recommendations", "Espresso House"] == 0
+
+
+def test_build_trigger_visibility_pivot_handles_empty_detailed_dataframe():
+    detailed_df = pd.DataFrame(
+        columns=["prompt_category", "brand", "visibility_score"]
+    )
+
+    pivot = build_trigger_visibility_pivot(detailed_df)
+
+    assert pivot.empty
+
+
+def test_build_top_brands_by_query_type_selects_highest_score_per_category():
+    detailed_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 1,
+        },
+        {
+            "prompt_category": "Best Options",
+            "brand": "Coffee Fellows",
+            "visibility_score": 3,
+        },
+        {
+            "prompt_category": "Local Recommendations",
+            "brand": "Einstein Kaffee",
+            "visibility_score": 2,
+        },
+    ])
+
+    top_brands = build_top_brands_by_query_type(detailed_df)
+
+    best_options = top_brands[
+        top_brands["prompt_category"] == "Best Options"
+    ].iloc[0]
+    local_recommendations = top_brands[
+        top_brands["prompt_category"] == "Local Recommendations"
+    ].iloc[0]
+
+    assert best_options["brand"] == "Coffee Fellows"
+    assert best_options["visibility_score"] == 3
+    assert local_recommendations["brand"] == "Einstein Kaffee"
+
+
+def test_build_top_brands_by_query_type_ignores_zero_and_negative_scores():
+    detailed_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 0,
+        },
+        {
+            "prompt_category": "Best Options",
+            "brand": "Coffee Fellows",
+            "visibility_score": -1,
+        },
+        {
+            "prompt_category": "Local Recommendations",
+            "brand": "Einstein Kaffee",
+            "visibility_score": 2,
+        },
+    ])
+
+    top_brands = build_top_brands_by_query_type(detailed_df)
+
+    assert len(top_brands) == 1
+    assert top_brands.iloc[0]["prompt_category"] == "Local Recommendations"
+    assert top_brands.iloc[0]["brand"] == "Einstein Kaffee"
+
+
+def test_build_top_brands_by_query_type_returns_empty_dataframe_for_no_positive_scores():
+    detailed_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 0,
+        },
+        {
+            "prompt_category": "Local Recommendations",
+            "brand": "Coffee Fellows",
+            "visibility_score": -1,
+        },
+    ])
+
+    top_brands = build_top_brands_by_query_type(detailed_df)
+
+    assert top_brands.empty
+    assert list(top_brands.columns) == [
+        "prompt_category",
+        "brand",
+        "visibility_score",
+    ]
+
+
+def test_build_top_brands_display_df_preserves_display_brand_replacement():
+    top_brands = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "espresso house",
+            "visibility_score": 2,
+        },
+        {
+            "prompt_category": "Local Recommendations",
+            "brand": "coffee fellows",
+            "visibility_score": 1,
+        },
+    ])
+
+    display_df = build_top_brands_display_df(
+        top_brands,
+        brand="espresso house",
+        display_brand="Espresso House",
+    )
+
+    assert list(display_df.columns) == [
+        "prompt_category",
+        "brand",
+        "visibility_score",
+    ]
+    assert display_df.iloc[0]["brand"] == "Espresso House"
+    assert display_df.iloc[1]["brand"] == "Coffee Fellows"

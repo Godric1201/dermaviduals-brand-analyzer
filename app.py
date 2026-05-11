@@ -8,7 +8,6 @@ if str(SRC_DIR) not in sys.path:
 
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 
 from geo_audit.app_constants import (
     ANSWER_LANGUAGE,
@@ -57,6 +56,10 @@ from geo_audit.ui.api_usage_panel import (
 )
 from geo_audit.ui.benchmark_progress import render_benchmark_progress
 from geo_audit.ui.brand_intelligence_panel import render_brand_intelligence_panel
+from geo_audit.ui.charts import (
+    render_benchmark_charts,
+    render_prompt_level_chart,
+)
 from geo_audit.ui.content_generator_panel import render_content_generator_panel
 from geo_audit.ui.exports import (
     render_benchmark_snapshot_export,
@@ -64,11 +67,18 @@ from geo_audit.ui.exports import (
 )
 from geo_audit.ui.raw_answers_panel import render_raw_answers_panel
 from geo_audit.ui.results_sections import (
+    render_action_plan,
     render_competitive_benchmark,
     render_executive_snapshot,
+    render_geo_content_roadmap,
+    render_geo_recommendations,
     render_prompt_level_results,
     render_prompt_matrix,
     render_query_intent_coverage,
+    render_run_input_summary,
+    render_run_status_messages,
+    render_top_brands_by_query_type,
+    render_trigger_level_visibility,
 )
 
 from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
@@ -549,30 +559,21 @@ def display_results():
             "Development-only limited-prompt output. Not client-deliverable."
         )
 
-    st.success(t["complete"])
-
     stored_context = st.session_state.get("analysis_context")
-    if stored_context and stored_context != current_analysis_context:
-        st.warning(
-            "Sidebar inputs have changed since this analysis was generated. "
-            "Run the analysis again to refresh results."
-        )
+    render_run_status_messages(
+        t=t,
+        stored_context=stored_context,
+        current_analysis_context=current_analysis_context,
+        is_quick_test_mode=is_quick_test_mode,
+        prompt_limit=prompt_limit,
+    )
 
-    if is_quick_test_mode:
-        prompt_word = "prompt" if prompt_limit == 1 else "prompts"
-        st.warning(
-            f"TEST VERSION ONLY - Quick Test Mode: this report used only {prompt_limit} {prompt_word} "
-            "and is for development only. Not client-deliverable."
-        )
-
-    st.write("**Configured Competitors:**")
-    st.write(", ".join(competitors))
-
-    if show_prompt_debug:
-        with st.expander("AI Generated Prompts Debug", expanded=False):
-            st.write(ai_prompts)
-
-    st.write(f"Total prompts: {len(prompts)}")
+    render_run_input_summary(
+        competitors=competitors,
+        prompts=prompts,
+        show_prompt_debug=show_prompt_debug,
+        ai_prompts=ai_prompts,
+    )
 
     render_api_usage_summary(api_usage_summary)
 
@@ -602,63 +603,16 @@ def display_results():
     # =========================
     # 4. Trigger-Level Visibility
     # =========================
-    st.subheader("Trigger-Level Brand Visibility (Core Insight)")
-
-    pivot = detailed_df.pivot_table(
-        index="prompt_category",
-        columns="brand",
-        values="visibility_score",
-        aggfunc="mean"
-    ).fillna(0)
-
-    st.dataframe(pivot, use_container_width=True)
-
-    if not pivot.empty:
-        fig_heatmap = px.imshow(
-            pivot,
-            text_auto=True,
-            aspect="auto",
-            title="AI Brand Visibility Heatmap (by Query Type)"
-    )
-
-        fig_heatmap.update_layout(height=650)
-        fig_heatmap.update_xaxes(tickangle=45)
-
-        st.plotly_chart(fig_heatmap, use_container_width=True)
-    else:
-        st.warning("No data available for heatmap.")
+    pivot = render_trigger_level_visibility(detailed_df)
 
     # =========================
     # 5. Top Brands per Query Type
     # =========================
-    st.subheader("Top Performing Brands per Query Type")
-    st.caption("This table identifies which brand wins each AI query category based on visibility score.")
-
-    positive_df = detailed_df[detailed_df["visibility_score"] > 0].copy()
-
-    if not positive_df.empty:
-        top_brands = (
-            positive_df.sort_values("visibility_score", ascending=False)
-            .groupby("prompt_category")
-            .first()
-            .reset_index()
-        )
-
-        st.dataframe(
-            replace_target_brand_for_display(
-                format_brand_names_for_display(
-                    top_brands[["prompt_category", "brand", "visibility_score"]]
-                ),
-                raw_brand=brand,
-                display_brand=display_brand
-            ),
-            use_container_width=True
-        )
-    else:
-        top_brands = pd.DataFrame(
-            columns=["prompt_category", "brand", "visibility_score"]
-        )
-        st.warning("No brands received positive visibility scores.")
+    top_brands = render_top_brands_by_query_type(
+        detailed_df=detailed_df,
+        brand=brand,
+        display_brand=display_brand,
+    )
 
     # =========================
     # 6. Why These Brands Win
@@ -727,50 +681,14 @@ def display_results():
     # =========================
     # 8. Benchmark Charts
     # =========================
-    col_a, col_b = st.columns(2)
-
-    with col_a:
-        fig_score = px.bar(
-            summary_df,
-            x="brand",
-            y="average_visibility_score",
-            title=t["avg_visibility"],
-            text="average_visibility_score",
-            labels={
-                "brand": t["brand_label"],
-                "average_visibility_score": t["avg_visibility"]
-            }
-        )
-        st.plotly_chart(fig_score, use_container_width=True)
-
-    with col_b:
-        fig_sov = px.pie(
-            summary_df,
-            names="brand",
-            values="share_of_voice_percent",
-            title=t["share_of_voice"]
-        )
-        st.plotly_chart(fig_sov, use_container_width=True)
+    render_benchmark_charts(t, summary_df)
 
     # =========================
     # 9. Prompt-Level Results
     # =========================
     render_prompt_level_results(t, detailed_display_df)
 
-    fig_prompt = px.bar(
-        detailed_df,
-        x="prompt_category",
-        y="visibility_score",
-        color="brand",
-        barmode="group",
-        title=t["organic_visibility"],
-        labels={
-            "prompt_category": t["prompt_category_label"],
-            "visibility_score": t["score_label"],
-            "brand": t["brand_label"]
-        }
-    )
-    st.plotly_chart(fig_prompt, use_container_width=True)
+    render_prompt_level_chart(t, detailed_df)
 
     # =========================
     # 10. Raw Answers
@@ -780,8 +698,7 @@ def display_results():
     # =========================
     # 11. GEO Recommendations
     # =========================
-    with st.expander(t["recommendations"], expanded=False):
-        st.write(recommendations)
+    render_geo_recommendations(t, recommendations)
 
     # =========================
     # 12. AI Association Gap
@@ -817,18 +734,15 @@ def display_results():
 
         render_brand_intelligence_panel(brand_intelligence)
 
-    if st.session_state.get("geo_content_roadmap_done", False):
-        st.subheader("GEO Content Roadmap")
-        st.caption(
-            "Strategic execution plan. Not part of visibility scoring or share of voice."
-        )
-        st.markdown(st.session_state["geo_content_roadmap"])
+    render_geo_content_roadmap(
+        st.session_state.get("geo_content_roadmap_done", False),
+        st.session_state.get("geo_content_roadmap"),
+    )
 
     # =========================
     # 13. Level 3 Strategic Insight
     # =========================
-    st.subheader(t["action_plan"])
-    st.markdown(plan)
+    render_action_plan(t, plan)
 
     # =========================
     # 14. Level 2 Content Pack

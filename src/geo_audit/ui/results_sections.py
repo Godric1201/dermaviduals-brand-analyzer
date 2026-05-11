@@ -1,8 +1,13 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 from geo_audit.app_constants import TRANSLATIONS
-from geo_audit.ui_formatters import translate_dataframe_columns
+from geo_audit.ui_formatters import (
+    format_brand_names_for_display,
+    replace_target_brand_for_display,
+    translate_dataframe_columns,
+)
 
 
 def render_query_intent_coverage(prompt_categories):
@@ -11,6 +16,45 @@ def render_query_intent_coverage(prompt_categories):
         "This benchmark covers multiple AI recommendation contexts, not only generic best-brand queries."
     )
     st.write(prompt_categories)
+
+
+def render_run_status_messages(
+    t,
+    stored_context,
+    current_analysis_context,
+    is_quick_test_mode,
+    prompt_limit,
+):
+    st.success(t["complete"])
+
+    if stored_context and stored_context != current_analysis_context:
+        st.warning(
+            "Sidebar inputs have changed since this analysis was generated. "
+            "Run the analysis again to refresh results."
+        )
+
+    if is_quick_test_mode:
+        prompt_word = "prompt" if prompt_limit == 1 else "prompts"
+        st.warning(
+            f"TEST VERSION ONLY - Quick Test Mode: this report used only {prompt_limit} {prompt_word} "
+            "and is for development only. Not client-deliverable."
+        )
+
+
+def render_run_input_summary(
+    competitors,
+    prompts,
+    show_prompt_debug,
+    ai_prompts,
+):
+    st.write("**Configured Competitors:**")
+    st.write(", ".join(competitors))
+
+    if show_prompt_debug:
+        with st.expander("AI Generated Prompts Debug", expanded=False):
+            st.write(ai_prompts)
+
+    st.write(f"Total prompts: {len(prompts)}")
 
 
 def build_executive_snapshot_metrics(summary_df, detailed_df, brand):
@@ -92,6 +136,83 @@ def render_competitive_benchmark(t, summary_display_df):
     )
 
 
+def build_trigger_visibility_pivot(detailed_df):
+    return detailed_df.pivot_table(
+        index="prompt_category",
+        columns="brand",
+        values="visibility_score",
+        aggfunc="mean"
+    ).fillna(0)
+
+
+def render_trigger_level_visibility(detailed_df):
+    st.subheader("Trigger-Level Brand Visibility (Core Insight)")
+
+    pivot = build_trigger_visibility_pivot(detailed_df)
+
+    st.dataframe(pivot, use_container_width=True)
+
+    if not pivot.empty:
+        fig_heatmap = px.imshow(
+            pivot,
+            text_auto=True,
+            aspect="auto",
+            title="AI Brand Visibility Heatmap (by Query Type)"
+    )
+
+        fig_heatmap.update_layout(height=650)
+        fig_heatmap.update_xaxes(tickangle=45)
+
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+    else:
+        st.warning("No data available for heatmap.")
+
+    return pivot
+
+
+def build_top_brands_by_query_type(detailed_df):
+    positive_df = detailed_df[detailed_df["visibility_score"] > 0].copy()
+
+    if not positive_df.empty:
+        return (
+            positive_df.sort_values("visibility_score", ascending=False)
+            .groupby("prompt_category")
+            .first()
+            .reset_index()
+        )
+
+    return pd.DataFrame(
+        columns=["prompt_category", "brand", "visibility_score"]
+    )
+
+
+def build_top_brands_display_df(top_brands, brand, display_brand):
+    return replace_target_brand_for_display(
+        format_brand_names_for_display(
+            top_brands[["prompt_category", "brand", "visibility_score"]]
+        ),
+        raw_brand=brand,
+        display_brand=display_brand
+    )
+
+
+def render_top_brands_by_query_type(detailed_df, brand, display_brand):
+    st.subheader("Top Performing Brands per Query Type")
+    st.caption("This table identifies which brand wins each AI query category based on visibility score.")
+
+    top_brands = build_top_brands_by_query_type(detailed_df)
+
+    if not top_brands.empty:
+        st.dataframe(
+            build_top_brands_display_df(top_brands, brand, display_brand),
+            use_container_width=True
+        )
+    else:
+        st.warning("No brands received positive visibility scores.")
+
+    return top_brands
+
+
 def build_prompt_level_results_display_df(detailed_display_df):
     return translate_dataframe_columns(detailed_display_df)
 
@@ -102,3 +223,22 @@ def render_prompt_level_results(t, detailed_display_df):
         build_prompt_level_results_display_df(detailed_display_df),
         use_container_width=True
     )
+
+
+def render_action_plan(t, plan):
+    st.subheader(t["action_plan"])
+    st.markdown(plan)
+
+
+def render_geo_recommendations(t, recommendations):
+    with st.expander(t["recommendations"], expanded=False):
+        st.write(recommendations)
+
+
+def render_geo_content_roadmap(geo_content_roadmap_done, geo_content_roadmap):
+    if geo_content_roadmap_done:
+        st.subheader("GEO Content Roadmap")
+        st.caption(
+            "Strategic execution plan. Not part of visibility scoring or share of voice."
+        )
+        st.markdown(geo_content_roadmap)
