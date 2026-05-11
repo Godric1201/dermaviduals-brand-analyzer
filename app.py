@@ -63,7 +63,10 @@ from geo_audit.ui.exports import (
     render_report_download_exports,
 )
 from geo_audit.ui.raw_answers_panel import render_raw_answers_panel
-from geo_audit.ui.results_sections import render_query_intent_coverage
+from geo_audit.ui.results_sections import (
+    render_executive_snapshot,
+    render_query_intent_coverage,
+)
 
 from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
 from geo_audit.report_generator import (
@@ -575,42 +578,13 @@ def display_results():
     # =========================
     # 1. Executive Snapshot
     # =========================
-    target_detailed = detailed_df[
-        detailed_df["brand"].str.lower() == brand.lower()
-    ]
-
-    organic_score = target_detailed["visibility_score"].mean()
-    organic_score = 0 if pd.isna(organic_score) else round(organic_score, 2)
-
-    target_row = summary_df[
-        summary_df["brand"].str.lower() == brand.lower()
-    ]
-
-    st.subheader(t["snapshot"])
-    st.caption(
-        f"Organic Visibility is measured from unbiased prompts that do not mention {brand}."
+    render_executive_snapshot(
+        t=t,
+        summary_df=summary_df,
+        detailed_df=detailed_df,
+        brand=brand,
+        prompt_count=len(prompts),
     )
-
-    if not target_row.empty:
-        target_score = target_row.iloc[0]["average_visibility_score"]
-        target_mentions = target_row.iloc[0]["total_mentions"]
-        target_sov = target_row.iloc[0]["share_of_voice_percent"]
-        target_visible_prompts = target_row.iloc[0]["prompts_visible"]
-
-        col1, col2, col3, col4, col5 = st.columns(5)
-
-        col1.metric(t["target_brand_metric"], brand)
-        col2.metric(t["avg_visibility"], target_score)
-        col3.metric(t["organic_visibility"], organic_score)
-        col4.metric(t["total_mentions"], int(target_mentions))
-        col5.metric(t["share_of_voice"], f"{target_sov}%")
-
-        st.write(
-            f"{t['visible_in']} {int(target_visible_prompts)} "
-            f"{t['out_of']} {len(prompts)} {t['prompts_word']}."
-        )
-    else:
-        st.warning(f"{brand} was not detected in the AI answers.")
 
     # =========================
     # 2. Prompts
