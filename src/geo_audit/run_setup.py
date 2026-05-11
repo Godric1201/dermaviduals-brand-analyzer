@@ -90,7 +90,13 @@ def estimate_api_calls(
     prompt_limit,
     run_mode,
     geo_content_roadmap_calls=1,
+    brand_understanding_probe_calls=None,
 ):
+    if brand_understanding_probe_calls is None:
+        brand_understanding_probe_calls = (
+            1 if run_mode == "Full Report Mode" else 0
+        )
+
     estimated_total_prompts = (
         fixed_prompt_count + ai_generated_prompt_estimate
     )
@@ -118,12 +124,14 @@ def estimate_api_calls(
         "recommendation_calls": recommendation_calls,
         "strategy_report_calls": strategy_report_calls,
         "geo_content_roadmap_calls": geo_content_roadmap_calls,
+        "brand_understanding_probe_calls": brand_understanding_probe_calls,
         "estimated_pipeline_calls": (
             prompt_generation_calls
             + ai_answer_generation_calls
             + recommendation_calls
             + strategy_report_calls
             + geo_content_roadmap_calls
+            + brand_understanding_probe_calls
         ),
         "auto_result_narrative_calls_estimate": 3,
     }

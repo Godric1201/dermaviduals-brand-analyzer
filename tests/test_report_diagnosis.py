@@ -17,6 +17,7 @@ from geo_audit.report_diagnosis import (
     build_validation_plan,
     build_visible_reference_brands,
     classify_visibility_state,
+    format_reference_brand_names,
     get_target_visibility_metrics,
     is_zero_visibility,
     select_strategy_mode,
@@ -142,6 +143,39 @@ def test_market_relevance_interpretation_is_cautious():
     assert "may indicate" in interpretation
     assert "interpretation risk" in interpretation
     assert "not a confirmed fact" in interpretation
+
+
+def test_reference_brand_names_are_formatted_naturally():
+    assert format_reference_brand_names([
+        {"Brand": "Munich Re"},
+    ]) == "Munich Re"
+    assert format_reference_brand_names([
+        {"Brand": "Munich Re"},
+        {"Brand": "Swiss Re"},
+    ]) == "Munich Re and Swiss Re"
+    assert format_reference_brand_names([
+        {"Brand": "Munich Re"},
+        {"Brand": "Swiss Re"},
+        {"Brand": "Hannover Re"},
+    ]) == "Munich Re, Swiss Re, and Hannover Re"
+
+
+def test_market_relevance_interpretation_uses_natural_two_brand_list():
+    interpretation = build_market_relevance_interpretation(
+        "Regional Re",
+        "Taiwan and Asia-Pacific",
+        "reinsurance",
+        [{"Brand": "Munich Re"}, {"Brand": "Swiss Re"}],
+    )
+
+    assert (
+        "The benchmark retrieved AI-visible reference brands such as Munich Re "
+        "and Swiss Re, while Regional Re was not detected."
+    ) in interpretation
+    assert "may indicate" in interpretation
+    assert "interpretation risk" in interpretation
+    assert "not a confirmed fact" in interpretation
+    assert "dedicated market-relevance probes" in interpretation
 
 
 def test_evidence_gap_map_and_task_roadmap_are_actionable():

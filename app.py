@@ -73,6 +73,8 @@ ANALYSIS_OUTPUT_KEYS = [
     "strategy_report",
     "brand_intelligence",
     "brand_intelligence_done",
+    "brand_understanding",
+    "brand_understanding_done",
     "geo_content_roadmap",
     "geo_content_roadmap_done",
     "api_usage_summary",

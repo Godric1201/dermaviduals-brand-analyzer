@@ -185,11 +185,28 @@ def build_visible_reference_brands(summary_df, brand, limit=5):
     return reference_brands
 
 
+def format_reference_brand_names(reference_brands, limit=3):
+    names = [
+        str(item.get("Brand", "")).strip()
+        for item in (reference_brands or [])[:limit]
+        if str(item.get("Brand", "")).strip()
+    ]
+
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    if len(names) == 2:
+        return f"{names[0]} and {names[1]}"
+
+    return f"{', '.join(names[:-1])}, and {names[-1]}"
+
+
 def build_market_relevance_interpretation(brand, market, category, reference_brands):
     if reference_brands:
-        names = ", ".join(str(item["Brand"]) for item in reference_brands[:3])
+        names = format_reference_brand_names(reference_brands)
         return (
-            f"The benchmark retrieved AI-visible reference brands such as {names} while {brand} was not detected. "
+            f"The benchmark retrieved AI-visible reference brands such as {names}, while {brand} was not detected. "
             f"These visible category anchors may indicate that the model defaults to established {category} leaders "
             f"when market-specific evidence for {market} is not strong enough to place a regional or challenger brand "
             "in the recommendation candidate set. This is an interpretation risk, not a confirmed fact without "

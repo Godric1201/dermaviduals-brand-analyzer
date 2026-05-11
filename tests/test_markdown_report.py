@@ -1,5 +1,6 @@
 import pandas as pd
 
+from geo_audit.brand_understanding import BrandUnderstandingProbeResult
 from geo_audit.markdown_report import build_executive_markdown_report
 from geo_audit.output_quality import (
     FAILED_LLM_SECTION_PLACEHOLDER,
@@ -162,6 +163,27 @@ def create_zero_visibility_markdown_inputs():
     return inputs
 
 
+def create_brand_understanding_result(**overrides):
+    values = {
+        "brand_known_status": "Clear",
+        "inferred_category": "Regional reinsurance provider",
+        "category_alignment": "Clear",
+        "inferred_market": "Taiwan and Asia-Pacific",
+        "market_alignment": "Clear",
+        "inferred_audience": "Enterprise Insurance Buyers",
+        "audience_alignment": "Clear",
+        "inferred_offerings": ["Treaty reinsurance"],
+        "inferred_strengths": ["Regional market knowledge"],
+        "missing_or_uncertain_evidence": ["Third-party proof points"],
+        "possible_hallucinations": [],
+        "diagnosis_summary": "Regional Re appears known but not naturally retrieved.",
+        "recommended_interpretation": "Recommendation retrieval gap",
+        "validation_note": "AI-inferred brand understanding probe. Validate before using as client-facing fact.",
+    }
+    values.update(overrides)
+    return BrandUnderstandingProbeResult(**values)
+
+
 def test_build_executive_markdown_report_returns_string_with_core_sections():
     report = build_executive_markdown_report(**create_markdown_inputs())
 
@@ -198,6 +220,40 @@ def test_build_executive_markdown_report_uses_first_detection_strategy_for_zero_
     assert "Validation Plan" in report
     assert "first measurable inclusion" in report
     assert "0 total mentions" in report
+    assert "Brand Understanding Probe" not in report
+
+
+def test_zero_visibility_markdown_uses_clear_brand_understanding_probe_cautiously():
+    inputs = create_zero_visibility_markdown_inputs()
+    inputs["brand_understanding"] = create_brand_understanding_result()
+    inputs["brand_understanding_done"] = True
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert "Brand Understanding Probe" in report
+    assert "AI-inferred" in report
+    assert "appears to be recognized" in report
+    assert "recommendation retrieval, evidence depth, or market relevance" in report
+    assert "requires validation" in report.lower()
+    assert "Recommendation retrieval gap" in report
+
+
+def test_zero_visibility_markdown_flags_probe_alignment_problem_cautiously():
+    inputs = create_zero_visibility_markdown_inputs()
+    inputs["brand_understanding"] = create_brand_understanding_result(
+        category_alignment="Misaligned",
+        market_alignment="Misaligned",
+        recommended_interpretation="Mixed diagnosis",
+        diagnosis_summary="The brand appears associated with a different category and market.",
+    )
+    inputs["brand_understanding_done"] = True
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert "alignment problem" in report
+    assert "category and market contexts" in report
+    assert "not only a lack of evidence" in report
+    assert "requires validation" in report.lower()
 
 
 def test_zero_visibility_markdown_uses_reference_brand_and_market_risk_language():
