@@ -1,4 +1,99 @@
-from geo_audit.run_setup import build_run_setup, estimate_api_calls
+from geo_audit.run_setup import (
+    build_run_setup,
+    estimate_api_calls,
+    parse_competitor_input,
+)
+
+
+def test_parse_competitor_input_splits_comma_separated_competitors():
+    competitors = parse_competitor_input(
+        "NTT Global Data Centers, Equinix, Digital Realty, NorthC, maincubes, Drees & Sommer, Arup"
+    )
+
+    assert competitors == [
+        "NTT Global Data Centers",
+        "Equinix",
+        "Digital Realty",
+        "NorthC",
+        "maincubes",
+        "Drees & Sommer",
+        "Arup",
+    ]
+
+
+def test_parse_competitor_input_preserves_newline_separated_competitors():
+    competitors = parse_competitor_input(
+        "Equinix\nDigital Realty\nArup"
+    )
+
+    assert competitors == ["Equinix", "Digital Realty", "Arup"]
+
+
+def test_parse_competitor_input_splits_semicolon_separated_competitors():
+    competitors = parse_competitor_input(
+        "Equinix; Digital Realty; Arup"
+    )
+
+    assert competitors == ["Equinix", "Digital Realty", "Arup"]
+
+
+def test_parse_competitor_input_handles_mixed_separators():
+    competitors = parse_competitor_input(
+        "Equinix, Digital Realty\nNorthC; maincubes\nDrees & Sommer"
+    )
+
+    assert competitors == [
+        "Equinix",
+        "Digital Realty",
+        "NorthC",
+        "maincubes",
+        "Drees & Sommer",
+    ]
+
+
+def test_parse_competitor_input_strips_trailing_commas_and_whitespace():
+    competitors = parse_competitor_input(
+        " Digital Realty, \n Equinix ,\n ; Arup ; "
+    )
+
+    assert competitors == ["Digital Realty", "Equinix", "Arup"]
+
+
+def test_parse_competitor_input_deduplicates_case_insensitively():
+    competitors = parse_competitor_input(
+        "Equinix, equinix, EQUINIX, Digital Realty"
+    )
+
+    assert competitors == ["Equinix", "Digital Realty"]
+
+
+def test_parse_competitor_input_preserves_ampersand_names():
+    competitors = parse_competitor_input("Drees & Sommer, Arup")
+
+    assert competitors == ["Drees & Sommer", "Arup"]
+
+
+def test_parse_competitor_input_splits_grouped_strings_inside_lists():
+    competitors = parse_competitor_input([
+        "NTT Global Data Centers, Equinix",
+        "Digital Realty\nNorthC; maincubes",
+        "Drees & Sommer",
+    ])
+
+    assert competitors == [
+        "NTT Global Data Centers",
+        "Equinix",
+        "Digital Realty",
+        "NorthC",
+        "maincubes",
+        "Drees & Sommer",
+    ]
+
+
+def test_parse_competitor_input_handles_none_and_empty_input():
+    assert parse_competitor_input(None) == []
+    assert parse_competitor_input("") == []
+    assert parse_competitor_input(["", " , ; "]) == []
 
 
 def test_build_run_setup_full_report_mode_returns_estimates_for_valid_inputs():
@@ -73,3 +168,31 @@ def test_build_run_setup_returns_validation_errors_for_invalid_inputs():
     )
 
     assert run_setup.validation_errors
+
+
+def test_build_run_setup_returns_normalized_current_competitors_for_grouped_input():
+    run_setup = build_run_setup(
+        target_brand="Regional DC",
+        target_category="data centers",
+        target_market="Germany",
+        target_audience="enterprise infrastructure buyers",
+        configured_competitors=[
+            "NTT Global Data Centers, Equinix",
+            "Digital Realty\nNorthC; maincubes",
+            "Drees & Sommer, Arup",
+        ],
+        run_mode="Full Report Mode",
+        prompt_limit=None,
+        parsed_user_brand_strengths=[],
+        model_name="gpt-4o-mini",
+    )
+
+    assert run_setup.current_competitors == [
+        "NTT Global Data Centers",
+        "Equinix",
+        "Digital Realty",
+        "NorthC",
+        "maincubes",
+        "Drees & Sommer",
+        "Arup",
+    ]

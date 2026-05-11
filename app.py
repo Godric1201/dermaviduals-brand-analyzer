@@ -21,7 +21,7 @@ from geo_audit.analysis_pipeline import get_competitors
 from geo_audit.brand_intelligence_prompts import (
     parse_user_brand_strengths,
 )
-from geo_audit.run_setup import build_run_setup
+from geo_audit.run_setup import build_run_setup, parse_competitor_input
 from geo_audit.ui_formatters import format_display_text
 from geo_audit.ui.analysis_controller import run_analysis_controller
 from geo_audit.ui.results_controller import display_results_controller
@@ -83,11 +83,7 @@ ANALYSIS_OUTPUT_KEYS = [
 ]
 
 def parse_competitors(text):
-    return [
-        line.strip()
-        for line in text.splitlines()
-        if line.strip()
-    ]
+    return parse_competitor_input(text)
 
 
 def build_competitor_suggestions_context(brand, category, market, audience):
