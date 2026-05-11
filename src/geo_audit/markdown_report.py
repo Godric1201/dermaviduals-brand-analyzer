@@ -19,6 +19,17 @@ from .output_quality import (
     sanitize_report_text,
     validate_output_quality,
 )
+from .report_diagnosis import (
+    build_evidence_gap_map,
+    build_first_detection_task_roadmap,
+    build_market_relevance_interpretation,
+    build_validation_plan,
+    build_visible_reference_brands,
+    classify_visibility_state,
+    get_target_visibility_metrics,
+    is_zero_visibility,
+    select_strategy_mode,
+)
 
 
 def _normalize_markdown_table_headers(df, column_map):
@@ -71,6 +82,132 @@ def _build_methodology_notes_md(category, prompt_categories):
         notes.extend(f"- {item}" for item in prompt_categories)
 
     return "\n".join(notes)
+
+
+def _build_zero_visibility_markdown_report(
+    *,
+    display_brand,
+    display_category,
+    display_market,
+    display_audience,
+    run_mode,
+    deliverable_status,
+    is_quick_test_mode,
+    prompt_categories,
+    report_audience_context,
+    target_mentions,
+    target_avg_score,
+    target_prompts_visible,
+    target_sov,
+    visibility_state,
+    strategy_mode,
+    summary_report_md,
+    trigger_report_md,
+    top_brands_report_md,
+    summary_df,
+    brand,
+):
+    query_intent_md = "\n".join(
+        f"- {item}" for item in prompt_categories
+    ) or "_No query intent categories available._"
+    reference_brands = build_visible_reference_brands(summary_df, brand)
+    reference_brands_md = (
+        df_to_markdown_table(pd.DataFrame(reference_brands), max_rows=5)
+        if reference_brands
+        else "_No AI-visible reference brands were detected among tracked competitors._"
+    )
+    market_relevance_interpretation = build_market_relevance_interpretation(
+        display_brand,
+        display_market,
+        display_category,
+        reference_brands,
+    )
+    evidence_gap_md = df_to_markdown_table(
+        pd.DataFrame(build_evidence_gap_map(
+            display_brand,
+            display_category,
+            display_market,
+            display_audience,
+        )),
+        max_rows=10,
+    )
+    task_roadmap_md = df_to_markdown_table(
+        pd.DataFrame(build_first_detection_task_roadmap(
+            display_brand,
+            display_category,
+            display_market,
+            display_audience,
+            reference_brands,
+        )),
+        max_rows=10,
+    )
+    validation_plan_md = df_to_markdown_table(
+        pd.DataFrame(build_validation_plan(prompt_categories)),
+        max_rows=10,
+    )
+
+    return [
+        f"# {display_brand} {display_market} AI Visibility Diagnosis Report",
+        (
+            "## 1. Report Overview\n\n"
+            f"**Target Brand:** {display_brand}  \n"
+            f"**Market:** {display_market}  \n"
+            f"**Category:** {display_category}  \n"
+            f"**Audience:** {display_audience}  \n"
+            "**Report Type:** AI Visibility / Generative Engine Optimization Audit  \n"
+            f"**Run Mode:** {run_mode}  \n"
+            f"**Deliverable Status:** {deliverable_status}  \n\n"
+            f'{"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}\n\n'
+            f"This report evaluates whether {display_brand} is retrieved in AI-generated {display_category} recommendations for {report_audience_context}, based on the tested prompt set.\n\n"
+            "### Query Intent Coverage\n\n"
+            "This benchmark covers the following AI recommendation contexts:\n\n"
+            f"{query_intent_md}"
+        ),
+        (
+            "## 2. Visibility State & First Detection Interpretation\n\n"
+            f"**Visibility State:** {visibility_state}  \n"
+            f"**Recommended Strategy Mode:** {strategy_mode}  \n\n"
+            f"{display_brand} was not detected in the tested recommendation answers. The benchmark recorded "
+            f"{target_mentions} total mentions, {target_prompts_visible} prompts visible, "
+            f"{target_avg_score} average visibility, and {target_sov}% share of voice.\n\n"
+            "This result does not prove that the model has no knowledge of the brand. It means the brand was not retrieved for the tested category, market, use-case, comparison, or decision-stage prompts.\n\n"
+            "The first objective is first measurable inclusion: getting the brand into the AI candidate set for relevant category, market, and use-case prompts. Share-of-voice growth is not the first objective until the brand is detected in relevant answers."
+        ),
+        (
+            "## 3. Market Relevance Risk & Visible Reference Brands\n\n"
+            f"{market_relevance_interpretation}\n\n"
+            "Visible reference brands should be read as AI-visible reference brands, visible category anchors, or retrieved alternatives. They are evidence context for diagnosis, not simply competitors to attack.\n\n"
+            f"{reference_brands_md}"
+        ),
+        (
+            "## 4. Evidence Gap Map\n\n"
+            "The table below translates the non-detection result into evidence gaps that can be addressed and validated in future benchmarks.\n\n"
+            f"{evidence_gap_md}"
+        ),
+        (
+            "## 5. Evidence-Building Task Roadmap\n\n"
+            "These tasks are designed to build retrievable evidence. They should not be read as a promise of AI mentions or a fixed timeline.\n\n"
+            f"{task_roadmap_md}"
+        ),
+        (
+            "## 6. Validation Plan\n\n"
+            "The next benchmark should validate whether evidence is becoming retrievable. The first milestone is first measurable inclusion, not immediate share-of-voice growth.\n\n"
+            f"{validation_plan_md}"
+        ),
+        (
+            "## 7. Supporting Benchmark Tables\n\n"
+            "### Competitive Benchmark\n\n"
+            "Measured brand-level AI visibility across all tested prompts:\n\n"
+            f"{summary_report_md}\n\n"
+            "### Trigger-Level Visibility Findings\n\n"
+            "Measured visibility by tracked brand across AI query categories:\n\n"
+            f"{trigger_report_md}\n\n"
+            "### Top Brand Winners by Query Type\n\n"
+            "Strongest measured brand signal in each query category:\n\n"
+            f"{top_brands_report_md}"
+        ),
+        f"## 8. Methodology Notes\n\n{_build_methodology_notes_md(display_category, prompt_categories)}",
+    ]
 
 
 def build_executive_markdown_report(
@@ -228,20 +365,51 @@ def build_executive_markdown_report(
         else "_No positive brand winners detected._"
     )
 
-    target_summary = summary_df[
-        summary_df["brand"].astype(str).str.lower() == str(brand).lower()
-    ]
+    target_metrics = get_target_visibility_metrics(summary_df, brand)
+    target_mentions = target_metrics.total_mentions
+    target_avg_score = target_metrics.average_visibility_score
+    target_prompts_visible = target_metrics.prompts_visible
+    target_sov = target_metrics.share_of_voice_percent
+    query_intent_md = "\n".join(
+        f"- {item}" for item in prompt_categories
+    ) or "_No query intent categories available._"
+    report_audience_context = format_audience_market_context(
+        display_audience,
+        display_market,
+    )
 
-    if not target_summary.empty:
-        target_mentions = target_summary.iloc[0].get("total_mentions", 0)
-        target_avg_score = target_summary.iloc[0].get("average_visibility_score", 0)
-        target_prompts_visible = target_summary.iloc[0].get("prompts_visible", 0)
-        target_sov = target_summary.iloc[0].get("share_of_voice_percent", 0)
-    else:
-        target_mentions = 0
-        target_avg_score = 0
-        target_prompts_visible = 0
-        target_sov = 0
+    if is_zero_visibility(target_metrics):
+        parts = _build_zero_visibility_markdown_report(
+            display_brand=display_brand,
+            display_category=display_category,
+            display_market=display_market,
+            display_audience=display_audience,
+            run_mode=run_mode,
+            deliverable_status=deliverable_status,
+            is_quick_test_mode=is_quick_test_mode,
+            prompt_categories=prompt_categories,
+            report_audience_context=report_audience_context,
+            target_mentions=target_mentions,
+            target_avg_score=target_avg_score,
+            target_prompts_visible=target_prompts_visible,
+            target_sov=target_sov,
+            visibility_state=classify_visibility_state(target_metrics),
+            strategy_mode=select_strategy_mode(target_metrics),
+            summary_report_md=summary_report_md,
+            trigger_report_md=trigger_report_md,
+            top_brands_report_md=top_brands_report_md,
+            summary_df=summary_df,
+            brand=brand,
+        )
+        final_report = "\n\n---\n\n".join(parts)
+        final_report = sanitize_report_text(final_report, context)
+        validate_output_quality(
+            final_report,
+            context,
+            content_type="final_markdown_report",
+            strict=False,
+        )
+        return final_report
 
     target_visibility_status = get_visibility_status(
         target_mentions,
@@ -274,13 +442,6 @@ def build_executive_markdown_report(
         f"{target_prompts_visible} prompts visible, and {target_sov}% share of voice in this AI visibility benchmark."
     )
     visibility_state_noun = get_visibility_state_noun(target_visibility_status)
-    query_intent_md = "\n".join(
-        f"- {item}" for item in prompt_categories
-    ) or "_No query intent categories available._"
-    report_audience_context = format_audience_market_context(
-        display_audience,
-        display_market,
-    )
     visibility_gap_diagnosis = (
         f"{strategic_issue}\n\n"
         "Competitive context based on measured visibility signals:\n\n"

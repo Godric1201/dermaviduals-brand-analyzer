@@ -89,6 +89,79 @@ def create_markdown_inputs():
     }
 
 
+def create_zero_visibility_markdown_inputs():
+    inputs = create_markdown_inputs()
+    summary_df = pd.DataFrame([
+        {
+            "brand": "Regional Re",
+            "total_mentions": 0,
+            "average_visibility_score": 0,
+            "prompts_visible": 0,
+            "share_of_voice_percent": 0,
+        },
+        {
+            "brand": "Munich Re",
+            "total_mentions": 18,
+            "average_visibility_score": 75.0,
+            "prompts_visible": 6,
+            "share_of_voice_percent": 45.0,
+        },
+        {
+            "brand": "Swiss Re",
+            "total_mentions": 14,
+            "average_visibility_score": 68.0,
+            "prompts_visible": 5,
+            "share_of_voice_percent": 35.0,
+        },
+    ])
+    detailed_pivot_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "Regional Re": 0,
+            "Munich Re": 75.0,
+            "Swiss Re": 68.0,
+        },
+        {
+            "prompt_category": "Local Recommendations",
+            "Regional Re": 0,
+            "Munich Re": 65.0,
+            "Swiss Re": 60.0,
+        },
+    ])
+    top_brands_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Munich Re",
+            "visibility_score": 75.0,
+        },
+        {
+            "prompt_category": "Local Recommendations",
+            "brand": "Swiss Re",
+            "visibility_score": 60.0,
+        },
+    ])
+    inputs.update({
+        "brand": "Regional Re",
+        "display_brand": "Regional Re",
+        "category": "reinsurance",
+        "display_category": "Reinsurance",
+        "market": "Taiwan and Asia-Pacific",
+        "display_market": "Taiwan and Asia-Pacific",
+        "audience": "enterprise insurance buyers",
+        "display_audience": "Enterprise Insurance Buyers",
+        "summary_df": summary_df,
+        "summary_display_df": summary_df.copy(),
+        "detailed_pivot_df": detailed_pivot_df,
+        "top_brands_df": top_brands_df,
+        "geo_content_roadmap": None,
+        "geo_content_roadmap_done": False,
+        "brand_intelligence": None,
+        "brand_intelligence_done": False,
+        "prompt_categories": ["Best Options", "Local Recommendations"],
+    })
+    return inputs
+
+
 def test_build_executive_markdown_report_returns_string_with_core_sections():
     report = build_executive_markdown_report(**create_markdown_inputs())
 
@@ -112,6 +185,64 @@ def test_build_executive_markdown_report_returns_string_with_core_sections():
     assert "Remote Workers" in report
     assert "Appendix B: AI Visibility Strategy Deep Dive" in report
     assert "Test strategy plan" in report
+
+
+def test_build_executive_markdown_report_uses_first_detection_strategy_for_zero_visibility():
+    report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())
+
+    assert "Not Detected" in report
+    assert "First Detection Strategy" in report
+    assert "AI candidate set" in report
+    assert "Evidence Gap Map" in report
+    assert "Evidence-Building Task Roadmap" in report
+    assert "Validation Plan" in report
+    assert "first measurable inclusion" in report
+    assert "0 total mentions" in report
+
+
+def test_zero_visibility_markdown_uses_reference_brand_and_market_risk_language():
+    report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())
+
+    assert "AI-visible reference brands" in report
+    assert "visible category anchors" in report
+    assert "retrieved alternatives" in report
+    assert "may indicate" in report
+    assert "interpretation risk" in report
+    assert "not a confirmed fact" in report
+    assert "Munich Re" in report
+    assert "Swiss Re" in report
+
+
+def test_zero_visibility_markdown_avoids_generic_or_overpromised_objectives():
+    report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())
+    report_lower = report.lower()
+
+    blocked_phrases = [
+        "improve brand marketing",
+        "get more reviews",
+        "create more content",
+        "guarantee ai mentions",
+        "will get mentioned",
+        "will improve share of voice",
+        "share-of-voice growth is the first objective",
+        "30 / 60 / 90 Day Roadmap",
+    ]
+
+    for phrase in blocked_phrases:
+        assert phrase not in report_lower
+
+    assert "no fixed timeline should be promised" in report_lower
+    assert "share-of-voice growth is not the first objective" in report_lower
+
+
+def test_non_zero_markdown_stays_on_existing_report_path():
+    report = build_executive_markdown_report(**create_markdown_inputs())
+
+    assert "## 2. Executive Summary" in report
+    assert "## 7. Strategic Priorities" in report
+    assert "## 9. 30 / 60 / 90 Day Roadmap" in report
+    assert "First Detection Strategy" not in report
+    assert "Evidence-Building Task Roadmap" not in report
 
 
 def test_build_executive_markdown_report_normalizes_dirty_appendix_text():
