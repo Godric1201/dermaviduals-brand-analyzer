@@ -3,6 +3,7 @@ import pandas as pd
 from geo_audit.ui.results_sections import (
     build_competitive_benchmark_display_df,
     build_executive_snapshot_metrics,
+    build_prompt_level_results_display_df,
     build_prompt_matrix_display_df,
 )
 
@@ -179,3 +180,39 @@ def test_build_competitive_benchmark_display_df_preserves_empty_dataframe():
 
     assert display_df.empty
     assert list(display_df.columns) == ["Brand", "Average Visibility Score"]
+
+
+def test_build_prompt_level_results_display_df_translates_columns():
+    detailed_display_df = pd.DataFrame([
+        {
+            "prompt_category": "Best Options",
+            "brand": "Espresso House",
+            "visibility_score": 1,
+            "visibility_level": "Visible",
+        }
+    ])
+
+    display_df = build_prompt_level_results_display_df(detailed_display_df)
+
+    assert list(display_df.columns) == [
+        "Prompt Category",
+        "Brand",
+        "Visibility Score",
+        "Visibility Level",
+    ]
+    assert display_df.iloc[0]["Prompt Category"] == "Best Options"
+
+
+def test_build_prompt_level_results_display_df_preserves_empty_dataframe():
+    detailed_display_df = pd.DataFrame(
+        columns=["prompt_category", "brand", "visibility_score"]
+    )
+
+    display_df = build_prompt_level_results_display_df(detailed_display_df)
+
+    assert display_df.empty
+    assert list(display_df.columns) == [
+        "Prompt Category",
+        "Brand",
+        "Visibility Score",
+    ]

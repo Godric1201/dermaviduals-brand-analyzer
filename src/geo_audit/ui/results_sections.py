@@ -90,3 +90,15 @@ def render_competitive_benchmark(t, summary_display_df):
         build_competitive_benchmark_display_df(summary_display_df),
         use_container_width=True
     )
+
+
+def build_prompt_level_results_display_df(detailed_display_df):
+    return translate_dataframe_columns(detailed_display_df)
+
+
+def render_prompt_level_results(t, detailed_display_df):
+    st.subheader(t["prompt_level"])
+    st.dataframe(
+        build_prompt_level_results_display_df(detailed_display_df),
+        use_container_width=True
+    )
