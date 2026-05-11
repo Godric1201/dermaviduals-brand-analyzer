@@ -22,15 +22,38 @@ def normalize_context_text(value):
     return " ".join(str(value).strip().split())
 
 
+def parse_competitor_input(value):
+    if value is None:
+        return []
+
+    if isinstance(value, (list, tuple)):
+        raw_values = value
+    else:
+        raw_values = [value]
+
+    competitors = []
+    seen = set()
+
+    for raw_value in raw_values:
+        normalized_value = str(raw_value or "")
+        for separator in ["\r\n", "\r", "\n", ";", ","]:
+            normalized_value = normalized_value.replace(separator, "\n")
+
+        for part in normalized_value.splitlines():
+            competitor = normalize_context_text(
+                str(part).strip(" \t,;")
+            )
+            key = competitor.lower()
+
+            if competitor and key not in seen:
+                competitors.append(competitor)
+                seen.add(key)
+
+    return competitors
+
+
 def normalize_competitors(competitors):
-    return [
-        normalized
-        for normalized in [
-            normalize_context_text(competitor)
-            for competitor in competitors
-        ]
-        if normalized
-    ]
+    return parse_competitor_input(competitors)
 
 
 def build_analysis_context(
@@ -164,7 +187,7 @@ def build_run_setup(
     parsed_user_brand_strengths,
     model_name,
 ):
-    current_competitors = configured_competitors
+    current_competitors = normalize_competitors(configured_competitors)
     current_analysis_context = build_analysis_context(
         brand=target_brand,
         category=target_category,
