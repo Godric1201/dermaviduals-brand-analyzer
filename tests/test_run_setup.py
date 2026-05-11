@@ -21,6 +21,7 @@ def test_build_run_setup_full_report_mode_returns_estimates_for_valid_inputs():
     assert run_setup.fixed_prompt_count > 0
     assert "effective_prompt_count" in run_setup.api_call_estimate
     assert run_setup.api_call_estimate["brand_understanding_probe_calls"] == 1
+    assert run_setup.api_call_estimate["market_relevance_probe_calls"] == 1
     assert run_setup.brand_intelligence_estimated_calls >= 3
     assert (
         run_setup.estimated_total_ai_calls
@@ -53,6 +54,7 @@ def test_build_run_setup_quick_test_mode_uses_prompt_limit():
         expected_api_call_estimate["effective_prompt_count"]
     )
     assert run_setup.api_call_estimate["brand_understanding_probe_calls"] == 0
+    assert run_setup.api_call_estimate["market_relevance_probe_calls"] == 0
     assert run_setup.validation_errors == []
     assert run_setup.current_analysis_context is not None
 

@@ -48,6 +48,8 @@ def render_export_reports_section(
     geo_content_roadmap_done,
     brand_understanding=None,
     brand_understanding_done=False,
+    market_relevance=None,
+    market_relevance_done=False,
 ):
     st.subheader(t["exports"])
 
@@ -82,6 +84,8 @@ def render_export_reports_section(
         brand_intelligence_done=brand_intelligence_done,
         brand_understanding=brand_understanding,
         brand_understanding_done=brand_understanding_done,
+        market_relevance=market_relevance,
+        market_relevance_done=market_relevance_done,
         geo_content_roadmap=geo_content_roadmap,
         geo_content_roadmap_done=geo_content_roadmap_done,
         prompt_categories=prompt_categories,

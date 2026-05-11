@@ -314,4 +314,6 @@ def display_results_controller(
         geo_content_roadmap_done=st.session_state.get("geo_content_roadmap_done", False),
         brand_understanding=st.session_state.get("brand_understanding"),
         brand_understanding_done=st.session_state.get("brand_understanding_done", False),
+        market_relevance=st.session_state.get("market_relevance"),
+        market_relevance_done=st.session_state.get("market_relevance_done", False),
     )
