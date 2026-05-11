@@ -56,10 +56,19 @@ from geo_audit.ui.api_usage_panel import (
     render_api_usage_summary,
 )
 from geo_audit.ui.benchmark_progress import render_benchmark_progress
+from geo_audit.ui.brand_intelligence_panel import render_brand_intelligence_panel
 from geo_audit.ui.content_generator_panel import render_content_generator_panel
 from geo_audit.ui.exports import (
     render_benchmark_snapshot_export,
     render_report_download_exports,
+)
+from geo_audit.ui.raw_answers_panel import render_raw_answers_panel
+from geo_audit.ui.results_sections import (
+    render_competitive_benchmark,
+    render_executive_snapshot,
+    render_prompt_level_results,
+    render_prompt_matrix,
+    render_query_intent_coverage,
 )
 
 from geo_audit.analyzer import DEFAULT_MODEL, ask_ai
@@ -567,70 +576,28 @@ def display_results():
 
     render_api_usage_summary(api_usage_summary)
 
-    st.subheader("Query Intent Coverage")
-    st.caption(
-        "This benchmark covers multiple AI recommendation contexts, not only generic best-brand queries."
-    )
-    st.write(prompt_categories)
+    render_query_intent_coverage(prompt_categories)
 
     # =========================
     # 1. Executive Snapshot
     # =========================
-    target_detailed = detailed_df[
-        detailed_df["brand"].str.lower() == brand.lower()
-    ]
-
-    organic_score = target_detailed["visibility_score"].mean()
-    organic_score = 0 if pd.isna(organic_score) else round(organic_score, 2)
-
-    target_row = summary_df[
-        summary_df["brand"].str.lower() == brand.lower()
-    ]
-
-    st.subheader(t["snapshot"])
-    st.caption(
-        f"Organic Visibility is measured from unbiased prompts that do not mention {brand}."
+    render_executive_snapshot(
+        t=t,
+        summary_df=summary_df,
+        detailed_df=detailed_df,
+        brand=brand,
+        prompt_count=len(prompts),
     )
-
-    if not target_row.empty:
-        target_score = target_row.iloc[0]["average_visibility_score"]
-        target_mentions = target_row.iloc[0]["total_mentions"]
-        target_sov = target_row.iloc[0]["share_of_voice_percent"]
-        target_visible_prompts = target_row.iloc[0]["prompts_visible"]
-
-        col1, col2, col3, col4, col5 = st.columns(5)
-
-        col1.metric(t["target_brand_metric"], brand)
-        col2.metric(t["avg_visibility"], target_score)
-        col3.metric(t["organic_visibility"], organic_score)
-        col4.metric(t["total_mentions"], int(target_mentions))
-        col5.metric(t["share_of_voice"], f"{target_sov}%")
-
-        st.write(
-            f"{t['visible_in']} {int(target_visible_prompts)} "
-            f"{t['out_of']} {len(prompts)} {t['prompts_word']}."
-        )
-    else:
-        st.warning(f"{brand} was not detected in the AI answers.")
 
     # =========================
     # 2. Prompts
     # =========================
-    st.subheader(t["prompts"])
-    prompt_table = pd.DataFrame(prompts)
-    st.dataframe(
-        translate_dataframe_columns(prompt_table),
-        use_container_width=True
-    )
+    render_prompt_matrix(prompts)
 
     # =========================
     # 3. Competitor Benchmark
     # =========================
-    st.subheader(t["benchmark"])
-    st.dataframe(
-        translate_dataframe_columns(summary_display_df),
-        use_container_width=True
-    )
+    render_competitive_benchmark(t, summary_display_df)
 
     # =========================
     # 4. Trigger-Level Visibility
@@ -788,11 +755,7 @@ def display_results():
     # =========================
     # 9. Prompt-Level Results
     # =========================
-    st.subheader(t["prompt_level"])
-    st.dataframe(
-        translate_dataframe_columns(detailed_display_df),
-        use_container_width=True
-    )
+    render_prompt_level_results(t, detailed_display_df)
 
     fig_prompt = px.bar(
         detailed_df,
@@ -812,13 +775,7 @@ def display_results():
     # =========================
     # 10. Raw Answers
     # =========================
-    st.subheader("5. Raw AI Answers / Evidence Log")
-    st.caption("Open each item to inspect the original AI answer used for scoring.")
-
-    for item in raw_answers:
-        with st.expander(f"{item['prompt_category']}"):
-            st.markdown(f"**Prompt:** {item['prompt']}")
-            st.write(item["answer"])
+    render_raw_answers_panel(raw_answers)
 
     # =========================
     # 11. GEO Recommendations
@@ -858,28 +815,7 @@ def display_results():
     if st.session_state.get("brand_intelligence_done", False):
         brand_intelligence = st.session_state["brand_intelligence"]
 
-        st.subheader("Brand Intelligence & Positioning Audit")
-        st.info(
-            "Diagnostic insight. Not part of visibility scoring. "
-            "Tracked competitors are included in visibility scoring and share of voice. "
-            "Other brands mentioned here may be AI-discovered market signals and are not included in scoring unless added as tracked competitors."
-        )
-
-        with st.expander("Recommendation Drivers", expanded=False):
-            st.write(brand_intelligence["recommendation_drivers"])
-
-        with st.expander("AI-Inferred Target Brand Understanding", expanded=False):
-            st.write(brand_intelligence["target_brand_understanding"])
-
-        with st.expander("Positioning Gap Analysis", expanded=False):
-            st.write(brand_intelligence["positioning_gap_analysis"])
-
-        with st.expander("Diagnostic Prompts / Answers", expanded=False):
-            st.caption(brand_intelligence["validation_note"])
-            for item in brand_intelligence["diagnostic_answers"]:
-                st.markdown(f"**{item['category']}**")
-                st.markdown(f"**Prompt:** {item['prompt']}")
-                st.write(item["answer"])
+        render_brand_intelligence_panel(brand_intelligence)
 
     if st.session_state.get("geo_content_roadmap_done", False):
         st.subheader("GEO Content Roadmap")
