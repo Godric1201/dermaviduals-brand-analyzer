@@ -395,7 +395,7 @@ def test_zero_visibility_diagnosis_sections_use_cards_instead_of_wide_tables():
     assert "- Gap addressed:" in report
     assert "- Why it matters:" in report
     assert "- Validation:" in report
-    assert "**Priority 1 - Canonical Regional Re entity and Reinsurance category page**" in report
+    assert "**Priority 1 - Regional Re service/category entity page**" in report
     assert "- What to build:" in report
     assert "- Target retrieval driver:" in report
     assert "- Targets / prompt groups:" in report
@@ -492,13 +492,23 @@ def test_zero_visibility_markdown_differentiates_market_relevant_retrieval_roles
     assert "- Benchmark-based retrieval role: Trust / premium reference" in report
     assert "- Benchmark-based retrieval role: Planning / consulting authority" in report
     assert "- Benchmark-based retrieval role: Comparison anchor" in report
-    assert "Secondary benchmark signals:" in report
-    assert "Role signal summary:" in report
-    assert "Market-fit modifier:" in report
+    assert "Secondary signals:" in report
+    assert "Role basis:" in report
+    assert "Market note:" in report
+    assert "Role signal summary:" not in report
+    assert "Market-fit modifier:" not in report
+    assert "Query-type signals:" not in report
+    assert "AI Generated - Alternatives, AI Generated - Local Recommendations" not in report
+    assert "use as a modifier, not verified market fact" in report
 
     roles_section = report.split("## 4. Why Those Brands Were Retrieved", 1)[1]
     roles_section = roles_section.split("## 5. Target vs Retrieved Brand Gap", 1)[0]
     assert "- Benchmark-based retrieval role: Local market provider" not in roles_section
+
+    for line in roles_section.splitlines():
+        if line.startswith("- Secondary signals:"):
+            assert line.count(",") <= 1
+            assert "Local market provider" not in line
 
 
 def test_zero_visibility_markdown_uses_global_default_market_probe_cautiously():
