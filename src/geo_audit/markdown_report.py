@@ -654,16 +654,19 @@ def _build_retrieval_roles_md(
         ]
         if profile.get("secondary_retrieval_signals"):
             card_lines.append(
-                "- Secondary benchmark signals: "
+                "- Secondary signals: "
                 + ", ".join(profile["secondary_retrieval_signals"])
             )
-        if profile.get("market_fit_modifier"):
+        if (
+            profile.get("market_fit_modifier")
+            and profile.get("retrieval_role") != "Local market provider"
+        ):
             card_lines.append(
-                f"- Market-fit modifier: {profile['market_fit_modifier']}"
+                f"- Market note: {profile['market_fit_modifier']}"
             )
-        if profile.get("role_signal_summary"):
+        if profile.get("role_basis"):
             card_lines.append(
-                f"- Role signal summary: {profile['role_signal_summary']}"
+                f"- Role basis: {profile['role_basis']}"
             )
         card_lines.extend([
             f"- Why it may have been retrieved: {profile['inferred_reason']}",

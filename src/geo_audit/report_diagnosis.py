@@ -593,9 +593,13 @@ def build_secondary_retrieval_signals(role_scores, primary_role):
     secondary_signals = [
         role
         for role in RETRIEVAL_ROLE_PRIORITY
-        if role != primary_role and role_scores.get(role, 0) > 0
+        if (
+            role != primary_role
+            and role != RETRIEVAL_ROLE_LOCAL
+            and role_scores.get(role, 0) >= 2
+        )
     ]
-    return secondary_signals
+    return secondary_signals[:2]
 
 
 def classify_retrieval_role(
@@ -693,36 +697,125 @@ def _target_gap_for_role(role):
     return "The target needs clearer entity, offering, market, and comparison evidence before the gap can be diagnosed more specifically."
 
 
-def _build_role_signal_summary(prompt_categories, role_scores, market_fit):
-    prompt_summary = ", ".join(prompt_categories) if prompt_categories else "No specific winning query types were available."
-    scored_roles = [
-        role for role in RETRIEVAL_ROLE_PRIORITY
-        if role_scores.get(role, 0) > 0
+def _format_compact_list(items):
+    cleaned_items = [
+        str(item).strip()
+        for item in items or []
+        if str(item).strip()
     ]
-    role_summary = ", ".join(scored_roles) if scored_roles else "No strong role signal"
-    market_summary = (
-        f" Market-fit signal: {market_fit}."
-        if market_fit
-        else ""
-    )
-    return (
-        f"Query-type signals: {prompt_summary}. Benchmark role signals: {role_summary}."
-        f"{market_summary}"
-    )
+    if not cleaned_items:
+        return ""
+    if len(cleaned_items) == 1:
+        return cleaned_items[0]
+    return f"{cleaned_items[0]} and {cleaned_items[1]}"
+
+
+def _build_role_basis(prompt_categories):
+    category_text = _normalize_label_text(" ".join(prompt_categories or []))
+    basis_labels = []
+
+    def add(label, terms):
+        if label not in basis_labels and _contains_any(category_text, terms):
+            basis_labels.append(label)
+
+    add("alternatives or comparison", [
+        "alternative",
+        "alternatives",
+        "compare",
+        "comparison",
+        "leading competitor",
+        "shortlist",
+        "versus",
+        " vs ",
+    ])
+    add("trust, review, premium, or decision-stage", [
+        "trust",
+        "review",
+        "reviews",
+        "premium",
+        "best",
+        "top",
+        "enterprise",
+        "decision",
+        "reliable",
+        "credible",
+        "quality",
+    ])
+    add("technical, infrastructure, or use-case", [
+        "technical",
+        "infrastructure",
+        "data center",
+        "datacenter",
+        "facility",
+        "facilities",
+        "platform",
+        "system",
+        "systems",
+        "operational",
+        "cloud",
+        "colocation",
+        "hosting",
+        "use case",
+        "use-case",
+    ])
+    add("audience-specific or planning-oriented", [
+        "planning",
+        "consulting",
+        "consultant",
+        "advisory",
+        "strategy",
+        "strategic",
+        "engineering",
+        "construction",
+        "project management",
+        "architecture",
+        "audience-specific",
+        "audience specific",
+        "b2b decision",
+        "evaluate",
+        "evaluation",
+    ])
+    add("budget, pricing, or practical-selection", [
+        "budget",
+        "budget-friendly",
+        "affordable",
+        "pricing",
+        "cost",
+        "practical",
+        "small business",
+    ])
+    add("market-qualified or local", [
+        "local",
+        "regional",
+        "market",
+        "near",
+        "geography",
+        "location",
+    ])
+    add("niche or segment-specific", [
+        "niche",
+        "specialist",
+        "specialized",
+        "specialised",
+        "segment",
+        "industry-specific",
+    ])
+
+    compact_basis = _format_compact_list(basis_labels[:2])
+    if compact_basis:
+        return f"Retrieved in {compact_basis} query contexts."
+
+    return "Specific query-context cues were limited in this benchmark."
 
 
 def _build_market_fit_modifier(market_fit, rationale):
     if not market_fit:
         return ""
 
-    modifier = (
-        f"{market_fit} market-fit signal from the AI-inferred Market Relevance Probe; "
+    return (
+        f"{market_fit} in the AI-inferred probe; "
         "use as a modifier, not verified market fact."
     )
-    if rationale:
-        modifier += f" Probe rationale: {rationale}"
-
-    return modifier
 
 
 def build_retrieved_brand_profiles(
@@ -776,11 +869,8 @@ def build_retrieved_brand_profiles(
             "primary_retrieval_role": retrieval_role,
             "retrieval_role": retrieval_role,
             "secondary_retrieval_signals": secondary_signals,
-            "role_signal_summary": _build_role_signal_summary(
-                brand_prompt_categories,
-                role_scores,
-                market_fit,
-            ),
+            "role_basis": _build_role_basis(brand_prompt_categories),
+            "role_signal_summary": _build_role_basis(brand_prompt_categories),
             "market_fit_modifier": _build_market_fit_modifier(
                 market_fit,
                 fit_row.get("rationale", ""),
@@ -934,18 +1024,78 @@ def _task_by_evidence_type(tasks):
     return mapped_tasks
 
 
+def _short_category_label(category):
+    normalized_category = _normalize_label_text(category)
+    if not normalized_category:
+        return "Service/category"
+
+    common_labels = [
+        ("data center", "Data center infrastructure"),
+        ("datacenter", "Data center infrastructure"),
+        ("reinsurance", "Reinsurance"),
+        ("insurance", "Insurance"),
+        ("consulting", "Consulting services"),
+        ("marketing", "Marketing services"),
+        ("software", "Software"),
+        ("manufacturing", "Manufacturing"),
+        ("energy", "Energy infrastructure"),
+    ]
+    for term, label in common_labels:
+        if term in normalized_category:
+            return label
+
+    filler_words = {
+        "a",
+        "an",
+        "and",
+        "brands",
+        "business",
+        "businesses",
+        "category",
+        "companies",
+        "company",
+        "for",
+        "in",
+        "of",
+        "providers",
+        "services",
+        "solutions",
+        "the",
+    }
+    words = [
+        word.strip(".,:;()[]{}")
+        for word in normalized_category.replace("/", " ").split()
+    ]
+    meaningful_words = [
+        word
+        for word in words
+        if word and word not in filler_words
+    ]
+    if not meaningful_words:
+        return "Service/category"
+
+    label = " ".join(meaningful_words[:5])
+    if len(label) > 48:
+        label = label[:48].rsplit(" ", 1)[0].strip()
+    if not label:
+        return "Service/category"
+
+    return label[0].upper() + label[1:]
+
+
 def _asset_name_for_evidence_type(evidence_type, brand, category, market):
+    short_category = _short_category_label(category)
     names = {
-        "Entity Evidence": f"Canonical {brand} entity and {category} category page",
+        "Entity Evidence": f"{brand} service/category entity page",
         "Market Evidence": f"{market} market relevance proof page",
-        "Offering Evidence": "Offering and use-case evidence pages",
-        "Trust Evidence": "Substantiated trust proof page",
-        "Comparison Evidence": "Comparison and alternatives evidence",
-        "Third-Party Evidence / Structured Evidence": "Third-party and structured corroboration",
-        "Technical Capability Evidence": "Technical capability and infrastructure proof asset",
-        "Planning / Advisory Evidence": "Planning, advisory, and methodology credibility asset",
-        "Practical Buyer Evidence": "Practical buyer criteria and pricing-fit asset",
-        "Use-Case / Segment Evidence": "Use-case and segment-specific proof asset",
+        "Offering Evidence": f"{short_category} offering and use-case pages",
+        "Trust Evidence": f"{market} project proof and trust page",
+        "Comparison Evidence": f"{short_category} alternatives and comparison page",
+        "Third-Party Evidence / Structured Evidence": "Third-party and structured corroboration page",
+        "Technical Capability Evidence": f"{short_category} capability proof page",
+        "Planning / Advisory Evidence": f"{market} planning and project credibility page",
+        "Practical Buyer Evidence": "Buyer criteria and pricing-fit page",
+        "Use-Case / Segment Evidence": f"{short_category} use-case and segment proof page",
     }
     return names.get(evidence_type, evidence_type or "Recommendation readiness evidence")
 

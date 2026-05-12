@@ -249,18 +249,29 @@ def test_retrieval_role_classification_uses_prompt_signals():
 
 def test_secondary_retrieval_signals_exclude_primary_role():
     role_scores = score_retrieval_roles(
-        prompt_categories=["Alternatives To Leading Competitors", "Trust And Review Signals"],
+        prompt_categories=[
+            "Alternatives To Leading Competitors",
+            "Trust And Review Signals",
+            "Audience-Specific Advisory Recommendations",
+            "Use-Case Recommendations",
+        ],
         visible_market_fit="Market-relevant",
     )
     primary_role = classify_retrieval_role(
-        prompt_categories=["Alternatives To Leading Competitors", "Trust And Review Signals"],
+        prompt_categories=[
+            "Alternatives To Leading Competitors",
+            "Trust And Review Signals",
+            "Audience-Specific Advisory Recommendations",
+            "Use-Case Recommendations",
+        ],
         visible_market_fit="Market-relevant",
     )
     secondary = build_secondary_retrieval_signals(role_scores, primary_role)
 
     assert primary_role == RETRIEVAL_ROLE_COMPARISON
     assert RETRIEVAL_ROLE_TRUST in secondary
-    assert RETRIEVAL_ROLE_LOCAL in secondary
+    assert RETRIEVAL_ROLE_LOCAL not in secondary
+    assert len(secondary) <= 2
 
 
 def test_retrieved_brand_profiles_are_cautious_and_structured():
@@ -388,7 +399,8 @@ def test_retrieved_brand_profiles_differentiate_market_relevant_brands():
 
     for profile in profiles:
         assert profile["primary_retrieval_role"] == profile["retrieval_role"]
-        assert profile["role_signal_summary"]
+        assert profile["role_basis"]
+        assert "Query-type signals:" not in profile["role_basis"]
         assert profile["market_fit_modifier"]
 
 
@@ -486,9 +498,9 @@ def test_first_three_evidence_assets_prioritize_entity_and_market_gaps():
     )
 
     assert len(assets) == 3
-    assert assets[0]["asset_name"].startswith("Canonical Target Brand")
+    assert assets[0]["asset_name"] == "Target Brand service/category entity page"
     assert "market relevance" in assets[1]["asset_name"].lower()
-    assert assets[2]["asset_name"] == "Comparison and alternatives evidence"
+    assert assets[2]["asset_name"] == "Reinsurance alternatives and comparison page"
 
     for asset in assets:
         assert asset["priority"]
@@ -530,9 +542,9 @@ def test_first_three_evidence_assets_use_differentiated_role_distribution():
     )
 
     assert len(assets) == 3
-    assert assets[0]["asset_name"] == "Technical capability and infrastructure proof asset"
-    assert assets[1]["asset_name"] == "Planning, advisory, and methodology credibility asset"
-    assert assets[2]["asset_name"] == "Comparison and alternatives evidence"
+    assert assets[0]["asset_name"] == "Data center infrastructure capability proof page"
+    assert assets[1]["asset_name"] == "Germany planning and project credibility page"
+    assert assets[2]["asset_name"] == "Data center infrastructure alternatives and comparison page"
 
     for asset in assets:
         assert asset["priority"]
@@ -541,6 +553,36 @@ def test_first_three_evidence_assets_use_differentiated_role_distribution():
         assert asset["target_retrieval_driver"]
         assert asset["targets_or_prompt_groups"]
         assert asset["validation"]
+
+
+def test_first_three_evidence_asset_names_shorten_long_categories():
+    long_category = (
+        "Data center infrastructure consulting, planning, construction, "
+        "and technical services"
+    )
+    assets = build_first_three_evidence_assets(
+        brand="DC-Datacenter-Group GmbH",
+        category=long_category,
+        market="Germany",
+        audience="enterprise infrastructure buyers",
+        reference_brands=[{"Brand": "Rittal"}],
+        retrieved_brand_profiles=[
+            {"retrieval_role": RETRIEVAL_ROLE_COMPARISON},
+            {"retrieval_role": RETRIEVAL_ROLE_TRUST},
+        ],
+        brand_understanding=None,
+        market_relevance={
+            "market_lock_status": "Market-specific",
+            "local_brand_presence_signal": "Clear",
+        },
+        prompt_categories=["Alternatives", "Trust And Review Signals"],
+    )
+
+    asset_names = [asset["asset_name"] for asset in assets]
+
+    assert "DC-Datacenter-Group GmbH service/category entity page" in asset_names
+    assert "Data center infrastructure alternatives and comparison page" in asset_names
+    assert long_category not in " ".join(asset_names)
 
 
 def test_validation_plan_defines_first_measurable_inclusion_without_timeline_promise():
