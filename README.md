@@ -1,16 +1,22 @@
 # AI Brand Visibility GEO Audit
 
-Open-source AI visibility benchmark for measuring whether LLMs recommend your brand — and which competitors they recommend instead.
+Local-first AI Recommendation Readiness Diagnosis for understanding whether a brand enters AI recommendation candidate sets, which brands are retrieved instead, and what evidence should be built first.
 
-This local-first Streamlit app runs AI recommendation-style prompts, scores brand mentions, compares competitors, calculates AI share of voice, and generates Markdown / DOCX strategy reports for Generative Engine Optimization (GEO).
+This Streamlit app runs recommendation-style prompts, scores tracked brand visibility, diagnoses retrieved-brand patterns, and generates Markdown / DOCX reports for Generative Engine Optimization (GEO) and AI recommendation readiness.
+
+Core question:
+
+**Why does AI recommend other brands instead of yours, and what evidence should you build first?**
 
 Use it to answer questions like:
 
-- Does ChatGPT-style AI recommend my brand?
-- Which competitors appear instead?
-- Which prompt categories trigger competitor visibility?
-- Where does my brand fail to appear?
-- What content, positioning, and evidence could improve future AI visibility?
+- Does AI appear to understand my brand?
+- Does my brand enter the recommendation candidate set?
+- Which brands are retrieved instead?
+- Why might those brands be retrieved?
+- What gap exists between my brand and the retrieved brands?
+- Which evidence assets should be built first?
+- How should progress be validated in a future benchmark?
 
 > The app runs locally and requires your own OpenAI API key. It is not a hosted SaaS product.
 
@@ -20,56 +26,61 @@ Use it to answer questions like:
 
 ![Dashboard Preview](docs/dashboard-preview.png)
 
-The dashboard supports configurable brand audits, competitor benchmarking, visibility scoring, AI-generated recommendations, GEO content planning, and exportable reports.
+The dashboard supports configurable brand audits, competitor benchmarking, visibility scoring, recommendation-readiness diagnostics, evidence asset planning, and exportable reports.
 
 ---
 
 ## Why This Matters
 
-Search behavior is shifting from traditional blue-link search results toward AI-generated answers. When users ask AI systems for recommendations, comparisons, alternatives, local options, or decision criteria, brands may or may not appear in the generated answer.
+Search behavior is shifting from traditional blue-link search results toward AI-generated answers. When users ask AI systems for recommendations, comparisons, alternatives, local options, or decision criteria, brands may or may not enter the generated candidate set.
 
 Traditional SEO tools do not fully explain:
 
 - Whether a brand appears in AI-generated recommendation answers
-- Which competitors are recalled more often
+- Which brands are retrieved instead
 - Which query types trigger competitor visibility
-- Which associations AI systems connect with visible competitors
-- Which content assets could make a brand more AI-citable
+- Which retrieval roles visible brands appear to occupy
+- Which evidence gaps may prevent candidate-set inclusion
+- Which evidence assets should be built and validated first
 
-This project explores how AI visibility can be measured, benchmarked, and translated into practical GEO strategy.
+This project explores how AI visibility can be measured, benchmarked, and translated into practical recommendation-readiness diagnosis.
 
 ---
 
 ## What This Tool Measures
 
-The tool benchmarks a target brand against tracked competitors across recommendation-style prompts.
+The tool benchmarks a target brand against tracked competitors across recommendation-style prompts, then diagnoses whether the target is ready to be retrieved and recommended in the tested category, market, and audience context.
 
 It measures:
 
 - **Total mentions**: how often each tracked brand appears
 - **Average visibility score**: a score based on mention presence, first appearance, and estimated rank
 - **Prompts visible**: how many tested prompts mention the brand
-- **Share of voice**: each brand’s share of tracked brand mentions
+- **Share of voice**: each brand's share of tracked brand mentions
 - **Trigger-level visibility**: which query categories each brand wins or loses
 - **Top brand winners by query type**
-- **AI association gaps**
-- **GEO content opportunities**
+- **Brand understanding signals**
+- **Market relevance signals**
+- **Retrieved-brand roles**
+- **Target-vs-retrieved brand gaps**
+- **First evidence assets to build**
 - **Benchmark snapshots for future comparison**
 
 ---
 
 ## Example Output
 
-The app produces report-ready benchmark outputs in Full Report Mode, including:
+The app produces report-ready Recommendation Readiness outputs in Full Report Mode, including:
 
-- Executive Snapshot
-- Competitive Benchmark
-- Trigger-Level Visibility Findings
-- Top Brand Winners by Query Type
-- Brand Intelligence & Positioning Audit
-- AI Association Gap Analysis
-- GEO Content Roadmap
-- 30 / 60 / 90 Day Roadmap
+- Recommendation Readiness Verdict
+- Brand Understanding Summary
+- Who AI Retrieved Instead
+- Why Those Brands Were Retrieved
+- Target vs Retrieved Brand Gap
+- First 3 Evidence Assets to Build
+- Validation Plan
+- Supporting Benchmark Data
+- Methodology / Reliability Notes
 - Markdown executive report
 - DOCX executive report
 - Benchmark snapshot JSON
@@ -77,27 +88,28 @@ The app produces report-ready benchmark outputs in Full Report Mode, including:
 
 Public example materials:
 
-- [Demo Executive Report](examples/demo-executive-report.md): anonymized, condensed Full Report Mode-style output for portfolio review. It is not live client data and not a Quick Test Mode result.
-- [Output Examples](docs/output-examples.md): overview of generated report sections and benchmark artifacts.
+- [Demo Executive Report](examples/demo-executive-report.md): fictional, condensed Full Report Mode-style Recommendation Readiness output. It is not live client data, Quick Test Mode output, or source-grounded competitive research.
+- [Output Examples](docs/output-examples.md): overview of Recommendation Readiness report sections and supporting benchmark artifacts.
 - [Methodology](docs/methodology.md): scoring approach, benchmark assumptions, and interpretation guidance.
 
 ---
 
 ## How This Is Different
 
-Most AI visibility tools focus on monitoring mentions across AI engines. This project is designed as a **report-first GEO audit workflow**.
+Most AI visibility tools focus on monitoring mentions across AI engines. This project is designed as a **report-first recommendation-readiness workflow**.
 
 It is built to:
 
 - Benchmark a target brand against tracked competitors
 - Score visibility across recommendation-style prompt categories
-- Identify query territories where competitors win
-- Diagnose missing brand associations and trust signals
-- Generate strategy-ready GEO recommendations
+- Identify which brands AI retrieves instead
+- Diagnose retrieved-brand roles and target gaps
+- Prioritize the first evidence assets to build
+- Validate progress through future comparable benchmarks
 - Export Markdown, DOCX, and JSON benchmark artifacts
-- Support local-first usage with the user’s own API key
+- Support local-first usage with the user's own API key
 
-The goal is not just to show whether a brand was mentioned. The goal is to turn AI visibility gaps into a structured audit and action plan.
+The goal is not just to show whether a brand was mentioned. The goal is to explain why other brands may be retrieved instead, what evidence gap the target appears to have, and how to validate progress without treating benchmark inference as verified market fact.
 
 ---
 
@@ -115,17 +127,21 @@ Tracks total mentions, average visibility score, prompts visible, and share of v
 
 Compares the target brand against a configurable set of tracked competitors.
 
+### Recommendation Readiness Diagnosis
+
+For zero-visibility brands, reframes the report around candidate-set inclusion, retrieved brands, retrieval-role hypotheses, target gaps, and the first evidence assets to build.
+
 ### Trigger-Level Visibility
 
 Shows which competitors win specific query categories and where the target brand is missing.
 
-### Brand Intelligence Module
+### Brand Understanding and Market Relevance Probes
 
-Extracts recommendation drivers, competitor-owned associations, positioning gaps, trust signals, and AI-discovered market signals from benchmark answers.
+Uses compact diagnostic probes to distinguish brand understanding, recommendation retrieval, and market-relevance risks. Probe outputs are AI-inferred and require validation.
 
-### GEO Content Roadmap
+### First Evidence Asset Planning
 
-Generates prioritized content recommendations mapped to query intent, target association, competitor signal, evidence needed, expected benchmark impact, and timing.
+Prioritizes specific evidence assets, such as entity pages, proof pages, market relevance pages, and alternatives/comparison pages, instead of generic marketing recommendations.
 
 ### Exportable Reports
 
@@ -158,9 +174,9 @@ This tool can be used for:
 - Agency-style client diagnostics
 - Founder or startup positioning research
 - Market-entry visibility analysis
-- Content strategy planning
-- Tracking whether content improvements increase AI recommendation visibility over time
-- Creating structured AI visibility reports for internal review or portfolio demonstrations
+- Evidence asset planning
+- Tracking whether evidence changes are associated with future benchmark changes
+- Creating structured Recommendation Readiness reports for internal review or portfolio demonstrations
 
 Example audit scenarios:
 
@@ -182,9 +198,10 @@ At a high level, the workflow is:
 3. AI responses are collected
 4. Brand mentions and ranking signals are scored
 5. Share of voice and visibility metrics are calculated
-6. Brand Intelligence and GEO recommendations are generated
-7. Output quality checks clean and validate report text
-8. Markdown, DOCX, and snapshot exports are generated
+6. Brand understanding, market relevance, and retrieved-brand patterns are diagnosed
+7. First evidence assets and validation logic are generated
+8. Output quality checks clean and validate report text
+9. Markdown, DOCX, and snapshot exports are generated
 ```
 
 ### Workflow Architecture
@@ -197,12 +214,13 @@ flowchart TD
     D --> E[Competitor Benchmark]
     D --> F[Share of Voice]
     D --> G[Trigger-Level Visibility]
-    C --> H[Brand Intelligence]
-    H --> I[GEO Content Roadmap]
-    H --> J[Strategy Deep Dive]
+    C --> H[Brand Understanding Probe]
+    D --> I[Market Relevance and Retrieval Role Diagnosis]
+    I --> J[First Evidence Assets]
     E --> K[Executive Reports]
     F --> K
     G --> K
+    H --> K
     I --> K
     J --> K
     K --> L[Markdown / DOCX Reports]
@@ -435,7 +453,7 @@ The tool can generate several types of outputs.
 
 ### Executive Reports
 
-- Markdown executive report
+- Markdown Recommendation Readiness report
 - DOCX executive report
 
 ### Benchmark Artifacts
@@ -446,12 +464,14 @@ The tool can generate several types of outputs.
 - Visibility scoring summaries
 - Trigger-level visibility tables
 
-### Strategy Artifacts
+### Diagnosis Artifacts
 
-- Brand Intelligence analysis
-- GEO Content Roadmap
-- AI Visibility Strategy Deep Dive
-- Strategic priorities and measurement recommendations
+- Brand Understanding Summary
+- Market Relevance Probe output
+- Retrieved-brand role diagnosis
+- Target-vs-retrieved brand gap analysis
+- First 3 Evidence Assets to Build
+- Validation plan and reliability notes
 
 ---
 
