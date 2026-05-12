@@ -646,15 +646,30 @@ def _build_retrieval_roles_md(
             "No retrieved-brand role cards are available because the benchmark did not produce a meaningful visible reference set."
         )
 
-    cards = [
-        (
-            f"**{profile['brand']}**\n"
-            f"- Benchmark-based retrieval role: {profile['retrieval_role']}\n"
-            f"- Why it may have been retrieved: {profile['inferred_reason']}\n"
-            f"- What this implies for the target: {profile['evidence_implication']}"
-        )
-        for profile in retrieved_brand_profiles
-    ]
+    cards = []
+    for profile in retrieved_brand_profiles:
+        card_lines = [
+            f"**{profile['brand']}**",
+            f"- Benchmark-based retrieval role: {profile['retrieval_role']}",
+        ]
+        if profile.get("secondary_retrieval_signals"):
+            card_lines.append(
+                "- Secondary benchmark signals: "
+                + ", ".join(profile["secondary_retrieval_signals"])
+            )
+        if profile.get("market_fit_modifier"):
+            card_lines.append(
+                f"- Market-fit modifier: {profile['market_fit_modifier']}"
+            )
+        if profile.get("role_signal_summary"):
+            card_lines.append(
+                f"- Role signal summary: {profile['role_signal_summary']}"
+            )
+        card_lines.extend([
+            f"- Why it may have been retrieved: {profile['inferred_reason']}",
+            f"- What this implies for the target: {profile['evidence_implication']}",
+        ])
+        cards.append("\n".join(card_lines))
 
     cards_md = "\n\n".join(cards)
     return (
@@ -758,6 +773,7 @@ def _build_zero_visibility_markdown_report(
     top_brands_report_md,
     summary_df,
     top_brands_df,
+    detailed_pivot_df,
     brand,
     brand_understanding=None,
     brand_understanding_done=False,
@@ -772,6 +788,7 @@ def _build_zero_visibility_markdown_report(
         summary_df,
         brand,
         top_brands_df=top_brands_df,
+        detailed_pivot_df=detailed_pivot_df,
         market_relevance=market_relevance if market_relevance_done else None,
     )
     reliability = classify_benchmark_reliability(
@@ -1100,6 +1117,7 @@ def build_executive_markdown_report(
             top_brands_report_md=top_brands_report_md,
             summary_df=summary_df,
             top_brands_df=top_brands_df,
+            detailed_pivot_df=detailed_pivot_df,
             brand=brand,
             brand_understanding=brand_understanding,
             brand_understanding_done=brand_understanding_done,

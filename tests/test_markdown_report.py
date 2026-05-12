@@ -205,6 +205,117 @@ def create_market_relevance_result(**overrides):
     return MarketRelevanceProbeResult(**values)
 
 
+def create_role_differentiation_markdown_inputs():
+    inputs = create_zero_visibility_markdown_inputs()
+    summary_df = pd.DataFrame([
+        {
+            "brand": "Regional DC",
+            "total_mentions": 0,
+            "average_visibility_score": 0,
+            "prompts_visible": 0,
+            "share_of_voice_percent": 0,
+        },
+        {
+            "brand": "Rittal",
+            "total_mentions": 20,
+            "average_visibility_score": 82,
+            "prompts_visible": 5,
+            "share_of_voice_percent": 40,
+        },
+        {
+            "brand": "Arup",
+            "total_mentions": 12,
+            "average_visibility_score": 55,
+            "prompts_visible": 3,
+            "share_of_voice_percent": 25,
+        },
+        {
+            "brand": "Drees & Sommer",
+            "total_mentions": 8,
+            "average_visibility_score": 45,
+            "prompts_visible": 2,
+            "share_of_voice_percent": 15,
+        },
+    ])
+    detailed_pivot_df = pd.DataFrame([
+        {
+            "prompt_category": "Use-Case Recommendations",
+            "Regional DC": 0,
+            "Rittal": 72,
+            "Arup": 58,
+            "Drees & Sommer": 0,
+        },
+        {
+            "prompt_category": "AI Generated - Alternatives",
+            "Regional DC": 0,
+            "Rittal": 74,
+            "Arup": 0,
+            "Drees & Sommer": 0,
+        },
+        {
+            "prompt_category": "AI Generated - Local Recommendations",
+            "Regional DC": 0,
+            "Rittal": 0,
+            "Arup": 56,
+            "Drees & Sommer": 0,
+        },
+    ])
+    top_brands_df = pd.DataFrame([
+        {"prompt_category": "Best Options", "brand": "Rittal", "visibility_score": 80},
+        {"prompt_category": "Budget-Friendly Options", "brand": "Rittal", "visibility_score": 70},
+        {"prompt_category": "Premium Options", "brand": "Rittal", "visibility_score": 85},
+        {"prompt_category": "Audience-Specific Recommendations", "brand": "Arup", "visibility_score": 60},
+        {"prompt_category": "Alternatives To Leading Competitors", "brand": "Drees & Sommer", "visibility_score": 55},
+        {"prompt_category": "Trust And Review Signals", "brand": "Drees & Sommer", "visibility_score": 50},
+    ])
+    inputs.update({
+        "brand": "Regional DC",
+        "display_brand": "Regional DC",
+        "category": "data center providers",
+        "display_category": "Data Center Providers",
+        "market": "Germany",
+        "display_market": "Germany",
+        "audience": "enterprise infrastructure buyers",
+        "display_audience": "Enterprise Infrastructure Buyers",
+        "summary_df": summary_df,
+        "summary_display_df": summary_df.copy(),
+        "detailed_pivot_df": detailed_pivot_df,
+        "top_brands_df": top_brands_df,
+        "prompt_categories": [
+            "Best Options",
+            "Budget-Friendly Options",
+            "Premium Options",
+            "Audience-Specific Recommendations",
+            "Alternatives To Leading Competitors",
+            "Trust And Review Signals",
+        ],
+        "market_relevance": create_market_relevance_result(
+            market_lock_status="Market-specific",
+            local_brand_presence_signal="Clear",
+            visible_market_fit=[
+                {
+                    "brand": "Rittal",
+                    "market_fit": "Market-relevant",
+                    "rationale": "Market fit appears plausible.",
+                },
+                {
+                    "brand": "Arup",
+                    "market_fit": "Market-relevant",
+                    "rationale": "Market fit appears plausible.",
+                },
+                {
+                    "brand": "Drees & Sommer",
+                    "market_fit": "Market-relevant",
+                    "rationale": "Market fit appears plausible.",
+                },
+            ],
+            recommended_interpretation="Market-specific competitive gap",
+        ),
+        "market_relevance_done": True,
+    })
+    return inputs
+
+
 def test_build_executive_markdown_report_returns_string_with_core_sections():
     report = build_executive_markdown_report(**create_markdown_inputs())
 
@@ -371,6 +482,23 @@ def test_zero_visibility_markdown_uses_reference_brand_and_market_risk_language(
     assert "not a confirmed fact" in report
     assert "Munich Re" in report
     assert "Swiss Re" in report
+
+
+def test_zero_visibility_markdown_differentiates_market_relevant_retrieval_roles():
+    report = build_executive_markdown_report(
+        **create_role_differentiation_markdown_inputs()
+    )
+
+    assert "- Benchmark-based retrieval role: Trust / premium reference" in report
+    assert "- Benchmark-based retrieval role: Planning / consulting authority" in report
+    assert "- Benchmark-based retrieval role: Comparison anchor" in report
+    assert "Secondary benchmark signals:" in report
+    assert "Role signal summary:" in report
+    assert "Market-fit modifier:" in report
+
+    roles_section = report.split("## 4. Why Those Brands Were Retrieved", 1)[1]
+    roles_section = roles_section.split("## 5. Target vs Retrieved Brand Gap", 1)[0]
+    assert "- Benchmark-based retrieval role: Local market provider" not in roles_section
 
 
 def test_zero_visibility_markdown_uses_global_default_market_probe_cautiously():

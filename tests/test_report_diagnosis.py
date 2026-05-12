@@ -8,7 +8,9 @@ from geo_audit.report_diagnosis import (
     RELIABILITY_INSUFFICIENT,
     RELIABILITY_STRONG,
     RETRIEVAL_ROLE_COMPARISON,
+    RETRIEVAL_ROLE_BUDGET,
     RETRIEVAL_ROLE_LOCAL,
+    RETRIEVAL_ROLE_PLANNING,
     RETRIEVAL_ROLE_TECHNICAL,
     RETRIEVAL_ROLE_TRUST,
     RETRIEVAL_ROLE_UNCLEAR,
@@ -24,6 +26,7 @@ from geo_audit.report_diagnosis import (
     build_evidence_gap_map,
     build_first_detection_task_roadmap,
     build_retrieved_brand_profiles,
+    build_secondary_retrieval_signals,
     build_market_relevance_interpretation,
     build_validation_plan,
     build_visible_reference_brands,
@@ -34,6 +37,7 @@ from geo_audit.report_diagnosis import (
     get_target_visibility_metrics,
     is_zero_visibility,
     select_strategy_mode,
+    score_retrieval_roles,
 )
 
 
@@ -215,20 +219,48 @@ def test_benchmark_reliability_uses_conservative_labels():
 
 def test_retrieval_role_classification_uses_prompt_signals():
     assert classify_retrieval_role(
-        prompt_categories=["Alternatives and comparison prompts"]
+        prompt_categories=["Alternatives and comparison prompts"],
+        visible_market_fit="Market-relevant",
     ) == RETRIEVAL_ROLE_COMPARISON
     assert classify_retrieval_role(
-        prompt_categories=["Local Recommendations"]
-    ) == RETRIEVAL_ROLE_LOCAL
+        prompt_categories=["Trust And Review Signals"],
+        visible_market_fit="Market-relevant",
+    ) == RETRIEVAL_ROLE_TRUST
     assert classify_retrieval_role(
-        prompt_categories=["Technical infrastructure providers"]
+        prompt_categories=["Technical Infrastructure Use-Case Recommendations"],
+        visible_market_fit="Market-relevant",
     ) == RETRIEVAL_ROLE_TECHNICAL
     assert classify_retrieval_role(
-        prompt_categories=["Best premium enterprise options"]
-    ) == RETRIEVAL_ROLE_TRUST
+        prompt_categories=["Audience-Specific Advisory Recommendations"],
+        visible_market_fit="Market-relevant",
+    ) == RETRIEVAL_ROLE_PLANNING
+    assert classify_retrieval_role(
+        prompt_categories=["Budget-Friendly Options"],
+        visible_market_fit="Market-relevant",
+    ) == RETRIEVAL_ROLE_BUDGET
+    assert classify_retrieval_role(
+        prompt_categories=[],
+        visible_market_fit="Market-relevant",
+    ) == RETRIEVAL_ROLE_LOCAL
     assert classify_retrieval_role(
         prompt_categories=["General prompts"]
     ) == RETRIEVAL_ROLE_UNCLEAR
+
+
+def test_secondary_retrieval_signals_exclude_primary_role():
+    role_scores = score_retrieval_roles(
+        prompt_categories=["Alternatives To Leading Competitors", "Trust And Review Signals"],
+        visible_market_fit="Market-relevant",
+    )
+    primary_role = classify_retrieval_role(
+        prompt_categories=["Alternatives To Leading Competitors", "Trust And Review Signals"],
+        visible_market_fit="Market-relevant",
+    )
+    secondary = build_secondary_retrieval_signals(role_scores, primary_role)
+
+    assert primary_role == RETRIEVAL_ROLE_COMPARISON
+    assert RETRIEVAL_ROLE_TRUST in secondary
+    assert RETRIEVAL_ROLE_LOCAL in secondary
 
 
 def test_retrieved_brand_profiles_are_cautious_and_structured():
@@ -267,6 +299,137 @@ def test_retrieved_brand_profiles_are_cautious_and_structured():
     assert profiles[0]["retrieval_role"] == RETRIEVAL_ROLE_TRUST
     assert "Based on this benchmark" in profiles[0]["inferred_reason"]
     assert "requires validation" in profiles[0]["required_validation"]
+
+
+def test_retrieved_brand_profiles_differentiate_market_relevant_brands():
+    summary_df = pd.DataFrame([
+        {
+            "brand": "Target Brand",
+            "total_mentions": 0,
+            "average_visibility_score": 0,
+            "prompts_visible": 0,
+            "share_of_voice_percent": 0,
+        },
+        {
+            "brand": "Rittal",
+            "total_mentions": 20,
+            "average_visibility_score": 82,
+            "prompts_visible": 5,
+            "share_of_voice_percent": 40,
+        },
+        {
+            "brand": "Arup",
+            "total_mentions": 12,
+            "average_visibility_score": 55,
+            "prompts_visible": 3,
+            "share_of_voice_percent": 25,
+        },
+        {
+            "brand": "Drees & Sommer",
+            "total_mentions": 8,
+            "average_visibility_score": 45,
+            "prompts_visible": 2,
+            "share_of_voice_percent": 15,
+        },
+    ])
+    top_brands_df = pd.DataFrame([
+        {"prompt_category": "Best Options", "brand": "Rittal", "visibility_score": 80},
+        {"prompt_category": "Budget-Friendly Options", "brand": "Rittal", "visibility_score": 70},
+        {"prompt_category": "Premium Options", "brand": "Rittal", "visibility_score": 85},
+        {"prompt_category": "Audience-Specific Recommendations", "brand": "Arup", "visibility_score": 60},
+        {"prompt_category": "Alternatives To Leading Competitors", "brand": "Drees & Sommer", "visibility_score": 55},
+        {"prompt_category": "Trust And Review Signals", "brand": "Drees & Sommer", "visibility_score": 50},
+    ])
+    detailed_pivot_df = pd.DataFrame([
+        {
+            "prompt_category": "Use-Case Recommendations",
+            "Rittal": 72,
+            "Arup": 58,
+            "Drees & Sommer": 0,
+        },
+        {
+            "prompt_category": "AI Generated - Alternatives",
+            "Rittal": 74,
+            "Arup": 0,
+            "Drees & Sommer": 0,
+        },
+        {
+            "prompt_category": "AI Generated - Local Recommendations",
+            "Rittal": 0,
+            "Arup": 56,
+            "Drees & Sommer": 0,
+        },
+    ])
+    market_relevance = {
+        "visible_market_fit": [
+            {"brand": "Rittal", "market_fit": "Market-relevant", "rationale": "Market fit appears plausible."},
+            {"brand": "Arup", "market_fit": "Market-relevant", "rationale": "Market fit appears plausible."},
+            {"brand": "Drees & Sommer", "market_fit": "Market-relevant", "rationale": "Market fit appears plausible."},
+        ]
+    }
+
+    profiles = build_retrieved_brand_profiles(
+        summary_df,
+        "Target Brand",
+        top_brands_df=top_brands_df,
+        detailed_pivot_df=detailed_pivot_df,
+        market_relevance=market_relevance,
+    )
+    roles_by_brand = {
+        profile["brand"]: profile["retrieval_role"]
+        for profile in profiles
+    }
+
+    assert roles_by_brand["Rittal"] == RETRIEVAL_ROLE_TRUST
+    assert roles_by_brand["Arup"] == RETRIEVAL_ROLE_PLANNING
+    assert roles_by_brand["Drees & Sommer"] == RETRIEVAL_ROLE_COMPARISON
+    assert len(set(roles_by_brand.values())) > 1
+    assert set(roles_by_brand.values()) != {RETRIEVAL_ROLE_LOCAL}
+
+    for profile in profiles:
+        assert profile["primary_retrieval_role"] == profile["retrieval_role"]
+        assert profile["role_signal_summary"]
+        assert profile["market_fit_modifier"]
+
+
+def test_retrieved_brand_profiles_use_detailed_pivot_categories_when_not_top_winner():
+    summary_df = pd.DataFrame([
+        {
+            "brand": "Target Brand",
+            "total_mentions": 0,
+            "average_visibility_score": 0,
+            "prompts_visible": 0,
+            "share_of_voice_percent": 0,
+        },
+        {
+            "brand": "Tech Brand",
+            "total_mentions": 6,
+            "average_visibility_score": 35,
+            "prompts_visible": 2,
+            "share_of_voice_percent": 30,
+        },
+    ])
+    top_brands_df = pd.DataFrame([
+        {"prompt_category": "Best Options", "brand": "Other Brand", "visibility_score": 70},
+    ])
+    detailed_pivot_df = pd.DataFrame([
+        {
+            "prompt_category": "Technical Infrastructure Recommendations",
+            "Tech Brand": 42,
+            "Other Brand": 70,
+        }
+    ])
+
+    profiles = build_retrieved_brand_profiles(
+        summary_df,
+        "Target Brand",
+        top_brands_df=top_brands_df,
+        detailed_pivot_df=detailed_pivot_df,
+    )
+
+    assert profiles[0]["brand"] == "Tech Brand"
+    assert profiles[0]["retrieval_role"] == RETRIEVAL_ROLE_TECHNICAL
+    assert "Technical Infrastructure Recommendations" in profiles[0]["prompt_categories"]
 
 
 def test_evidence_gap_map_and_task_roadmap_are_actionable():
@@ -339,6 +502,45 @@ def test_first_three_evidence_assets_prioritize_entity_and_market_gaps():
         assert "improve marketing" not in combined
         assert "create more content" not in combined
         assert "get more reviews" not in combined
+
+
+def test_first_three_evidence_assets_use_differentiated_role_distribution():
+    assets = build_first_three_evidence_assets(
+        brand="Target Brand",
+        category="data center providers",
+        market="Germany",
+        audience="enterprise infrastructure buyers",
+        reference_brands=[{"Brand": "Rittal"}],
+        retrieved_brand_profiles=[
+            {"retrieval_role": RETRIEVAL_ROLE_TECHNICAL},
+            {"retrieval_role": RETRIEVAL_ROLE_PLANNING},
+            {"retrieval_role": RETRIEVAL_ROLE_COMPARISON},
+        ],
+        brand_understanding={
+            "brand_known_status": "Clear",
+            "category_alignment": "Clear",
+            "market_alignment": "Clear",
+            "audience_alignment": "Clear",
+        },
+        market_relevance={
+            "market_lock_status": "Market-specific",
+            "local_brand_presence_signal": "Clear",
+        },
+        prompt_categories=["Technical Infrastructure", "Audience-Specific", "Alternatives"],
+    )
+
+    assert len(assets) == 3
+    assert assets[0]["asset_name"] == "Technical capability and infrastructure proof asset"
+    assert assets[1]["asset_name"] == "Planning, advisory, and methodology credibility asset"
+    assert assets[2]["asset_name"] == "Comparison and alternatives evidence"
+
+    for asset in assets:
+        assert asset["priority"]
+        assert asset["what_to_build"]
+        assert asset["why_it_matters"]
+        assert asset["target_retrieval_driver"]
+        assert asset["targets_or_prompt_groups"]
+        assert asset["validation"]
 
 
 def test_validation_plan_defines_first_measurable_inclusion_without_timeline_promise():
