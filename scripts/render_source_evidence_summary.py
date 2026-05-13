@@ -21,10 +21,10 @@ SRC_PATH = ROOT / "src"
 sys.path.insert(0, str(SRC_PATH))
 
 from geo_audit.source_evidence_markdown import render_source_evidence_summary_section  # noqa: E402
-
-
-def _load_payload(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+from geo_audit.source_evidence_payload import (  # noqa: E402
+    format_source_evidence_payload_errors,
+    load_source_evidence_payload,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,9 +51,13 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    payload = _load_payload(args.input_json)
+    result = load_source_evidence_payload(args.input_json)
+    if not result.ok:
+        print(format_source_evidence_payload_errors(result.errors), file=sys.stderr)
+        raise SystemExit(1)
+
     summary = render_source_evidence_summary_section(
-        payload,
+        result.payload.to_dict(),
         include_appendix=args.include_appendix,
     )
     args.output_markdown.parent.mkdir(parents=True, exist_ok=True)
