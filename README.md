@@ -28,6 +28,7 @@ Start here:
 - [Source Evidence Demo Fixture](examples/source-evidence-demo.json): fictional source evidence input data.
 - [Output Examples](docs/output-examples.md): overview of generated report sections and benchmark artifacts.
 - [Methodology](docs/methodology.md): scoring approach, benchmark assumptions, and interpretation guidance.
+- [Product Roadmap](docs/product-roadmap.md): current product direction, completed foundations, and next development phases.
 
 The demo is not live client data, confidential brand data, automated web research, or a Quick Test Mode result.
 
