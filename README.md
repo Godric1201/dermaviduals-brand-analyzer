@@ -1,24 +1,35 @@
-# AI Brand Visibility GEO Audit
+# AI Recommendation Readiness Diagnosis
 
-Local-first AI Recommendation Readiness Diagnosis for understanding whether a brand enters AI recommendation candidate sets, which brands are retrieved instead, and what evidence should be built first.
+Why does AI recommend competitors instead of your brand — and what evidence should you build first?
 
-This Streamlit app runs recommendation-style prompts, scores tracked brand visibility, diagnoses retrieved-brand patterns, and generates Markdown / DOCX reports for Generative Engine Optimization (GEO) and AI recommendation readiness.
+This local-first Streamlit app benchmarks whether a target brand enters AI recommendation candidate sets, identifies which competitors are retrieved instead, and turns zero-visibility findings into source-grounded evidence-building priorities.
 
-Core question:
+It is designed for Generative Engine Optimization (GEO), AI visibility audits, and productized consulting workflows where the main question is not just “was my brand mentioned?”, but:
 
-**Why does AI recommend other brands instead of yours, and what evidence should you build first?**
+- Does AI understand what the brand does?
+- Does the brand enter recommendation-style answers?
+- Which competitors are retrieved instead?
+- What retrieval roles do those competitors appear to satisfy?
+- Which source-supported evidence gaps may explain why the target brand is missing?
+- What are the first evidence assets to build and validate?
 
-Use it to answer questions like:
+The app runs locally and requires your own OpenAI API key. It is not a hosted SaaS product.
 
-- Does AI appear to understand my brand?
-- Does my brand enter the recommendation candidate set?
-- Which brands are retrieved instead?
-- Why might those brands be retrieved?
-- What gap exists between my brand and the retrieved brands?
-- Which evidence assets should be built first?
-- How should progress be validated in a future benchmark?
+---
 
-> The app runs locally and requires your own OpenAI API key. It is not a hosted SaaS product.
+## Product Demo
+
+The public demo shows a fictional zero-visibility audit where the target brand is not recommended, but competing brands are retrieved.
+
+Start here:
+
+- [Demo Executive Report](examples/demo-executive-report.md): fictional Recommendation Readiness report with source-grounded evidence summary.
+- [Source Evidence Demo Report](examples/source-evidence-demo-report.md): deterministic fixture-based evidence gap report.
+- [Source Evidence Demo Fixture](examples/source-evidence-demo.json): fictional source evidence input data.
+- [Output Examples](docs/output-examples.md): overview of generated report sections and benchmark artifacts.
+- [Methodology](docs/methodology.md): scoring approach, benchmark assumptions, and interpretation guidance.
+
+The demo is not live client data, confidential brand data, automated web research, or a Quick Test Mode result.
 
 ---
 
@@ -70,30 +81,28 @@ It measures:
 
 ## Example Output
 
-The app produces report-ready Recommendation Readiness outputs in Full Report Mode, including:
+The app produces report-ready outputs in Full Report Mode, including:
 
-- Recommendation Readiness Verdict
-- Brand Understanding Summary
-- Who AI Retrieved Instead
-- Why Those Brands Were Retrieved
-- Target vs Retrieved Brand Gap
-- First 3 Evidence Assets to Build
-- Validation Plan
-- Supporting Benchmark Data
-- Methodology / Reliability Notes
+- Recommendation Readiness verdict
+- Brand understanding summary
+- Retrieved-brand diagnosis
+- Retrieval role explanation
+- Target vs retrieved brand gap
+- First evidence assets to build
+- Validation plan for future benchmark runs
+- Source-grounded evidence summary
+- Supporting benchmark data
 - Markdown executive report
 - DOCX executive report
 - Benchmark snapshot JSON
 - Snapshot comparison outputs
-- Source evidence demo report generated from fixture data
-- Source evidence coverage and target-vs-retrieved evidence gap summary
 
 Public example materials:
 
-- [Demo Executive Report](examples/demo-executive-report.md): fictional, condensed Full Report Mode-style Recommendation Readiness output. It is not live client data, Quick Test Mode output, or source-grounded competitive research.
-- [Source Evidence Demo Report](examples/source-evidence-demo-report.md): deterministic fixture-based demo showing source evidence coverage, target-vs-retrieved evidence gaps, first evidence assets, and a source appendix.
-- [Source Evidence Demo Fixture](examples/source-evidence-demo.json): fictional source evidence records used by the local demo renderer.
-- [Output Examples](docs/output-examples.md): overview of Recommendation Readiness report sections and supporting benchmark artifacts.
+- [Demo Executive Report](examples/demo-executive-report.md): fictional Recommendation Readiness report with source-grounded evidence summary.
+- [Source Evidence Demo Report](examples/source-evidence-demo-report.md): deterministic fixture-based source evidence summary.
+- [Source Evidence Demo Fixture](examples/source-evidence-demo.json): fictional source evidence records used by the demo renderer.
+- [Output Examples](docs/output-examples.md): overview of generated report sections and benchmark artifacts.
 - [Methodology](docs/methodology.md): scoring approach, benchmark assumptions, and interpretation guidance.
 
 ---
