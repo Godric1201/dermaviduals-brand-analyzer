@@ -10,7 +10,12 @@ from geo_audit.ui.exports import (
     render_benchmark_snapshot_export,
     render_report_download_exports,
 )
+from geo_audit.ui.source_evidence_panel import SOURCE_EVIDENCE_SESSION_KEY
 
+def get_source_evidence_payload_for_markdown_export():
+    """Return the validated source evidence payload stored by the preview panel."""
+
+    return st.session_state.get(SOURCE_EVIDENCE_SESSION_KEY)
 
 def render_export_reports_section(
     t,
@@ -59,6 +64,8 @@ def render_export_reports_section(
         display_brand,
     )
 
+    source_evidence_payload = get_source_evidence_payload_for_markdown_export()
+
     executive_report = build_executive_markdown_report(
         brand=brand,
         display_brand=display_brand,
@@ -90,6 +97,7 @@ def render_export_reports_section(
         geo_content_roadmap_done=geo_content_roadmap_done,
         prompt_categories=prompt_categories,
         tracked_competitors=competitors,
+        source_evidence_payload=source_evidence_payload,
     )
     executive_docx = create_executive_docx_report(
         brand=display_brand,
