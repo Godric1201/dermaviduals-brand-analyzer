@@ -1,52 +1,43 @@
 # Examples
 
-This directory contains public-facing example outputs for the AI Recommendation Readiness Diagnosis workflow.
+This folder contains fictional demo artifacts for the AI Recommendation Readiness Diagnosis workflow.
 
-## Available Example Outputs
+The examples are designed for GitHub review, portfolio demonstration, and local validation. They are not live client data, confidential brand data, automated web research, or production benchmark results.
 
-- [Demo Executive Report](demo-executive-report.md)
-- [Source Evidence Demo Report](source-evidence-demo-report.md)
-- [Source Evidence Demo Fixture](source-evidence-demo.json)
+---
 
-The demo executive report is a fictional, anonymized, condensed Full Report Mode-style example. It demonstrates a zero-visibility / Not Detected scenario where the target brand does not enter the tested AI recommendation candidate set, while other retrieved brands appear instead.
+## Recommended Reading Order
 
-The example is benchmark-based. It is not live client data, confidential brand data, Quick Test Mode output, or source-grounded competitive research. Retrieval roles, target gaps, and recommended evidence assets should be read as benchmark-based hypotheses that require validation.
+Start with the executive report, then inspect the source evidence examples.
 
-## Source Evidence Demo
+1. [`demo-executive-report.md`](demo-executive-report.md)
+   Fictional executive report showing the full Recommendation Readiness narrative, including source-grounded evidence summary.
 
-The source evidence demo is a deterministic fixture-based example for the future source-grounded research layer.
+2. [`source-evidence-summary.md`](source-evidence-summary.md)
+   Reusable source evidence summary section rendered by the local CLI from the demo JSON fixture.
 
-It demonstrates:
+3. [`source-evidence-demo-report.md`](source-evidence-demo-report.md)
+   Full deterministic source evidence demo report with coverage, gap analysis, priority assets, appendix, and methodology notes.
 
-- accepted source evidence coverage by brand
-- target-vs-retrieved evidence gaps
-- first evidence assets to build
-- source evidence appendix formatting
-- cautious language separating observed source evidence from retrieval causality
+4. [`source-evidence-demo.json`](source-evidence-demo.json)
+   Fictional source evidence fixture used to generate source evidence demo outputs.
 
-The demo can be regenerated locally without Streamlit, OpenAI, web search, scraping, or live client data:
+---
+
+## File Overview
+
+| File | Type | Purpose |
+| --- | --- | --- |
+| `demo-executive-report.md` | Report example | Shows the product-style Recommendation Readiness diagnosis. |
+| `source-evidence-summary.md` | CLI-rendered section | Shows the reusable source-grounded evidence summary output. |
+| `source-evidence-demo-report.md` | Demo report | Shows the full source evidence demo with appendix and methodology notes. |
+| `source-evidence-demo.json` | Fixture data | Provides fictional source evidence records for local rendering. |
+
+---
+
+## Local Rendering
+
+Render the full source evidence demo report:
 
 ```bash
 python scripts/render_source_evidence_demo.py
-```
-
-This writes:
-
-```text
-examples/source-evidence-demo-report.md
-```
-
-The fixture lives at:
-
-```text
-examples/source-evidence-demo.json
-```
-
-Source-grounded competitor and evidence research is a future extension, not part of the current live benchmark workflow. The current demo uses fictional source records to show the intended report structure and evidence-gap logic.
-
-For more context, see:
-
-- [Output Examples](../docs/output-examples.md)
-- [Methodology](../docs/methodology.md)
-- [Recommendation Readiness Report Spec](../docs/recommendation-readiness-report-spec.md)
-- [Source-Grounded Research Spec](../docs/source-grounded-research-spec.md)
