@@ -449,3 +449,235 @@ def summarize_evidence_coverage(
         })
 
     return summary_rows
+
+def _accepted_items_by_brand(
+    items: list[EvidenceItem | dict[str, Any]],
+) -> dict[str, list[EvidenceItem]]:
+    grouped = group_evidence_by_brand(items)
+    return {
+        brand: [
+            item for item in brand_items
+            if _is_accepted_for_summary(item)
+        ]
+        for brand, brand_items in grouped.items()
+    }
+
+
+def _evidence_types_for_brand(
+    accepted_by_brand: dict[str, list[EvidenceItem]],
+    brand: str,
+) -> set[str]:
+    return {
+        item.evidence_type
+        for item in accepted_by_brand.get(brand, [])
+        if item.evidence_type
+    }
+
+
+def _drivers_for_evidence_type(
+    accepted_items: list[EvidenceItem],
+    evidence_type: str,
+) -> list[str]:
+    drivers = sorted({
+        item.supported_retrieval_driver
+        for item in accepted_items
+        if item.evidence_type == evidence_type and item.supported_retrieval_driver
+    })
+    return drivers
+
+
+def _confidence_rank(confidence: str) -> int:
+    ranks = {
+        CONFIDENCE_HIGH: 3,
+        CONFIDENCE_MEDIUM: 2,
+        CONFIDENCE_LOW: 1,
+        CONFIDENCE_INSUFFICIENT: 0,
+    }
+    return ranks.get(confidence, 0)
+
+
+def _highest_confidence_for_evidence_type(
+    accepted_items: list[EvidenceItem],
+    evidence_type: str,
+) -> str:
+    matching_confidences = [
+        item.confidence
+        for item in accepted_items
+        if item.evidence_type == evidence_type
+    ]
+    if not matching_confidences:
+        return CONFIDENCE_INSUFFICIENT
+
+    return max(matching_confidences, key=_confidence_rank)
+
+
+def _source_count_for_evidence_type(
+    accepted_items: list[EvidenceItem],
+    evidence_type: str,
+) -> int:
+    return sum(1 for item in accepted_items if item.evidence_type == evidence_type)
+
+
+def _evidence_asset_recommendation(evidence_type: str) -> str:
+    recommendations = {
+        EVIDENCE_ENTITY: "Build or improve canonical entity evidence that clearly identifies the brand.",
+        EVIDENCE_CATEGORY: "Build category evidence that connects the brand to the tested recommendation category.",
+        EVIDENCE_MARKET: "Build market evidence that connects the brand to the requested geography or buyer context.",
+        EVIDENCE_OFFERING_USE_CASE: "Build offering and use-case evidence that explains where the brand is relevant.",
+        EVIDENCE_PROOF_TRUST: "Build proof and trust evidence such as case studies, certifications, project examples, or credible third-party support.",
+        EVIDENCE_COMPARISON: "Build comparison and alternatives evidence that explains when the brand is a relevant option.",
+        EVIDENCE_THIRD_PARTY: "Build third-party corroboration that supports the brand's category, market, or offering claims.",
+        EVIDENCE_STRUCTURED_DATA: "Improve structured data and entity disambiguation signals.",
+        EVIDENCE_RECENCY: "Add fresh public evidence showing the brand is active in the category or market.",
+        EVIDENCE_AUTHORITY: "Build authority or association evidence through credible partners, associations, certifications, or industry references.",
+    }
+    return recommendations.get(
+        evidence_type,
+        "Build source-grounded evidence for this missing retrieval driver.",
+    )
+
+
+def compare_target_vs_retrieved_evidence(
+    items: list[EvidenceItem | dict[str, Any]],
+    *,
+    target_brand: str,
+    retrieved_brands: list[str],
+) -> list[dict[str, Any]]:
+    """Compare target evidence coverage against retrieved-brand evidence.
+
+    This helper is deterministic and source-only. It does not claim that source
+    evidence caused AI retrieval. It identifies source evidence types present
+    for retrieved brands but missing for the target brand.
+    """
+
+    normalized_target = _clean_text(target_brand)
+    normalized_retrieved_brands = [
+        _clean_text(brand)
+        for brand in retrieved_brands
+        if _clean_text(brand)
+    ]
+
+    accepted_by_brand = _accepted_items_by_brand(items)
+    target_evidence_types = _evidence_types_for_brand(
+        accepted_by_brand,
+        normalized_target,
+    )
+
+    gap_rows: list[dict[str, Any]] = []
+
+    for retrieved_brand in normalized_retrieved_brands:
+        retrieved_items = accepted_by_brand.get(retrieved_brand, [])
+        retrieved_evidence_types = _evidence_types_for_brand(
+            accepted_by_brand,
+            retrieved_brand,
+        )
+        missing_evidence_types = sorted(
+            retrieved_evidence_types - target_evidence_types
+        )
+
+        for evidence_type in missing_evidence_types:
+            supported_drivers = _drivers_for_evidence_type(
+                retrieved_items,
+                evidence_type,
+            )
+            gap_rows.append({
+                "target_brand": normalized_target,
+                "retrieved_brand": retrieved_brand,
+                "missing_evidence_type": evidence_type,
+                "retrieved_brand_source_count": _source_count_for_evidence_type(
+                    retrieved_items,
+                    evidence_type,
+                ),
+                "retrieved_brand_highest_confidence": (
+                    _highest_confidence_for_evidence_type(
+                        retrieved_items,
+                        evidence_type,
+                    )
+                ),
+                "supported_retrieval_drivers": supported_drivers,
+                "evidence_asset_recommendation": (
+                    _evidence_asset_recommendation(evidence_type)
+                ),
+                "interpretation": (
+                    f"{normalized_target} lacks accepted {evidence_type} while "
+                    f"{retrieved_brand} has source evidence for that type. "
+                    "This is a source-evidence gap to validate, not proof of retrieval causality."
+                ),
+            })
+
+    return gap_rows
+
+
+def summarize_evidence_gap_rows(
+    gap_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Aggregate target-vs-retrieved evidence gaps by evidence type."""
+
+    grouped: dict[str, dict[str, Any]] = {}
+
+    for row in gap_rows:
+        evidence_type = row.get("missing_evidence_type", "")
+        if not evidence_type:
+            continue
+
+        current = grouped.setdefault(
+            evidence_type,
+            {
+                "missing_evidence_type": evidence_type,
+                "retrieved_brands_with_evidence": [],
+                "supported_retrieval_drivers": [],
+                "retrieved_brand_source_count": 0,
+                "highest_confidence": CONFIDENCE_INSUFFICIENT,
+                "evidence_asset_recommendation": (
+                    _evidence_asset_recommendation(evidence_type)
+                ),
+            },
+        )
+
+        retrieved_brand = row.get("retrieved_brand", "")
+        if (
+            retrieved_brand
+            and retrieved_brand not in current["retrieved_brands_with_evidence"]
+        ):
+            current["retrieved_brands_with_evidence"].append(retrieved_brand)
+
+        for driver in row.get("supported_retrieval_drivers", []):
+            if driver not in current["supported_retrieval_drivers"]:
+                current["supported_retrieval_drivers"].append(driver)
+
+        current["retrieved_brand_source_count"] += int(
+            row.get("retrieved_brand_source_count", 0)
+        )
+
+        row_confidence = row.get(
+            "retrieved_brand_highest_confidence",
+            CONFIDENCE_INSUFFICIENT,
+        )
+        if _confidence_rank(row_confidence) > _confidence_rank(
+            current["highest_confidence"]
+        ):
+            current["highest_confidence"] = row_confidence
+
+    summary_rows = list(grouped.values())
+
+    for row in summary_rows:
+        row["retrieved_brands_with_evidence"] = sorted(
+            row["retrieved_brands_with_evidence"]
+        )
+        row["supported_retrieval_drivers"] = sorted(
+            row["supported_retrieval_drivers"]
+        )
+        row["interpretation"] = (
+            f"The target is missing {row['missing_evidence_type']} that appears "
+            f"for {len(row['retrieved_brands_with_evidence'])} retrieved brand(s). "
+            "This should be treated as a source-supported evidence gap and validated through future benchmarks."
+        )
+
+    return sorted(
+        summary_rows,
+        key=lambda row: (
+            -_confidence_rank(row["highest_confidence"]),
+            -row["retrieved_brand_source_count"],
+            row["missing_evidence_type"],
+        ),
+    )

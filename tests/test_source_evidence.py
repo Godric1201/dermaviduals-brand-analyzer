@@ -11,11 +11,15 @@ from geo_audit.source_evidence import (
     STATUS_NEEDS_REVIEW,
     STATUS_OBSERVED,
     STATUS_REJECTED,
+    EVIDENCE_OFFERING_USE_CASE,
+    EVIDENCE_PROOF_TRUST,
     group_evidence_by_brand,
     normalize_evidence_item,
     summarize_evidence_coverage,
     validate_evidence_item,
     validate_evidence_items,
+    compare_target_vs_retrieved_evidence,
+    summarize_evidence_gap_rows,
 )
 
 
@@ -226,3 +230,167 @@ def test_conflicting_items_are_not_accepted_for_coverage():
     assert row["accepted_items"] == 0
     assert row["evidence_types"] == []
     assert row["evidence_type_count"] == 0
+
+def test_compare_target_vs_retrieved_evidence_finds_missing_evidence_types():
+    items = [
+        make_valid_evidence(
+            brand="Target Brand",
+            evidence_type="entity",
+            supported_retrieval_driver="Candidate-set inclusion",
+        ),
+        make_valid_evidence(
+            brand="Target Brand",
+            evidence_type="market",
+            supported_retrieval_driver="Local market provider",
+        ),
+        make_valid_evidence(
+            brand="Reference Brand A",
+            evidence_type="comparison",
+            supported_retrieval_driver="Comparison anchor",
+            confidence="High",
+        ),
+        make_valid_evidence(
+            brand="Reference Brand A",
+            evidence_type="proof",
+            supported_retrieval_driver="Trust / premium reference",
+            confidence="Medium",
+        ),
+        make_valid_evidence(
+            brand="Reference Brand B",
+            evidence_type="offering",
+            supported_retrieval_driver="Technical infrastructure provider",
+            confidence="High",
+        ),
+    ]
+
+    gaps = compare_target_vs_retrieved_evidence(
+        items,
+        target_brand="Target Brand",
+        retrieved_brands=["Reference Brand A", "Reference Brand B"],
+    )
+
+    gap_types = {gap["missing_evidence_type"] for gap in gaps}
+
+    assert gap_types == {
+        EVIDENCE_COMPARISON,
+        EVIDENCE_PROOF_TRUST,
+        EVIDENCE_OFFERING_USE_CASE,
+    }
+
+    comparison_gap = next(
+        gap for gap in gaps
+        if gap["missing_evidence_type"] == EVIDENCE_COMPARISON
+    )
+
+    assert comparison_gap["target_brand"] == "Target Brand"
+    assert comparison_gap["retrieved_brand"] == "Reference Brand A"
+    assert comparison_gap["retrieved_brand_source_count"] == 1
+    assert comparison_gap["retrieved_brand_highest_confidence"] == CONFIDENCE_HIGH
+    assert comparison_gap["supported_retrieval_drivers"] == ["Comparison anchor"]
+    assert "not proof of retrieval causality" in comparison_gap["interpretation"]
+
+
+def test_compare_target_vs_retrieved_evidence_ignores_rejected_and_conflicting_items():
+    items = [
+        make_valid_evidence(
+            brand="Target Brand",
+            evidence_type="entity",
+        ),
+        make_valid_evidence(
+            brand="Reference Brand A",
+            evidence_type="comparison",
+            validation_status=STATUS_REJECTED,
+        ),
+        make_valid_evidence(
+            brand="Reference Brand A",
+            evidence_type="proof",
+            validation_status=STATUS_CONFLICTING,
+        ),
+    ]
+
+    gaps = compare_target_vs_retrieved_evidence(
+        items,
+        target_brand="Target Brand",
+        retrieved_brands=["Reference Brand A"],
+    )
+
+    assert gaps == []
+
+
+def test_compare_target_vs_retrieved_evidence_does_not_flag_existing_target_coverage():
+    items = [
+        make_valid_evidence(
+            brand="Target Brand",
+            evidence_type="comparison",
+            supported_retrieval_driver="Comparison anchor",
+        ),
+        make_valid_evidence(
+            brand="Reference Brand A",
+            evidence_type="comparison",
+            supported_retrieval_driver="Comparison anchor",
+        ),
+    ]
+
+    gaps = compare_target_vs_retrieved_evidence(
+        items,
+        target_brand="Target Brand",
+        retrieved_brands=["Reference Brand A"],
+    )
+
+    assert gaps == []
+
+
+def test_summarize_evidence_gap_rows_aggregates_by_missing_evidence_type():
+    gaps = compare_target_vs_retrieved_evidence(
+        [
+            make_valid_evidence(
+                brand="Target Brand",
+                evidence_type="entity",
+            ),
+            make_valid_evidence(
+                brand="Reference Brand A",
+                evidence_type="comparison",
+                supported_retrieval_driver="Comparison anchor",
+                confidence="Medium",
+            ),
+            make_valid_evidence(
+                brand="Reference Brand B",
+                evidence_type="comparison",
+                supported_retrieval_driver="Alternative prompt eligibility",
+                confidence="High",
+            ),
+            make_valid_evidence(
+                brand="Reference Brand B",
+                evidence_type="proof",
+                supported_retrieval_driver="Trust / premium reference",
+                confidence="Medium",
+            ),
+        ],
+        target_brand="Target Brand",
+        retrieved_brands=["Reference Brand A", "Reference Brand B"],
+    )
+
+    summary = summarize_evidence_gap_rows(gaps)
+
+    comparison_summary = next(
+        row for row in summary
+        if row["missing_evidence_type"] == EVIDENCE_COMPARISON
+    )
+
+    assert comparison_summary["retrieved_brands_with_evidence"] == [
+        "Reference Brand A",
+        "Reference Brand B",
+    ]
+    assert comparison_summary["retrieved_brand_source_count"] == 2
+    assert comparison_summary["highest_confidence"] == CONFIDENCE_HIGH
+    assert comparison_summary["supported_retrieval_drivers"] == [
+        "Alternative prompt eligibility",
+        "Comparison anchor",
+    ]
+    assert "source-supported evidence gap" in comparison_summary["interpretation"]
+
+    assert summary[0]["missing_evidence_type"] == EVIDENCE_COMPARISON
+
+
+def test_summarize_evidence_gap_rows_returns_empty_list_for_no_gaps():
+    assert summarize_evidence_gap_rows([]) == []
