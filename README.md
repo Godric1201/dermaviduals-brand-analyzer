@@ -25,6 +25,7 @@ Start here:
 
 - [Demo Executive Report](examples/demo-executive-report.md): fictional Recommendation Readiness report with source-grounded evidence summary.
 - [Source Evidence Demo Report](examples/source-evidence-demo-report.md): deterministic fixture-based evidence gap report.
+- [Source Evidence Summary](examples/source-evidence-summary.md): reusable CLI-rendered source evidence summary section.
 - [Source Evidence Demo Fixture](examples/source-evidence-demo.json): fictional source evidence input data.
 - [Output Examples](docs/output-examples.md): overview of generated report sections and benchmark artifacts.
 - [Methodology](docs/methodology.md): scoring approach, benchmark assumptions, and interpretation guidance.
