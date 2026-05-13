@@ -121,8 +121,7 @@ Planned work:
 - preview source evidence coverage in the app
 - allow source evidence inclusion in Markdown export
 - validate source evidence records before report generation
-- document the fixture schema
-
+- document the fixture schema in [`source-evidence-schema.md`](source-evidence-schema.md)
 Success criteria:
 
 - a user can provide source evidence manually
