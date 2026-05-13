@@ -179,8 +179,10 @@ def render_source_evidence_appendix(
     return "\n\n".join(blocks)
 
 
-def render_source_evidence_demo_report(payload: dict[str, Any]) -> str:
-    """Render a complete deterministic source-evidence demo report."""
+def _validated_payload_parts(
+    payload: dict[str, Any],
+) -> tuple[list[dict[str, Any]], str, list[str]]:
+    """Return validated source-evidence payload parts."""
 
     evidence_items = normalize_evidence_items(payload["evidence_items"])
     validation_errors = validate_evidence_items(evidence_items)
@@ -194,15 +196,79 @@ def render_source_evidence_demo_report(payload: dict[str, Any]) -> str:
             + "\n".join(error_lines)
         )
 
-    coverage_md = render_source_evidence_coverage_table(payload["evidence_items"])
+    target_brand = str(payload["target_brand"]).strip()
+    retrieved_brands = [
+        str(brand).strip()
+        for brand in payload["retrieved_brands"]
+        if str(brand).strip()
+    ]
+
+    if not target_brand:
+        raise ValueError(
+            "Source evidence fixture has validation errors:\n"
+            "- target_brand: required"
+        )
+    if not retrieved_brands:
+        raise ValueError(
+            "Source evidence fixture has validation errors:\n"
+            "- retrieved_brands: required"
+        )
+
+    return evidence_items, target_brand, retrieved_brands
+
+
+def render_source_evidence_summary_section(
+    payload: dict[str, Any],
+    *,
+    include_appendix: bool = False,
+) -> str:
+    """Render a formal Markdown report section for source-grounded evidence."""
+
+    evidence_items, target_brand, retrieved_brands = _validated_payload_parts(payload)
+    coverage_md = render_source_evidence_coverage_table(evidence_items)
     gap_summary = build_source_evidence_gap_summary(
-        payload["evidence_items"],
-        target_brand=payload["target_brand"],
-        retrieved_brands=payload["retrieved_brands"],
+        evidence_items,
+        target_brand=target_brand,
+        retrieved_brands=retrieved_brands,
     )
     gap_summary_md = render_source_evidence_gap_table(gap_summary)
     priority_assets_md = render_source_evidence_priority_assets(gap_summary)
-    appendix_md = render_source_evidence_appendix(payload["evidence_items"])
+
+    parts = [
+        "## Source-Grounded Evidence Summary\n\n"
+        "This optional section compares accepted public source evidence for the target brand and retrieved brands. "
+        "It adds validation context to the benchmark diagnosis, but it does not prove that specific sources caused AI retrieval.",
+        "### Source Evidence Coverage\n\n"
+        "Accepted source evidence available for the target and retrieved brands:\n\n"
+        f"{coverage_md}",
+        "### Target vs Retrieved Evidence Gap\n\n"
+        "Evidence types present for retrieved brands but missing for the target brand:\n\n"
+        f"{gap_summary_md}\n\n"
+        "These gaps are source-evidence gaps to validate. They are not proof that specific sources caused AI retrieval.",
+        "### First Source Evidence Assets to Build\n\n"
+        f"{priority_assets_md}",
+    ]
+
+    if include_appendix:
+        appendix_md = render_source_evidence_appendix(evidence_items)
+        parts.append(f"### Source Evidence Appendix\n\n{appendix_md}")
+
+    return "\n\n".join(parts)
+
+
+def render_source_evidence_demo_report(payload: dict[str, Any]) -> str:
+    """Render a complete deterministic source-evidence demo report."""
+
+    evidence_items, target_brand, retrieved_brands = _validated_payload_parts(payload)
+    coverage_md = render_source_evidence_coverage_table(evidence_items)
+    gap_summary = build_source_evidence_gap_summary(
+        evidence_items,
+        target_brand=target_brand,
+        retrieved_brands=retrieved_brands,
+    )
+    gap_summary_md = render_source_evidence_gap_table(gap_summary)
+    priority_assets_md = render_source_evidence_priority_assets(gap_summary)
+    appendix_md = render_source_evidence_appendix(evidence_items)
 
     return f"""# Source Evidence Demo Report
 

@@ -32,6 +32,7 @@ from .market_relevance import (
     MARKET_LOCK_MARKET_SPECIFIC,
     MARKET_LOCK_PARTIALLY_MARKET_SPECIFIC,
 )
+from .source_evidence_markdown import render_source_evidence_summary_section
 from .report_diagnosis import (
     build_first_three_evidence_assets,
     build_evidence_gap_map,
@@ -741,14 +742,22 @@ def _build_methodology_and_reliability_notes_md(
     display_category,
     prompt_categories,
     reliability,
+    source_grounded_evidence_available=False,
 ):
+    source_evidence_note = (
+        "included as optional validation context in this Markdown report; source evidence can support gap validation, "
+        "but it does not prove retrieval causality."
+        if source_grounded_evidence_available
+        else "not included in this Markdown report; current retrieval-role and gap explanations are not verified market fact."
+    )
+
     return (
         f"**Reliability Level:** {reliability['label']}  \n"
         f"**Reliability rationale:** {reliability['rationale']}\n\n"
         "Evidence hierarchy used in this report:\n\n"
         "- Observed benchmark signal: measured mentions, prompt visibility, share of voice, and retrieved brands in this run.\n"
         "- Inferred retrieval driver: cautious explanation of why a visible brand may have been retrieved, based on benchmark patterns.\n"
-        "- Source-grounded evidence: not included in this Markdown report; current retrieval-role and gap explanations are not verified market fact.\n"
+        f"- Source-grounded evidence: {source_evidence_note}\n"
         "- Recommended action: evidence assets intended to test whether the target can enter the recommendation candidate set in future benchmarks.\n\n"
         f"{_build_methodology_notes_md(display_category, prompt_categories)}"
     )
@@ -782,6 +791,7 @@ def _build_zero_visibility_markdown_report(
     brand_understanding_done=False,
     market_relevance=None,
     market_relevance_done=False,
+    source_evidence_payload=None,
 ):
     query_intent_md = "\n".join(
         f"- {item}" for item in prompt_categories
@@ -798,7 +808,7 @@ def _build_zero_visibility_markdown_report(
         run_mode=run_mode,
         prompt_categories=prompt_categories,
         reference_brands=reference_brands,
-        source_grounded_evidence_available=False,
+        source_grounded_evidence_available=bool(source_evidence_payload),
     )
     market_relevance_interpretation = build_market_relevance_interpretation(
         display_brand,
@@ -871,9 +881,15 @@ def _build_zero_visibility_markdown_report(
         display_category=display_category,
         prompt_categories=prompt_categories,
         reliability=reliability,
+        source_grounded_evidence_available=bool(source_evidence_payload),
+    )
+    source_evidence_summary_md = (
+        render_source_evidence_summary_section(source_evidence_payload)
+        if source_evidence_payload
+        else ""
     )
 
-    return [
+    parts = [
         f"# {display_brand} {display_market} AI Recommendation Readiness Diagnosis",
         (
             "## 1. Recommendation Readiness Verdict\n\n"
@@ -924,6 +940,10 @@ def _build_zero_visibility_markdown_report(
             f"{methodology_reliability_md}"
         ),
     ]
+    if source_evidence_summary_md:
+        parts.append(source_evidence_summary_md)
+
+    return parts
 
 
 def build_executive_markdown_report(
@@ -957,6 +977,7 @@ def build_executive_markdown_report(
     geo_content_roadmap_done=False,
     prompt_categories=None,
     tracked_competitors=None,
+    source_evidence_payload=None,
 ):
     is_quick_test_mode = run_mode == "Quick Test Mode"
     prompt_categories = prompt_categories or []
@@ -1126,6 +1147,7 @@ def build_executive_markdown_report(
             brand_understanding_done=brand_understanding_done,
             market_relevance=market_relevance,
             market_relevance_done=market_relevance_done,
+            source_evidence_payload=source_evidence_payload,
         )
         final_report = "\n\n---\n\n".join(parts)
         final_report = sanitize_report_text(final_report, context)
