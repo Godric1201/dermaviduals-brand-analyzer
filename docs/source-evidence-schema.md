@@ -183,3 +183,23 @@ See:
 
 - [`examples/source-evidence-demo.json`](../examples/source-evidence-demo.json)
 - [`examples/source-evidence-demo-report.md`](../examples/source-evidence-demo-report.md)
+- [`examples/source-evidence-demo-report.md`](../examples/source-evidence-demo-report.md)
+
+
+---
+
+## CLI Rendering
+
+Render a source evidence summary from any schema-compatible JSON payload:
+
+```bash
+python scripts/render_source_evidence_summary.py examples/source-evidence-demo.json examples/source-evidence-summary.md
+```
+
+Include the appendix:
+
+```bash
+python scripts/render_source_evidence_summary.py examples/source-evidence-demo.json examples/source-evidence-summary.md --include-appendix
+```
+
+The command is local and deterministic. It does not call OpenAI, Streamlit, web search, or scraping.
