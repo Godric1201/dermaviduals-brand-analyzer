@@ -393,6 +393,22 @@ The test suite covers benchmark logic, scoring, output quality validation, promp
 
 ---
 
+## Render a Source Evidence Summary
+
+You can render a reusable source-grounded evidence summary from any JSON payload that follows the source evidence schema:
+
+```bash
+python scripts/render_source_evidence_summary.py examples/source-evidence-demo.json examples/source-evidence-summary.md
+```
+
+To include the source appendix:
+
+```bash
+python scripts/render_source_evidence_summary.py examples/source-evidence-demo.json examples/source-evidence-summary.md --include-appendix
+```
+
+This command is local and deterministic. It does not call OpenAI, Streamlit, web search, or scraping.
+
 ## Project Structure
 
 ```text
