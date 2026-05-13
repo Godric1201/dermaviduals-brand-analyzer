@@ -163,6 +163,57 @@ def create_zero_visibility_markdown_inputs():
     })
     return inputs
 
+def create_source_evidence_payload():
+    return {
+        "target_brand": "Regional Re",
+        "retrieved_brands": ["Munich Re", "Swiss Re"],
+        "category": "Reinsurance",
+        "market": "Taiwan and Asia-Pacific",
+        "audience": "Enterprise Insurance Buyers",
+        "evidence_items": [
+            {
+                "brand": "Regional Re",
+                "evidence_type": "Entity Evidence",
+                "source_url": "https://regional-re.test/about",
+                "source_title": "About Regional Re",
+                "source_domain": "regional-re.test",
+                "source_type": "Owned Source",
+                "excerpt_or_summary": "Identifies Regional Re as a reinsurance provider.",
+                "observed_claim": "The target has basic entity evidence.",
+                "supported_retrieval_driver": "Candidate-set inclusion",
+                "confidence": "Medium",
+                "validation_status": "Observed",
+            },
+            {
+                "brand": "Munich Re",
+                "evidence_type": "Comparison Evidence",
+                "source_url": "https://munich-re.test/solutions",
+                "source_title": "Reinsurance solutions",
+                "source_domain": "munich-re.test",
+                "source_type": "Service / Category Page",
+                "excerpt_or_summary": "Describes reinsurance solution categories.",
+                "observed_claim": "The retrieved brand has comparison-oriented category evidence.",
+                "supported_retrieval_driver": "Comparison anchor",
+                "confidence": "High",
+                "validation_status": "Observed",
+            },
+            {
+                "brand": "Swiss Re",
+                "evidence_type": "Proof / Trust Evidence",
+                "source_url": "https://swiss-re.test/references",
+                "source_title": "Reference projects",
+                "source_domain": "swiss-re.test",
+                "source_type": "Case Study / Reference Project",
+                "excerpt_or_summary": "Summarizes reference projects and trust signals.",
+                "observed_claim": "The retrieved brand has proof-oriented evidence.",
+                "supported_retrieval_driver": "Trust / premium reference",
+                "confidence": "Medium",
+                "validation_status": "Observed",
+            },
+        ],
+    }
+
+
 
 def create_brand_understanding_result(**overrides):
     values = {
@@ -375,6 +426,37 @@ def test_build_executive_markdown_report_uses_first_detection_strategy_for_zero_
     assert "The Market Relevance Probe was not available" in report
     assert "Evidence-Building Task Roadmap" not in report
 
+def test_zero_visibility_markdown_omits_source_evidence_section_by_default():
+    report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())
+
+    assert "## Source-Grounded Evidence Summary" not in report
+    assert "Source-grounded evidence: not included in this Markdown report" in report
+
+
+def test_zero_visibility_markdown_includes_optional_source_evidence_section():
+    inputs = create_zero_visibility_markdown_inputs()
+    inputs["source_evidence_payload"] = create_source_evidence_payload()
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert "## Source-Grounded Evidence Summary" in report
+    assert "### Source Evidence Coverage" in report
+    assert "### Target vs Retrieved Evidence Gap" in report
+    assert "### First Source Evidence Assets to Build" in report
+    assert "Comparison Evidence" in report
+    assert "Proof / Trust Evidence" in report
+    assert "not proof that specific sources caused AI retrieval" in report
+    assert "Source-grounded evidence: included as optional validation context" in report
+    assert report.index("## 9. Methodology / Reliability Notes") < report.index("## Source-Grounded Evidence Summary")
+
+
+def test_non_zero_markdown_does_not_render_source_evidence_section_even_when_payload_is_supplied():
+    inputs = create_markdown_inputs()
+    inputs["source_evidence_payload"] = create_source_evidence_payload()
+
+    report = build_executive_markdown_report(**inputs)
+
+    assert "## Source-Grounded Evidence Summary" not in report
 
 def test_zero_visibility_diagnosis_sections_use_cards_instead_of_wide_tables():
     report = build_executive_markdown_report(**create_zero_visibility_markdown_inputs())

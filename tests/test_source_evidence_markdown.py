@@ -8,6 +8,7 @@ from geo_audit.source_evidence_markdown import (
     render_source_evidence_demo_report,
     render_source_evidence_gap_table,
     render_source_evidence_priority_assets,
+    render_source_evidence_summary_section,
 )
 
 
@@ -160,3 +161,36 @@ def test_render_source_evidence_demo_report_rejects_invalid_fixture():
 
     with pytest.raises(ValueError, match="validation errors"):
         render_source_evidence_demo_report(payload)
+
+
+def test_render_source_evidence_summary_section_contains_formal_report_sections():
+    payload = make_demo_payload()
+
+    section = render_source_evidence_summary_section(payload)
+
+    assert section.startswith("## Source-Grounded Evidence Summary")
+    assert "### Source Evidence Coverage" in section
+    assert "### Target vs Retrieved Evidence Gap" in section
+    assert "### First Source Evidence Assets to Build" in section
+    assert "### Source Evidence Appendix" not in section
+    assert "Comparison Evidence" in section
+    assert "Proof / Trust Evidence" in section
+    assert "not proof that specific sources caused AI retrieval" in section
+
+
+def test_render_source_evidence_summary_section_can_include_appendix():
+    payload = make_demo_payload()
+
+    section = render_source_evidence_summary_section(payload, include_appendix=True)
+
+    assert "### Source Evidence Appendix" in section
+    assert "### Example Infrastructure Co." in section
+    assert "Alternatives guide" in section
+
+
+def test_render_source_evidence_summary_section_rejects_invalid_fixture():
+    payload = make_demo_payload()
+    payload["evidence_items"][0]["source_url"] = "not-a-url"
+
+    with pytest.raises(ValueError, match="validation errors"):
+        render_source_evidence_summary_section(payload)
