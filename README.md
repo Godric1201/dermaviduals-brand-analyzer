@@ -85,10 +85,14 @@ The app produces report-ready Recommendation Readiness outputs in Full Report Mo
 - DOCX executive report
 - Benchmark snapshot JSON
 - Snapshot comparison outputs
+- Source evidence demo report generated from fixture data
+- Source evidence coverage and target-vs-retrieved evidence gap summary
 
 Public example materials:
 
 - [Demo Executive Report](examples/demo-executive-report.md): fictional, condensed Full Report Mode-style Recommendation Readiness output. It is not live client data, Quick Test Mode output, or source-grounded competitive research.
+- [Source Evidence Demo Report](examples/source-evidence-demo-report.md): deterministic fixture-based demo showing source evidence coverage, target-vs-retrieved evidence gaps, first evidence assets, and a source appendix.
+- [Source Evidence Demo Fixture](examples/source-evidence-demo.json): fictional source evidence records used by the local demo renderer.
 - [Output Examples](docs/output-examples.md): overview of Recommendation Readiness report sections and supporting benchmark artifacts.
 - [Methodology](docs/methodology.md): scoring approach, benchmark assumptions, and interpretation guidance.
 
@@ -352,6 +356,26 @@ Run the full test suite:
 ```bash
 python -m pytest tests -q
 ```
+
+---
+
+## Render the Source Evidence Demo
+
+The repository includes a deterministic fixture-based source evidence demo. It does not use Streamlit, OpenAI, web search, scraping, or live client data.
+
+Run:
+
+```bash
+python scripts/render_source_evidence_demo.py
+```
+
+This writes:
+
+```text
+examples/source-evidence-demo-report.md
+```
+
+Use this demo to inspect source evidence coverage, target-vs-retrieved evidence gaps, first evidence assets, and the source evidence appendix without running a full benchmark.
 
 The test suite covers benchmark logic, scoring, output quality validation, prompt generation, report generation, snapshot handling, export behavior, and regression protection for key workflow modules.
 

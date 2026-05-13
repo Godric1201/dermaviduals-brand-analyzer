@@ -7,6 +7,40 @@ The tool still measures AI answer visibility, competitor mentions, and share of 
 > Why does AI recommend other brands instead of yours, and what evidence should you build first?
 
 ---
+## Source Evidence Demo Report
+
+The repository includes a deterministic source evidence demo that can be rendered locally without running Streamlit, OpenAI, web search, scraping, or live client data.
+
+Run:
+
+```bash
+python scripts/render_source_evidence_demo.py
+```
+
+This writes:
+
+```text
+examples/source-evidence-demo-report.md
+```
+
+The demo uses fictional records from:
+
+```text
+examples/source-evidence-demo.json
+```
+
+The generated report demonstrates:
+
+- Source Evidence Coverage
+- Target vs Retrieved Evidence Gap
+- First Evidence Assets to Build
+- Source Evidence Appendix
+- Methodology notes separating observed source evidence from inference and recommended action
+
+The source evidence demo is not a live research workflow. It is a product/engineering artifact showing how future source-grounded evidence can support Recommendation Readiness Diagnosis.
+
+---
+
 
 ## Recommendation Readiness Report
 
