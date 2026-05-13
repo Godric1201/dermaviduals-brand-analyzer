@@ -22,6 +22,7 @@ from geo_audit.ui.charts import (
 from geo_audit.ui.content_generator_panel import render_content_generator_panel
 from geo_audit.ui.export_section import render_export_reports_section
 from geo_audit.ui.raw_answers_panel import render_raw_answers_panel
+from geo_audit.ui.source_evidence_panel import render_source_evidence_panel
 from geo_audit.ui.narrative_sections import (
     render_ai_association_gap,
     render_brand_winners_explanation,
@@ -270,13 +271,18 @@ def display_results_controller(
         api_usage_summary=api_usage_summary,
     )
 
-    # =========================
+        # =========================
     # 15. Benchmark Progress
     # =========================
     render_benchmark_progress(current_snapshot)
 
     # =========================
-    # 16. Export Reports
+    # 16. Source Evidence Preview
+    # =========================
+    render_source_evidence_panel()
+
+    # =========================
+    # 17. Export Reports
     # =========================
     render_export_reports_section(
         t=t,
