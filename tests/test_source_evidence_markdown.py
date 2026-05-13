@@ -193,4 +193,5 @@ def test_render_source_evidence_summary_section_rejects_invalid_fixture():
     payload["evidence_items"][0]["source_url"] = "not-a-url"
 
     with pytest.raises(ValueError, match="validation errors"):
+      
         render_source_evidence_summary_section(payload)
