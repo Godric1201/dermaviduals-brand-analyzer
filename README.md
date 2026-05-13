@@ -29,6 +29,8 @@ Start here:
 - [Output Examples](docs/output-examples.md): overview of generated report sections and benchmark artifacts.
 - [Methodology](docs/methodology.md): scoring approach, benchmark assumptions, and interpretation guidance.
 - [Product Roadmap](docs/product-roadmap.md): current product direction, completed foundations, and next development phases.
+- [Architecture Overview](docs/architecture-overview.md): high-level pipeline from prompt benchmark to report output.
+- [Source Evidence Schema](docs/source-evidence-schema.md): manual JSON format for source-grounded evidence records.
 
 The demo is not live client data, confidential brand data, automated web research, or a Quick Test Mode result.
 
