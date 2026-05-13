@@ -49,6 +49,46 @@ def build_source_evidence_preview_metadata(payload: dict[str, Any]) -> dict[str,
         "Evidence items": str(len(evidence_items)),
     }
 
+def normalize_brand_name_for_match(value: str) -> str:
+    """Normalize brand names for loose UI consistency checks."""
+
+    return " ".join(str(value).strip().lower().split())
+
+
+def build_source_evidence_consistency_warnings(
+    payload: dict[str, Any],
+    *,
+    current_brand: str,
+    current_retrieved_brands: list[str] | None = None,
+) -> list[str]:
+    """Build non-blocking warnings when source evidence does not match the benchmark context."""
+
+    warnings: list[str] = []
+    payload_target = normalize_brand_name_for_match(payload.get("target_brand", ""))
+    current_target = normalize_brand_name_for_match(current_brand)
+
+    if current_target and payload_target and payload_target != current_target:
+        warnings.append(
+            "Uploaded source evidence target brand does not match the current benchmark target brand."
+        )
+
+    payload_retrieved = {
+        normalize_brand_name_for_match(brand)
+        for brand in payload.get("retrieved_brands", [])
+        if normalize_brand_name_for_match(brand)
+    }
+    current_retrieved = {
+        normalize_brand_name_for_match(brand)
+        for brand in (current_retrieved_brands or [])
+        if normalize_brand_name_for_match(brand)
+    }
+
+    if payload_retrieved and current_retrieved and payload_retrieved.isdisjoint(current_retrieved):
+        warnings.append(
+            "Uploaded source evidence retrieved brands do not overlap with the current benchmark retrieved brands."
+        )
+
+    return warnings
 
 def _store_source_evidence_payload(payload: dict[str, Any]) -> None:
     st.session_state[SOURCE_EVIDENCE_SESSION_KEY] = payload
@@ -63,8 +103,25 @@ def _render_payload_metadata(payload: dict[str, Any]) -> None:
     for label, value in metadata.items():
         st.write(f"**{label}:** {value}")
 
+def _render_consistency_warnings(
+    payload: dict[str, Any],
+    *,
+    current_brand: str,
+    current_retrieved_brands: list[str] | None,
+) -> None:
+    warnings = build_source_evidence_consistency_warnings(
+        payload,
+        current_brand=current_brand,
+        current_retrieved_brands=current_retrieved_brands,
+    )
+    for warning in warnings:
+        st.warning(warning)
 
-def render_source_evidence_panel() -> None:
+def render_source_evidence_panel(
+    *,
+    current_brand: str = "",
+    current_retrieved_brands: list[str] | None = None,
+) -> None:
     """Render optional source evidence JSON upload and summary preview."""
 
     st.subheader("Source Evidence Preview")
@@ -95,6 +152,11 @@ def render_source_evidence_panel() -> None:
         _store_source_evidence_payload(payload)
         st.success("Source evidence payload loaded.")
         _render_payload_metadata(payload)
+        _render_consistency_warnings(
+            payload,
+            current_brand=current_brand,
+            current_retrieved_brands=current_retrieved_brands,
+        )
 
         with st.expander("Source-Grounded Evidence Summary Preview", expanded=True):
             st.markdown(render_source_evidence_summary_section(payload))
@@ -105,6 +167,11 @@ def render_source_evidence_panel() -> None:
     if stored_payload:
         st.info("Using previously loaded source evidence payload.")
         _render_payload_metadata(stored_payload)
+        _render_consistency_warnings(
+            stored_payload,
+            current_brand=current_brand,
+            current_retrieved_brands=current_retrieved_brands,
+        )
 
         with st.expander("Source-Grounded Evidence Summary Preview", expanded=False):
             st.markdown(render_source_evidence_summary_section(stored_payload))

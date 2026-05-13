@@ -279,7 +279,10 @@ def display_results_controller(
     # =========================
     # 16. Source Evidence Preview
     # =========================
-    render_source_evidence_panel()
+    render_source_evidence_panel(
+    current_brand=display_brand,
+    current_retrieved_brands=[],
+)
 
     # =========================
     # 17. Export Reports
