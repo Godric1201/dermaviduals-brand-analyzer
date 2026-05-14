@@ -32,6 +32,14 @@ def make_payload():
         ],
     }
 
+def make_csv_payload_text():
+    return "\n".join(
+        [
+            "target_brand,retrieved_brands,category,market,audience,brand,evidence_type,source_url,source_title,source_domain,source_type,excerpt_or_summary,observed_claim,supported_retrieval_driver,confidence,freshness_date,validation_status,notes",
+            "Example Infrastructure Co.,\"Reference Brand A, Reference Brand B\",Data center infrastructure consulting,Germany,Enterprise buyers,Example Infrastructure Co.,Entity Evidence,https://example-infrastructure.test/about,About Example Infrastructure Co.,example-infrastructure.test,Owned Source,Identifies the target brand.,The target has basic entity evidence.,Candidate-set inclusion,Medium,2025-01-01,Observed,Fictional CSV source.",
+            ",,,,,Reference Brand A,Proof / Trust Evidence,https://reference-a.test/proof,Reference Brand A Proof,reference-a.test,Owned Source,Shows proof evidence.,The retrieved brand has proof evidence.,Trust / premium reference,High,2025-01-02,Observed,Fictional CSV source.",
+        ]
+    )
 
 def test_decode_source_evidence_upload_returns_valid_payload():
     uploaded_bytes = json.dumps(make_payload()).encode("utf-8")
@@ -45,6 +53,19 @@ def test_decode_source_evidence_upload_returns_valid_payload():
         "Reference Brand B",
     ]
 
+def test_decode_source_evidence_upload_supports_csv_payload():
+    result = decode_source_evidence_upload(
+        make_csv_payload_text().encode("utf-8"),
+        file_type="csv",
+    )
+
+    assert result.ok
+    assert result.payload.target_brand == "Example Infrastructure Co."
+    assert result.payload.retrieved_brands == [
+        "Reference Brand A",
+        "Reference Brand B",
+    ]
+    assert len(result.payload.evidence_items) == 2
 
 def test_decode_source_evidence_upload_reports_invalid_utf8():
     result = decode_source_evidence_upload(b"\xff\xfe\x00")
@@ -53,6 +74,12 @@ def test_decode_source_evidence_upload_reports_invalid_utf8():
     assert result.payload is None
     assert result.errors == ["json: uploaded file must be UTF-8 encoded"]
 
+def test_decode_source_evidence_upload_reports_invalid_utf8_for_csv():
+    result = decode_source_evidence_upload(b"\xff\xfe\x00", file_type="csv")
+
+    assert not result.ok
+    assert result.payload is None
+    assert result.errors == ["csv: uploaded file must be UTF-8 encoded"]
 
 def test_decode_source_evidence_upload_reports_json_error():
     result = decode_source_evidence_upload(b"{bad json")

@@ -10,6 +10,7 @@ from geo_audit.source_evidence_markdown import render_source_evidence_summary_se
 from geo_audit.source_evidence_payload import (
     SourceEvidencePayloadResult,
     format_source_evidence_payload_errors,
+    load_source_evidence_payload_from_csv_text,
     load_source_evidence_payload_from_text,
 )
 
@@ -18,16 +19,25 @@ SOURCE_EVIDENCE_SESSION_KEY = "source_evidence_payload"
 SOURCE_EVIDENCE_UPLOAD_KEY = "source_evidence_json_upload"
 
 
-def decode_source_evidence_upload(uploaded_bytes: bytes) -> SourceEvidencePayloadResult:
-    """Decode uploaded JSON bytes and validate the source evidence payload."""
+def decode_source_evidence_upload(
+    uploaded_bytes: bytes,
+    *,
+    file_type: str = "json",
+) -> SourceEvidencePayloadResult:
+    """Decode uploaded source evidence bytes and validate the payload."""
+
+    normalized_file_type = str(file_type).strip().lower().lstrip(".")
 
     try:
-        text = uploaded_bytes.decode("utf-8")
+        text = uploaded_bytes.decode("utf-8-sig")
     except UnicodeDecodeError:
         return SourceEvidencePayloadResult(
             payload=None,
-            errors=["json: uploaded file must be UTF-8 encoded"],
+            errors=[f"{normalized_file_type}: uploaded file must be UTF-8 encoded"],
         )
+
+    if normalized_file_type == "csv":
+        return load_source_evidence_payload_from_csv_text(text)
 
     return load_source_evidence_payload_from_text(text)
 
@@ -105,9 +115,10 @@ def _render_payload_metadata(payload: dict[str, Any]) -> None:
 
 def _render_source_evidence_sample_links() -> None:
     st.caption(
-        "Sample JSON payloads for testing: "
-        "`examples/source-evidence-demo.json` for the generic demo, "
-        "or `examples/skincare-source-evidence-demo.json` for the skincare vertical demo."
+        "Sample payloads for testing: "
+        "`examples/source-evidence-demo.json` for the generic JSON demo, "
+        "`examples/skincare-source-evidence-demo.json` for the skincare JSON demo, "
+        "or use a CSV file with the same source evidence fields."
     )
 
 def _render_consistency_warnings(
@@ -139,17 +150,21 @@ def render_source_evidence_panel(
     _render_source_evidence_sample_links()
 
     uploaded_file = st.file_uploader(
-        "Upload source evidence JSON",
-        type=["json"],
+        "Upload source evidence JSON or CSV",
+        type=["json", "csv"],
         key=SOURCE_EVIDENCE_UPLOAD_KEY,
         help=(
-            "Upload a JSON payload that follows the source evidence schema. "
+            "Upload a JSON payload or CSV file that follows the source evidence schema. "
             "The file is validated locally and is not sent to OpenAI."
         ),
     )
 
     if uploaded_file is not None:
-        result = decode_source_evidence_upload(uploaded_file.getvalue())
+        file_type = uploaded_file.name.rsplit(".", 1)[-1] if uploaded_file.name else "json"
+        result = decode_source_evidence_upload(
+            uploaded_file.getvalue(),
+            file_type=file_type,
+        )
 
         if not result.ok:
             _clear_source_evidence_payload()
