@@ -103,6 +103,13 @@ def _render_payload_metadata(payload: dict[str, Any]) -> None:
     for label, value in metadata.items():
         st.write(f"**{label}:** {value}")
 
+def _render_source_evidence_sample_links() -> None:
+    st.caption(
+        "Sample JSON payloads for testing: "
+        "`examples/source-evidence-demo.json` for the generic demo, "
+        "or `examples/skincare-source-evidence-demo.json` for the skincare vertical demo."
+    )
+
 def _render_consistency_warnings(
     payload: dict[str, Any],
     *,
@@ -129,6 +136,7 @@ def render_source_evidence_panel(
         "Optional validation context for source-grounded evidence gaps. "
         "This does not affect the benchmark run and does not prove retrieval causality."
     )
+    _render_source_evidence_sample_links()
 
     uploaded_file = st.file_uploader(
         "Upload source evidence JSON",
