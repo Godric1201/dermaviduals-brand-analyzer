@@ -1,6 +1,7 @@
 # Demo Executive Report: AI Recommendation Readiness Diagnosis
 
-> This is a fictional, condensed Full Report Mode-style example for portfolio review.
+> This is a fictional, condensed Recommendation Readiness demo report for portfolio review.
+> It shows a zero-visibility diagnosis with retrieved-brand role hypotheses, first evidence assets, validation planning, and a fictional source-grounded evidence layer.
 > It is not live client data, confidential brand data, Quick Test Mode output, or automated web research.
 
 ---
