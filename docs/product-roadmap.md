@@ -164,7 +164,7 @@ Planned work:
 Success criteria:
 
 - source evidence can be used from the UI without manual code changes
-- Markdown export remains the first supported output
+- Markdown export remains the primary structured output, with DOCX appendix parity for source evidence
 - DOCX support follows only after Markdown behavior is stable
 
 ### Phase 5 — Optional Research Automation
