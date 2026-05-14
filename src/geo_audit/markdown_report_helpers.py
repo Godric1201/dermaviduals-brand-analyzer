@@ -1,3 +1,14 @@
+def normalize_markdown_table_headers(df, column_map):
+    if df is None:
+        return df
+
+    return df.copy().rename(columns={
+        column: label
+        for column, label in column_map.items()
+        if column in df.columns
+    })
+
+
 def build_methodology_notes_md(category, prompt_categories):
     notes = [
         f"- This AI visibility benchmark is based on fixed and AI-generated prompts designed to simulate {category} recommendation queries.",

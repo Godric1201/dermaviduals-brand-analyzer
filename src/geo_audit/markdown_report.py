@@ -1,16 +1,4 @@
-import pandas as pd
-
 from .ui_formatters import df_to_markdown_table
-from .report_generator import (
-    build_competitor_leader_sentence,
-    build_measurement_plan_rows,
-    create_roadmap_df,
-    get_competitor_leaders,
-    get_target_metrics,
-    get_top_competitors,
-    get_visibility_status,
-    get_visibility_state_noun,
-)
 from .prompts import format_audience_market_context
 from .output_quality import (
     OutputQualityContext,
@@ -33,11 +21,12 @@ from .market_relevance import (
     MARKET_LOCK_PARTIALLY_MARKET_SPECIFIC,
 )
 from .markdown_report_helpers import (
-    build_methodology_notes_md,
     build_visible_market_fit_bullets,
     format_key_value_bullets,
     get_probe_field,
+    normalize_markdown_table_headers,
 )
+from .markdown_visibility_report import _build_visibility_markdown_report
 from .markdown_zero_visibility_report import _build_zero_visibility_markdown_report
 from .report_diagnosis import (
     classify_visibility_state,
@@ -47,38 +36,11 @@ from .report_diagnosis import (
 )
 
 
-def _normalize_markdown_table_headers(df, column_map):
-    if df is None:
-        return df
-
-    return df.copy().rename(columns={
-        column: label
-        for column, label in column_map.items()
-        if column in df.columns
-    })
-
-
 def _append_section(parts, title, body):
     if not body:
         return
 
     parts.append(f"## {title}\n\n{body.strip()}")
-
-
-def _build_measurement_plan_md(metrics):
-    measurement_df = df_to_markdown_table(
-        _normalize_markdown_table_headers(
-            pd.DataFrame(build_measurement_plan_rows(metrics)),
-            {},
-        ),
-        max_rows=10,
-    )
-
-    return (
-        "The next benchmark should evaluate whether measured visibility is beginning "
-        "to improve within comparable prompt coverage.\n\n"
-        f"{measurement_df}"
-    )
 
 
 def _build_task_roadmap_cards_md(tasks):
@@ -418,7 +380,7 @@ def build_executive_markdown_report(
         by="average_visibility_score",
         ascending=False,
     )
-    summary_report_df = _normalize_markdown_table_headers(
+    summary_report_df = normalize_markdown_table_headers(
         summary_report_df,
         {
             "brand": "Brand",
@@ -430,7 +392,7 @@ def build_executive_markdown_report(
     )
     summary_report_md = df_to_markdown_table(summary_report_df, max_rows=15)
     trigger_report_md = df_to_markdown_table(
-        _normalize_markdown_table_headers(
+        normalize_markdown_table_headers(
             detailed_pivot_df,
             {
                 "prompt_category": "Query Type",
@@ -440,7 +402,7 @@ def build_executive_markdown_report(
     )
     top_brands_report_md = (
         df_to_markdown_table(
-            _normalize_markdown_table_headers(
+            normalize_markdown_table_headers(
                 top_brands_df,
                 {
                     "prompt_category": "Query Type",
@@ -459,9 +421,6 @@ def build_executive_markdown_report(
     target_avg_score = target_metrics.average_visibility_score
     target_prompts_visible = target_metrics.prompts_visible
     target_sov = target_metrics.share_of_voice_percent
-    query_intent_md = "\n".join(
-        f"- {item}" for item in prompt_categories
-    ) or "_No query intent categories available._"
     report_audience_context = format_audience_market_context(
         display_audience,
         display_market,
@@ -507,153 +466,37 @@ def build_executive_markdown_report(
         )
         return final_report
 
-    target_visibility_status = get_visibility_status(
-        target_mentions,
-        target_avg_score,
-        target_sov,
+    parts = _build_visibility_markdown_report(
+        brand=brand,
+        display_brand=display_brand,
+        category=category,
+        display_category=display_category,
+        display_market=display_market,
+        display_audience=display_audience,
+        run_mode=run_mode,
+        deliverable_status=deliverable_status,
+        is_quick_test_mode=is_quick_test_mode,
+        prompt_categories=prompt_categories,
+        report_audience_context=report_audience_context,
+        target_mentions=target_mentions,
+        target_avg_score=target_avg_score,
+        target_prompts_visible=target_prompts_visible,
+        target_sov=target_sov,
+        summary_report_md=summary_report_md,
+        trigger_report_md=trigger_report_md,
+        top_brands_report_md=top_brands_report_md,
+        summary_df=summary_df,
+        recommendations=recommendations,
+        plan=plan,
+        gap_analysis=gap_analysis,
+        brand_win_explanation=brand_win_explanation,
+        replacement_strategy=replacement_strategy,
+        brand_intelligence=brand_intelligence,
+        brand_intelligence_done=brand_intelligence_done,
+        geo_content_roadmap=geo_content_roadmap,
+        geo_content_roadmap_done=geo_content_roadmap_done,
     )
-    metrics = get_target_metrics(summary_df, brand)
-    top_competitors = get_top_competitors(summary_df, brand, limit=3)
-    roadmap_df = create_roadmap_df(brand, category, top_competitors, metrics)
-    roadmap_md = df_to_markdown_table(roadmap_df, max_rows=10)
-    competitor_leaders = get_competitor_leaders(summary_df, brand)
-    top_competitor_text = build_competitor_leader_sentence(competitor_leaders)
-
-    if target_mentions == 0:
-        strategic_issue = (
-            f"The benchmark indicates that {display_brand} did not generate measurable mentions "
-            f"within the tested prompt set, leaving the brand at {target_sov}% share of voice in this run."
-        )
-    else:
-        strategic_issue = (
-            f"The main strategic opportunity is to build from the current benchmark signal of {target_mentions} mentions, "
-            f"{target_avg_score} average visibility, and {target_sov}% share of voice by strengthening association "
-            f"with high-intent use cases, comparison queries, local intent, decision-stage searches, "
-            f"and market-specific category questions for {display_category} in {display_market}. Future benchmark validation should confirm whether those associations strengthen over time."
-        )
-
-    executive_summary_sentence = (
-        f"Within the tested prompt set, {display_brand} is {target_visibility_status}, "
-        f"with {target_mentions} total mentions, {target_avg_score} average visibility, "
-        f"{target_prompts_visible} prompts visible, and {target_sov}% share of voice in this AI visibility benchmark."
-    )
-    visibility_state_noun = get_visibility_state_noun(target_visibility_status)
-    visibility_gap_diagnosis = (
-        f"{strategic_issue}\n\n"
-        "Competitive context based on measured visibility signals:\n\n"
-        f"{top_competitor_text}"
-    )
-    geo_content_roadmap_body = None
-    if geo_content_roadmap_done and geo_content_roadmap:
-        geo_content_roadmap_body = (
-            "> Strategic execution plan. Not part of visibility scoring or share of voice.\n\n"
-            f"{geo_content_roadmap}"
-        )
-
-    recommended_next_step = (
-        f"Build AI-citable content that connects {display_brand} with high-intent use cases, comparison queries, local intent, "
-        f"decision-stage searches, and market-specific category queries for {display_category} in {display_market}. The intended benchmark influence is to strengthen "
-        f"the brand's association with these query contexts; the next benchmark should validate whether measured visibility moves from its {visibility_state_noun} toward stronger inclusion in AI-generated recommendation lists."
-    )
-
-    parts = [
-        f"# {display_brand} {display_market} AI Visibility Report",
-        (
-            "## 1. Report Overview\n\n"
-            f"**Target Brand:** {display_brand}  \n"
-            f"**Market:** {display_market}  \n"
-            f"**Category:** {display_category}  \n"
-            f"**Audience:** {display_audience}  \n"
-            "**Report Type:** AI Visibility / Generative Engine Optimization Audit  \n"
-            f"**Run Mode:** {run_mode}  \n"
-            f"**Deliverable Status:** {deliverable_status}  \n\n"
-            f'{"**TEST VERSION ONLY - Quick Test Mode. Not Client Deliverable.**" if is_quick_test_mode else ""}\n\n'
-            f"This report evaluates how visible {display_brand} is within AI-generated {display_category} recommendations for {report_audience_context}, based on the tested prompt set.\n\n"
-            "### Query Intent Coverage\n\n"
-            "This benchmark covers the following AI recommendation contexts:\n\n"
-            f"{query_intent_md}"
-        ),
-        (
-            "## 2. Executive Summary\n\n"
-            f"{executive_summary_sentence}\n\n"
-            f"Key benchmark metrics for {display_brand}:\n\n"
-            "| Metric | Value |\n"
-            "|---|---:|\n"
-            f"| Total Mentions | {target_mentions} |\n"
-            f"| Average Visibility Score | {target_avg_score} |\n"
-            f"| Prompts Visible | {target_prompts_visible} |\n"
-            f"| Share of Voice | {target_sov}% |\n\n"
-            "Top measured competitor signals in this benchmark:\n\n"
-            f"{top_competitor_text}\n\n"
-            f"{strategic_issue}"
-        ),
-        "## 3. Competitive Benchmark\n\n"
-        "The table below summarizes measured brand-level AI visibility across all tested prompts.\n\n"
-        f"{summary_report_md}",
-        "## 4. Trigger-Level Visibility Findings\n\n"
-        "The table below shows measured visibility by tracked brand across AI query categories.\n\n"
-        f"{trigger_report_md}",
-        "## 5. Top Brand Winners by Query Type\n\n"
-        "The table below identifies the strongest measured brand signal in each query category based on visibility score.\n\n"
-        f"{top_brands_report_md}",
-        f"## 6. Visibility Gap Diagnosis\n\n{visibility_gap_diagnosis}",
-        f"## 7. Strategic Priorities\n\nThe following priorities should be read as intended benchmark influence areas for future validation, not guaranteed outcomes.\n\n{recommendations}",
-    ]
-
-    if geo_content_roadmap_body:
-        parts.append(f"## 8. GEO Content Roadmap\n\n{geo_content_roadmap_body}")
-        roadmap_number = 9
-        measurement_number = 10
-        next_step_number = 11
-        methodology_number = 12
-    else:
-        roadmap_number = 8
-        measurement_number = 9
-        next_step_number = 10
-        methodology_number = 11
-
-    parts.extend([
-        f"## {roadmap_number}. 30 / 60 / 90 Day Roadmap\n\n{roadmap_md}",
-        f"## {measurement_number}. Measurement Plan\n\n{_build_measurement_plan_md(metrics)}",
-        f"## {next_step_number}. Recommended Next Step\n\n{recommended_next_step}",
-        f"## {methodology_number}. Methodology Notes\n\n{build_methodology_notes_md(display_category, prompt_categories)}",
-    ])
-
-    appendix_sections = []
-
-    if brand_intelligence_done and brand_intelligence:
-        appendix_sections.append(
-            "## Appendix A: Brand Intelligence & Positioning Audit\n\n"
-            "> Diagnostic insight. Tracked competitors are included in visibility scoring and share of voice. AI-discovered market signals are diagnostic references only and are not included in scoring unless selected as tracked competitors before the benchmark run.\n\n"
-            "### Recommendation Drivers\n\n"
-            f"{brand_intelligence['recommendation_drivers']}\n\n"
-            "### AI-Inferred Target Brand Understanding\n\n"
-            f"{brand_intelligence['target_brand_understanding']}\n\n"
-            "### Positioning Gap Analysis\n\n"
-            f"{brand_intelligence['positioning_gap_analysis']}"
-        )
-
-    if plan:
-        appendix_sections.append(
-            f"## Appendix B: AI Visibility Strategy Deep Dive\n\n{plan}"
-        )
-
-    if brand_win_explanation:
-        appendix_sections.append(
-            f"## Appendix C: AI Decision Explanation\n\n{brand_win_explanation}"
-        )
-
-    if replacement_strategy:
-        appendix_sections.append(
-            f"## Appendix D: Replacement Strategy\n\n{replacement_strategy}"
-        )
-
-    if gap_analysis:
-        appendix_sections.append(
-            f"## Appendix E: Gap Analysis\n\n{gap_analysis}"
-        )
-
-    final_report = "\n\n---\n\n".join(parts + appendix_sections)
+    final_report = "\n\n---\n\n".join(parts)
     final_report = sanitize_report_text(final_report, context)
     validate_output_quality(
         final_report,
