@@ -24,6 +24,7 @@ from geo_audit.source_evidence_markdown import render_source_evidence_summary_se
 from geo_audit.source_evidence_payload import (  # noqa: E402
     format_source_evidence_payload_errors,
     load_source_evidence_payload,
+    load_source_evidence_payload_from_csv,
 )
 
 
@@ -34,7 +35,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "input_json",
         type=Path,
-        help="Path to a source evidence JSON payload.",
+        help="Source evidence JSON or CSV input path."
     )
     parser.add_argument(
         "output_markdown",
@@ -49,9 +50,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def load_source_evidence_payload_for_path(path: Path):
+    """Load source evidence payload from JSON or CSV based on file extension."""
+
+    suffix = path.suffix.lower()
+
+    if suffix == ".csv":
+        return load_source_evidence_payload_from_csv(path)
+
+    return load_source_evidence_payload(path)
+
+
 def main() -> None:
     args = parse_args()
-    result = load_source_evidence_payload(args.input_json)
+    result = load_source_evidence_payload_for_path(args.input_json)
     if not result.ok:
         print(format_source_evidence_payload_errors(result.errors), file=sys.stderr)
         raise SystemExit(1)

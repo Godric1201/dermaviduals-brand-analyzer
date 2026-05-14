@@ -113,3 +113,24 @@ def test_render_source_evidence_summary_cli_rejects_invalid_payload(tmp_path):
     assert result.returncode != 0
     assert "validation errors" in result.stderr
     assert not output_path.exists()
+
+def test_render_source_evidence_summary_cli_accepts_csv_input(tmp_path):
+    input_path = ROOT / "examples" / "skincare-source-evidence-demo.csv"
+    output_path = tmp_path / "source-evidence-summary.md"
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), str(input_path), str(output_path)],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert output_path.exists()
+
+    output = output_path.read_text(encoding="utf-8")
+    assert output.startswith("## Source-Grounded Evidence Summary")
+    assert "Example Barrier Skincare" in output
+    assert "Clinical Derm Brand A" in output
+    assert "Target vs Retrieved Evidence Gap" in output    
