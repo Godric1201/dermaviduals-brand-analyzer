@@ -17,6 +17,25 @@ The app runs locally and requires your own OpenAI API key. It is not a hosted Sa
 
 ---
 
+## Product Workflow
+
+```mermaid
+flowchart LR
+    A[Run recommendation-style AI benchmark] --> B[Measure target-brand visibility]
+    B --> C[Identify retrieved reference brands]
+    C --> D[Diagnose retrieval roles and target gaps]
+    D --> E[Add optional source evidence JSON or CSV]
+    E --> F[Preview source-grounded evidence gaps]
+    F --> G[Export Markdown and DOCX reports]
+    G --> H[Build first evidence assets and rerun benchmark]
+```
+
+The workflow separates observed benchmark signals from source-grounded evidence validation. The benchmark shows which brands appear in AI recommendation-style answers; the optional source evidence layer helps explain which evidence gaps should be investigated before building new content assets.
+
+Source evidence JSON and CSV inputs are currently analyst-controlled formats for research, demo validation, and future automation support. They are not positioned as the final client-facing input experience.
+
+---
+
 ## Product Demo
 
 The public demo shows a fictional zero-visibility audit where the target brand is not recommended, but competing brands are retrieved.
