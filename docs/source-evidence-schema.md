@@ -185,6 +185,8 @@ See:
 - [`examples/source-evidence-demo-report.md`](../examples/source-evidence-demo-report.md)
 - [`examples/source-evidence-demo-report.md`](../examples/source-evidence-demo-report.md)
 - [`examples/source-evidence-summary.md`](../examples/source-evidence-summary.md)
+- [`examples/skincare-source-evidence-demo.json`](../examples/skincare-source-evidence-demo.json)
+- [`examples/skincare-source-evidence-summary.md`](../examples/skincare-source-evidence-summary.md)
 
 
 ---

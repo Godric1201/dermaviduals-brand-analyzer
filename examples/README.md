@@ -16,10 +16,13 @@ Start with the executive report, then inspect the source evidence examples.
 2. [`source-evidence-summary.md`](source-evidence-summary.md)
    Reusable source evidence summary section rendered by the local CLI from the demo JSON fixture.
 
-3. [`source-evidence-demo-report.md`](source-evidence-demo-report.md)
+3. [`skincare-source-evidence-summary.md`](skincare-source-evidence-summary.md)
+   Fictional skincare vertical source evidence summary for a local-market recommendation scenario.
+
+4. [`source-evidence-demo-report.md`](source-evidence-demo-report.md)
    Full deterministic source evidence demo report with coverage, gap analysis, priority assets, appendix, and methodology notes.
 
-4. [`source-evidence-demo.json`](source-evidence-demo.json)
+5. [`source-evidence-demo.json`](source-evidence-demo.json)
    Fictional source evidence fixture used to generate source evidence demo outputs.
 
 ---
@@ -41,3 +44,10 @@ Render the full source evidence demo report:
 
 ```bash
 python scripts/render_source_evidence_demo.py
+
+
+Render the skincare source evidence summary:
+
+```bash
+python scripts/render_source_evidence_summary.py examples/skincare-source-evidence-demo.json examples/skincare-source-evidence-summary.md
+```
