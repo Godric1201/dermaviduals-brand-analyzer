@@ -428,10 +428,15 @@ The test suite covers benchmark logic, scoring, output quality validation, promp
 
 ## Render a Source Evidence Summary
 
-You can render a reusable source-grounded evidence summary from any JSON payload that follows the source evidence schema:
+You can render a reusable source-grounded evidence summary from any JSON or CSV payload that follows the source evidence schema:
 
 ```bash
 python scripts/render_source_evidence_summary.py examples/source-evidence-demo.json examples/source-evidence-summary.md
+```
+Render from the skincare CSV fixture:
+
+```bash
+python scripts/render_source_evidence_summary.py examples/skincare-source-evidence-demo.csv examples/skincare-source-evidence-summary-from-csv.md
 ```
 
 To include the source appendix:
