@@ -1,5 +1,8 @@
 # Report Style Guide
 
+For the higher-level report quality model, see [`report-quality-framework.md`](report-quality-framework.md).
+
+
 This guide defines the language standards for generated AI Visibility / GEO Audit reports.
 
 The goal is to make reports professional, cautious, commercially useful, and suitable for consulting-style diagnostic work.
