@@ -22,9 +22,8 @@ def build_source_evidence_export_status_message(source_evidence_payload) -> str:
 
     if source_evidence_payload:
         return (
-            "Source evidence loaded. Markdown export will include the "
-            "Source-Grounded Evidence Summary. DOCX export does not include "
-            "source evidence yet."
+            "Source evidence loaded. Markdown and DOCX exports will include the "
+            "Source-Grounded Evidence Summary."
         )
 
     return (
@@ -132,11 +131,12 @@ def render_export_reports_section(
         prompt_limit=prompt_limit,
         brand_intelligence=snapshot_brand_intelligence,
         prompt_categories=prompt_categories,
-        geo_content_roadmap=(
+           geo_content_roadmap=(
             geo_content_roadmap
             if geo_content_roadmap_done
             else None
-        )
+        ),
+        source_evidence_payload=source_evidence_payload,
     )
 
     render_report_download_exports(

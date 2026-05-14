@@ -508,3 +508,70 @@ def test_create_executive_docx_report_sanitizes_narrative_text_before_rendering(
     assert "No additional non-tracked brands were identified." in document_text
     assert "Dermaviduals Ingredient Guide for Pollution-Exposed Skin" in document_text
     assert "Professional Trust Signals" in document_text
+
+from docx import Document
+
+from geo_audit.report_generator import add_source_evidence_appendix
+
+
+def make_source_evidence_payload():
+    return {
+        "target_brand": "Example Barrier Skincare",
+        "retrieved_brands": ["Clinical Derm Brand A"],
+        "category": "Professional skincare products",
+        "market": "Hong Kong",
+        "audience": "Skincare-conscious consumers",
+        "evidence_items": [
+            {
+                "brand": "Example Barrier Skincare",
+                "evidence_type": "Entity Evidence",
+                "source_url": "https://example-barrier-skincare.test/about",
+                "source_title": "About Example Barrier Skincare",
+                "source_domain": "example-barrier-skincare.test",
+                "source_type": "Owned Source",
+                "excerpt_or_summary": "Identifies the target brand.",
+                "observed_claim": "The target has basic entity evidence.",
+                "supported_retrieval_driver": "Candidate-set inclusion",
+                "confidence": "Medium",
+                "validation_status": "Observed",
+            },
+            {
+                "brand": "Clinical Derm Brand A",
+                "evidence_type": "Proof / Trust Evidence",
+                "source_url": "https://clinical-derm-a.test/proof",
+                "source_title": "Clinical Derm Brand A Proof",
+                "source_domain": "clinical-derm-a.test",
+                "source_type": "Owned Source",
+                "excerpt_or_summary": "Shows proof and trust evidence.",
+                "observed_claim": "The retrieved brand has trust evidence.",
+                "supported_retrieval_driver": "Trust / premium reference",
+                "confidence": "High",
+                "validation_status": "Observed",
+            },
+        ],
+    }
+
+
+def test_add_source_evidence_appendix_renders_docx_content():
+    document = Document()
+
+    add_source_evidence_appendix(document, make_source_evidence_payload())
+
+    text = "\n".join(
+        paragraph.text
+        for paragraph in document.paragraphs
+        if paragraph.text
+    )
+
+    assert "Appendix: Source-Grounded Evidence Summary" in text
+    assert "Source Evidence Coverage" in text
+    assert "Target vs Retrieved Evidence Gap" in text
+    assert "First Source Evidence Assets to Build" in text
+
+
+def test_add_source_evidence_appendix_skips_empty_payload():
+    document = Document()
+
+    add_source_evidence_appendix(document, None)
+
+    assert [paragraph.text for paragraph in document.paragraphs] == []
