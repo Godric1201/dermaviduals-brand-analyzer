@@ -1,5 +1,24 @@
 # Source Evidence Schema
 
+# Source Evidence Schema
+
+## Workflow Positioning
+
+The source evidence JSON and CSV formats are currently analyst-controlled input formats.
+
+They are intended for:
+
+- deterministic demo fixtures
+- internal source evidence review
+- spreadsheet-style analyst workflows
+- report validation and QA
+- future semi-automated source discovery workflows
+
+They are not positioned as the final client-facing workflow. In a productized consulting workflow, clients should normally receive the generated diagnosis and evidence roadmap, while the source evidence records are prepared, reviewed, or validated by the analyst or product workflow.
+
+The purpose of this schema is to create a stable evidence input contract that can support manual research today and future source discovery automation later.
+
+
 This document describes the manual source evidence JSON format used by the source-grounded evidence workflow.
 
 The schema is intentionally simple. It is designed for deterministic demos, manual evidence review, and future CSV / JSON import support.
