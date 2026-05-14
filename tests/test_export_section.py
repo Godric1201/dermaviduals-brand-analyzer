@@ -28,8 +28,8 @@ def test_get_source_evidence_payload_for_markdown_export_returns_none_without_pa
 def test_build_source_evidence_export_status_message_when_payload_loaded():
     message = build_source_evidence_export_status_message({"target_brand": "Example"})
 
-    assert "Markdown export will include" in message
-    assert "DOCX export does not include source evidence yet" in message
+    assert "Markdown and DOCX exports will include" in message
+    assert "Source-Grounded Evidence Summary" in message
 
 
 def test_build_source_evidence_export_status_message_without_payload():

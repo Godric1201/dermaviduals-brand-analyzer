@@ -13,6 +13,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from .source_evidence_markdown import render_source_evidence_summary_section
 from .output_quality import (
     OutputQualityContext,
     guard_generated_section_text,
@@ -1265,6 +1266,31 @@ def add_methodology_notes(
         for prompt_category in prompt_categories:
             add_bullet(document, prompt_category)
 
+def add_source_evidence_appendix(document, source_evidence_payload):
+    if not source_evidence_payload:
+        return
+
+    add_section_heading(
+        document,
+        "Appendix: Source-Grounded Evidence Summary",
+    )
+    add_callout_box(
+        document,
+        "Source Evidence Context",
+        (
+            "This appendix summarizes optional source-grounded evidence. "
+            "It supports evidence-gap validation but does not prove that specific sources caused AI retrieval."
+        ),
+        fill=LIGHT_BLUE,
+    )
+    add_markdownish_text(
+        document,
+        render_source_evidence_summary_section(source_evidence_payload),
+    )
+
+
+
+
 
 # =========================================================
 # Main function called by app.py
@@ -1284,7 +1310,8 @@ def create_executive_docx_report(
     prompt_limit=None,
     brand_intelligence=None,
     prompt_categories=None,
-    geo_content_roadmap=None
+    geo_content_roadmap=None,
+    source_evidence_payload=None,
 ):
     document = Document()
 
@@ -1436,6 +1463,9 @@ def create_executive_docx_report(
         str(next_section_number),
         prompt_categories=prompt_categories
     )
+    if source_evidence_payload:
+        add_source_evidence_appendix(document, source_evidence_payload)
+
     if brand_intelligence:
         add_brand_intelligence(
             document,
