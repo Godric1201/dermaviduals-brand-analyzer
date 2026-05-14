@@ -394,3 +394,60 @@ def test_markdown_report_preserves_framework_evidence_boundaries():
 
 def test_markdown_zero_visibility_report_avoids_forbidden_overclaim_phrases():
     assert_forbidden_overclaims_absent(zero_visibility_markdown_report())
+
+def test_markdown_zero_visibility_report_includes_recommendation_readiness_spine():
+    report = zero_visibility_markdown_report()
+
+    required_sections = [
+        "Recommendation Readiness Verdict",
+        "Brand Understanding Summary",
+        "Who AI Retrieved Instead",
+        "Why Those Brands Were Retrieved",
+        "Target vs Retrieved Brand Gap",
+        "First 3 Evidence Assets to Build",
+        "Validation Plan",
+        "Supporting Benchmark Data",
+        "Methodology / Reliability Notes",
+    ]
+
+    for section in required_sections:
+        assert section in report
+
+
+def test_markdown_zero_visibility_report_keeps_evidence_asset_structure():
+    report = zero_visibility_markdown_report()
+
+    required_phrases = [
+        "What to build:",
+        "Why it matters:",
+        "Target retrieval driver:",
+        "Targets / prompt groups:",
+        "Validation:",
+    ]
+
+    for phrase in required_phrases:
+        assert phrase in report
+
+
+def test_markdown_non_zero_report_preserves_core_quality_contract():
+    report = markdown_report()
+
+    assert_has_phrase_family(report, ["Run Mode"])
+    assert_has_phrase_family(report, ["tested prompt set", "benchmark"])
+    assert_has_phrase_family(report, ["Methodology Notes"])
+    assert_has_phrase_family(report, ["future benchmark", "future runs", "future validation"])
+    assert_forbidden_overclaims_absent(report)
+
+
+def test_markdown_non_zero_report_includes_measurement_and_next_step_sections():
+    report = markdown_report()
+
+    assert "Measurement Plan" in report
+    assert "Recommended Next Step" in report
+    assert_has_phrase_family(
+        report,
+        [
+            "evaluate whether measured visibility is beginning to improve",
+            "next benchmark",
+        ],
+    )
