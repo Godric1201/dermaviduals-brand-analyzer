@@ -15,74 +15,6 @@ It is designed for Generative Engine Optimization (GEO), AI visibility audits, a
 
 The app runs locally and requires your own OpenAI API key. It is not a hosted SaaS product.
 
-
-
-
-## Product Workflow
-
-```mermaid
-flowchart LR
-    A[Run recommendation-style AI benchmark] --> B[Measure target-brand visibility]
-    B --> C[Identify retrieved reference brands]
-    C --> D[Diagnose retrieval roles and target gaps]
-    D --> E[Add optional source evidence JSON or CSV]
-    E --> F[Preview source-grounded evidence gaps]
-    F --> G[Export Markdown and DOCX reports]
-    G --> H[Build first evidence assets and rerun benchmark]
-```
-
-The workflow separates observed benchmark signals from source-grounded evidence validation. The benchmark shows which brands appear in AI recommendation-style answers; the optional source evidence layer helps explain which evidence gaps should be investigated before building new content assets.
-
-Source evidence JSON and CSV inputs are currently analyst-controlled formats for research, demo validation, and future automation support. They are not positioned as the final client-facing input experience.
-
----
-
-## Product Screenshots
-
-Screenshots will be added to show the end-to-end product workflow:
-
-1. Benchmark setup
-2. Results dashboard
-3. Source Evidence Preview with JSON / CSV upload
-4. Export Reports with Markdown and DOCX outputs
-5. Example Recommendation Readiness report output
-
-Planned screenshot assets:
-The app runs locally and requires your own OpenAI API key. It is not a hosted SaaS product.
-
-| Screenshot | Purpose |
-| --- | --- |
-| Benchmark setup | Shows how the target brand, market, category, audience, and competitors are configured. |
-| Results dashboard | Shows visibility metrics, retrieved brands, and benchmark findings. |
-| Source Evidence Preview | Shows optional source evidence validation using JSON or CSV inputs. |
-| Export Reports | Shows Markdown / DOCX export options. |
-| Report output | Shows the generated Recommendation Readiness diagnosis. |
-
----
-
-## Current Product Status
-
-The project currently supports:
-
-- local Streamlit-based benchmark workflow
-- recommendation-style prompt testing with a user-owned OpenAI API key
-- target-brand visibility scoring
-- retrieved-brand diagnosis and retrieval-role interpretation
-- zero-visibility Recommendation Readiness reporting
-- optional source evidence JSON / CSV upload and preview
-- source-grounded evidence gap summary
-- Markdown executive report export
-- DOCX executive report export with source evidence appendix
-- benchmark snapshot export
-- fictional generic and skincare demo fixtures
-- automated regression tests for report output, source evidence payloads, examples, and documentation links
-
-Current positioning:
-
-- The tool is a local-first product prototype, not a hosted SaaS product.
-- Source evidence JSON / CSV inputs are analyst-controlled workflow formats, not the final client-facing input experience.
-- Demo fixtures are fictional and deterministic; they are not live client data or automated web research.
-
 ---
 
 ## Product Demo
@@ -103,6 +35,37 @@ Start here:
 - [Source Evidence Schema](docs/source-evidence-schema.md): manual JSON format for source-grounded evidence records.
 
 The demo is not live client data, confidential brand data, automated web research, or a Quick Test Mode result.
+
+---
+
+## Product Workflow
+
+```mermaid
+flowchart LR
+    A[Run recommendation-style AI benchmark] --> B[Measure target-brand visibility]
+    B --> C[Identify retrieved reference brands]
+    C --> D[Diagnose retrieval roles and target gaps]
+    D --> E[Add optional source evidence JSON or CSV]
+    E --> F[Preview source-grounded evidence gaps]
+    F --> G[Export Markdown and DOCX reports]
+    G --> H[Build first evidence assets and rerun benchmark]
+```
+
+The workflow separates observed benchmark signals from source-grounded evidence validation. The benchmark shows which brands appear in AI recommendation-style answers; the optional source evidence layer helps explain which evidence gaps should be investigated before building new content assets.
+
+Source evidence JSON and CSV inputs are currently analyst-controlled formats for research, demo validation, and future automation support. They are not positioned as the final client-facing input experience.
+
+---
+
+## Current Product Status
+
+The project is a local-first product prototype with a working Streamlit app, recommendation-style benchmark flow, retrieved-brand diagnosis, source evidence JSON / CSV preview, Markdown export, DOCX export, benchmark snapshots, fictional demo fixtures, and automated regression tests.
+
+Current positioning:
+
+- The tool runs locally with a user-owned OpenAI API key; it is not a hosted SaaS product.
+- Source evidence JSON / CSV inputs are analyst-controlled workflow formats for research, demo validation, QA, and future automation support.
+- Demo fixtures are fictional and deterministic; they are not live client data or automated web research.
 
 ---
 
