@@ -115,6 +115,8 @@ Success criteria:
 
 Goal: make source-grounded diagnosis usable without automated scraping.
 
+This is an analyst-controlled workflow, not the intended final client-facing input experience.
+
 Planned work:
 
 - support manual CSV or JSON source evidence import
