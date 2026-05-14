@@ -36,6 +36,28 @@ Source evidence JSON and CSV inputs are currently analyst-controlled formats for
 
 ---
 
+## Product Screenshots
+
+Screenshots will be added to show the end-to-end product workflow:
+
+1. Benchmark setup
+2. Results dashboard
+3. Source Evidence Preview with JSON / CSV upload
+4. Export Reports with Markdown and DOCX outputs
+5. Example Recommendation Readiness report output
+
+Planned screenshot assets:
+
+| Screenshot | Purpose |
+| --- | --- |
+| Benchmark setup | Shows how the target brand, market, category, audience, and competitors are configured. |
+| Results dashboard | Shows visibility metrics, retrieved brands, and benchmark findings. |
+| Source Evidence Preview | Shows optional source evidence validation using JSON or CSV inputs. |
+| Export Reports | Shows Markdown / DOCX export options. |
+| Report output | Shows the generated Recommendation Readiness diagnosis. |
+
+---
+
 ## Product Demo
 
 The public demo shows a fictional zero-visibility audit where the target brand is not recommended, but competing brands are retrieved.
