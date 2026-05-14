@@ -30,7 +30,7 @@ from geo_audit.source_evidence_payload import (  # noqa: E402
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Render a source-grounded evidence summary section from a JSON payload."
+        description="Render a source-grounded evidence summary section from a JSON or CSV payload."
     )
     parser.add_argument(
         "input_json",
