@@ -35,6 +35,7 @@ Start with the executive report, then inspect the source evidence examples.
 | `source-evidence-summary.md` | CLI-rendered section | Shows the reusable source-grounded evidence summary output. |
 | `source-evidence-demo-report.md` | Demo report | Shows the full source evidence demo with appendix and methodology notes. |
 | `source-evidence-demo.json` | Fixture data | Provides fictional source evidence records for local rendering. |
+| `skincare-source-evidence-demo.csv` | Fixture data | Provides the skincare source evidence fixture in spreadsheet-friendly CSV format. |
 
 ---
 
@@ -50,4 +51,10 @@ Render the skincare source evidence summary:
 
 ```bash
 python scripts/render_source_evidence_summary.py examples/skincare-source-evidence-demo.json examples/skincare-source-evidence-summary.md
+```
+
+The skincare source evidence fixture is also available as CSV for spreadsheet-style editing:
+
+```text
+examples/skincare-source-evidence-demo.csv
 ```
