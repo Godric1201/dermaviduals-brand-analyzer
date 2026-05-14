@@ -32,7 +32,9 @@ Start here:
 - [Methodology](docs/methodology.md): scoring approach, benchmark assumptions, and interpretation guidance.
 - [Product Roadmap](docs/product-roadmap.md): current product direction, completed foundations, and next development phases.
 - [Architecture Overview](docs/architecture-overview.md): high-level pipeline from prompt benchmark to report output.
-- [Source Evidence Schema](docs/source-evidence-schema.md): manual JSON format for source-grounded evidence records.
+- [Source Evidence Schema](docs/source-evidence-schema.md): manual JSON / CSV schema for analyst-controlled source evidence records.
+- [Skincare Source Evidence Fixture](examples/skincare-source-evidence-demo.json): fictional skincare source evidence input data.
+- [Skincare Source Evidence CSV Fixture](examples/skincare-source-evidence-demo.csv): spreadsheet-friendly CSV version of the skincare source evidence fixture.
 
 The demo is not live client data, confidential brand data, automated web research, or a Quick Test Mode result.
 
@@ -137,7 +139,11 @@ Public example materials:
 
 - [Demo Executive Report](examples/demo-executive-report.md): fictional Recommendation Readiness report with source-grounded evidence summary.
 - [Source Evidence Demo Report](examples/source-evidence-demo-report.md): deterministic fixture-based source evidence summary.
-- [Source Evidence Demo Fixture](examples/source-evidence-demo.json): fictional source evidence records used by the demo renderer.
+- [Source Evidence Summary](examples/source-evidence-summary.md): reusable CLI-rendered source evidence summary section.
+- [Skincare Source Evidence Summary](examples/skincare-source-evidence-summary.md): fictional vertical demo for local skincare recommendation evidence gaps.
+- [Source Evidence Demo Fixture](examples/source-evidence-demo.json): fictional generic source evidence records.
+- [Skincare Source Evidence Fixture](examples/skincare-source-evidence-demo.json): fictional skincare source evidence records.
+- [Skincare Source Evidence CSV Fixture](examples/skincare-source-evidence-demo.csv): spreadsheet-friendly CSV version of the skincare source evidence fixture.
 - [Output Examples](docs/output-examples.md): overview of generated report sections and benchmark artifacts.
 - [Methodology](docs/methodology.md): scoring approach, benchmark assumptions, and interpretation guidance.
 
@@ -452,57 +458,55 @@ This command is local and deterministic. It does not call OpenAI, Streamlit, web
 ```text
 ai-brand-visibility-geo-audit/
 │
-├── app.py                         # Streamlit entrypoint and wiring layer
+├── app.py                              # Streamlit entrypoint and wiring layer
+│
+├── scripts/
+│   ├── render_source_evidence_demo.py  # Renders the deterministic source evidence demo report
+│   └── render_source_evidence_summary.py # Renders reusable source evidence summaries from JSON / CSV
 │
 ├── src/
 │   └── geo_audit/
-│       ├── __init__.py
-│       ├── analysis_pipeline.py    # Benchmark execution and analysis pipeline
-│       ├── analyzer.py             # OpenAI client wrapper
-│       ├── scoring.py              # Visibility scoring and share-of-voice logic
-│       ├── prompt_generator.py     # AI-generated prompt generation
-│       ├── prompts.py              # Fixed prompt templates
-│       ├── narrative_prompts.py    # Narrative report prompt templates
-│       ├── brand_intelligence.py   # Brand intelligence analysis
-│       ├── geo_roadmap.py          # GEO content roadmap generation
-│       ├── recommender.py          # Recommendation generation
-│       ├── optimizer.py            # Strategy deep-dive generation
-│       ├── markdown_report.py      # Markdown executive report export
-│       ├── report_generator.py     # DOCX executive report export
-│       ├── output_quality.py       # Output sanitation and validation layer
-│       ├── benchmark_snapshot.py   # Snapshot export
-│       ├── benchmark_comparison.py # Snapshot comparison
-│       ├── run_setup.py            # Run setup, validation, and API estimate helpers
-│       ├── run_progress.py         # Progress display helpers
-│       ├── app_constants.py        # App-level constants
-│       ├── ui_formatters.py        # UI formatting helpers
-│       └── ui/                     # Streamlit UI sections and controllers
-│           ├── analysis_controller.py
+│       ├── analysis_pipeline.py        # Benchmark execution and analysis pipeline
+│       ├── analyzer.py                 # OpenAI client wrapper
+│       ├── scoring.py                  # Visibility scoring and share-of-voice logic
+│       ├── prompt_generator.py         # AI-generated prompt generation
+│       ├── prompts.py                  # Fixed prompt templates
+│       ├── markdown_report.py          # Markdown executive report export
+│       ├── report_generator.py         # DOCX executive report export
+│       ├── source_evidence.py          # Source evidence coverage and gap logic
+│       ├── source_evidence_markdown.py # Source evidence Markdown rendering
+│       ├── source_evidence_payload.py  # JSON / CSV source evidence payload validation
+│       ├── output_quality.py           # Output sanitation and validation layer
+│       ├── benchmark_snapshot.py       # Snapshot export
+│       ├── benchmark_comparison.py     # Snapshot comparison
+│       └── ui/                         # Streamlit UI sections and controllers
 │           ├── results_controller.py
-│           ├── sidebar_sections.py
-│           ├── results_sections.py
-│           ├── narrative_sections.py
+│           ├── source_evidence_panel.py
 │           ├── export_section.py
 │           ├── export_builders.py
-│           ├── charts.py
 │           ├── exports.py
-│           ├── raw_answers_panel.py
-│           ├── content_generator_panel.py
-│           ├── brand_intelligence_panel.py
-│           └── benchmark_progress.py
+│           └── charts.py
 │
-├── tests/                         # Regression and unit tests
+├── tests/                              # Regression and unit tests
 │
-├── docs/                          # Screenshots and documentation assets
+├── docs/
 │   ├── dashboard-preview.png
-│   ├── usage-guide.md
-│   └── output-examples.md
+│   ├── methodology.md
+│   ├── output-examples.md
+│   ├── product-roadmap.md
+│   ├── architecture-overview.md
+│   └── source-evidence-schema.md
 │
 ├── examples/
-│   └── demo-executive-report.md
+│   ├── demo-executive-report.md
+│   ├── source-evidence-demo.json
+│   ├── source-evidence-summary.md
+│   ├── source-evidence-demo-report.md
+│   ├── skincare-source-evidence-demo.json
+│   ├── skincare-source-evidence-demo.csv
+│   └── skincare-source-evidence-summary.md
 │
 ├── .env.example
-├── .gitignore
 ├── AGENTS.md
 ├── CHANGELOG.md
 ├── DEVELOPMENT.md
