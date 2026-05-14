@@ -1,5 +1,7 @@
 # Report Section Contract
 
+For the higher-level report quality model, see [`report-quality-framework.md`](report-quality-framework.md).
+
 This document defines the purpose, required content, allowed wording, and disallowed claims for each major report section.
 
 The contract applies to Markdown and DOCX report outputs.
