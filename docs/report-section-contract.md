@@ -2,105 +2,283 @@
 
 For the higher-level report quality model, see [`report-quality-framework.md`](report-quality-framework.md).
 
-This document defines the purpose, required content, allowed wording, and disallowed claims for each major report section.
+This document defines the section-level requirements for AI Recommendation Readiness reports.
 
-The contract applies to Markdown and DOCX report outputs.
+It applies to Markdown and DOCX report outputs. Exact section titles may differ by output format, but the report must preserve the same diagnostic spine, evidence hierarchy, and claim-safety rules.
 
 ---
 
-## Executive Summary
+## Contract Principles
+
+Every section must support the central report objective:
+
+> Explain whether the target brand entered the tested AI recommendation candidate set, which brands appeared instead, what evidence gaps may explain the result, and what should be built or validated next.
+
+Each section should separate:
+
+- observed benchmark signal
+- inferred retrieval driver
+- source-grounded evidence, when available
+- recommended action
+- validation method
+
+A section must not convert benchmark observations into definitive market, sales, consumer preference, clinical, or product-performance claims.
+
+---
+
+## Required Report Spine
+
+Recommendation Readiness reports should follow this conceptual sequence:
+
+1. Report context and run mode
+2. Recommendation readiness verdict
+3. Brand understanding or entity clarity signal
+4. Retrieved brands / visible reference brands
+5. Retrieval role interpretation
+6. Target vs retrieved brand gap
+7. First evidence assets to build
+8. Validation plan
+9. Supporting benchmark data
+10. Methodology and reliability notes
+11. Optional source-grounded evidence summary
+12. Optional appendix material
+
+This spine prevents reports from becoming generic marketing advice or raw benchmark tables.
+
+---
+
+## Report Context / Overview
 
 ### Purpose
 
-Summarize the target brand's current AI visibility state and the most important implication for the next action cycle.
+Define the audit scope and run mode before presenting findings.
 
 ### Required Content
 
 - target brand
-- market
 - category
+- market
+- audience, when available
 - run mode
-- total mentions
-- average visibility score
-- prompts visible
-- share of voice
-- strongest competitor signal where applicable
+- prompt count or prompt limit when relevant
+- deliverable status
 - benchmark scope caveat
 
 ### Allowed Wording
 
-- "Within the tested prompt set..."
-- "The benchmark indicates..."
-- "The target brand showed limited / moderate / strong visibility..."
-- "The strongest observed competitor signal came from..."
+- "Run mode"
+- "Benchmark scope"
+- "Within the tested prompt set"
+- "Development-only limited-prompt output" for Quick Test Mode
 
 ### Disallowed Claims
 
-- definitive market position
-- consumer preference claims
-- sales or revenue implications
-- clinical or product performance claims
-- guaranteed improvement claims
+- client-deliverable positioning for Quick Test Mode
+- broad market conclusions before presenting measured evidence
+- hiding prompt limitations
 
 ---
 
-## Competitive Benchmark
+## Recommendation Readiness Verdict
 
 ### Purpose
 
-Compare the target brand against tracked competitors using measured visibility metrics.
+State whether the target brand entered the tested recommendation candidate set and define the first strategic objective.
 
 ### Required Content
 
-- tracked brands
-- mentions
-- average visibility score
+- visibility state
+- candidate-set status
+- total mentions
 - prompts visible
 - share of voice
+- average visibility score, when available
+- strategy mode
+- reliability level
+- first objective
+
+### Required Logic
+
+If the target has zero mentions or zero prompt visibility, the verdict must switch to first-detection logic:
+
+- first objective is candidate-set inclusion
+- share-of-voice growth is secondary
+- non-detection does not prove the model has no knowledge of the brand
 
 ### Allowed Wording
 
-- "higher measured visibility"
-- "stronger benchmark signal"
-- "more frequent mentions in generated answers"
-- "within this benchmark run"
+- "Not Detected"
+- "First Detection Strategy"
+- "Candidate-set inclusion"
+- "The target was not retrieved in the tested recommendation candidate set"
+- "This does not prove that AI systems have no knowledge of the brand"
 
 ### Disallowed Claims
 
-- "best brand"
-- "market leader"
-- "customers prefer"
-- "strongest product"
-- "dominates the market"
+- "AI does not know the brand" as a definitive fact
+- "the brand is not trusted"
+- "the market does not recognize the brand"
+- guaranteed future inclusion
+- guaranteed share-of-voice improvement
 
 ---
 
-## Visibility Gap Diagnosis
+## Brand Understanding / Entity Clarity
 
 ### Purpose
 
-Explain where the target brand is missing or weak in AI-generated answers.
+Explain whether the model appears to understand the target brand, its category, market, or buyer context.
 
 ### Required Content
 
-- visibility gap based on mentions and score
-- prompt-category weakness where available
-- competitor context
-- limitation that findings come from the tested prompt set
+- brand understanding signal, when available
+- category clarity signal
+- market or audience alignment signal
+- distinction between entity understanding and recommendation retrieval
+- validation caveat
 
 ### Allowed Wording
 
-- "not measurable in the tested answers"
-- "limited prompt-level visibility"
-- "weaker target-brand association in this benchmark"
-- "visibility gap signal"
+- "AI-inferred"
+- "partial recognition"
+- "requires validation"
+- "entity clarity"
+- "recommendation retrieval risk"
 
 ### Disallowed Claims
 
-- "AI does not trust the brand"
-- "the brand lacks credibility" as fact
-- "consumers do not want the brand"
-- unsupported causal claims
+- claiming brand awareness as a verified market fact
+- treating model-generated brand understanding as ground truth
+- unsupported claims about customer awareness
+
+---
+
+## Retrieved Brands / Visible Reference Brands
+
+### Purpose
+
+Show which brands appeared instead of the target and how they should be interpreted.
+
+### Required Content
+
+- retrieved brand name
+- measured benchmark signal
+- prompt context or query type where available
+- inferred tier or reference role, when useful
+- caveat that retrieved brands are benchmark-based references unless validated
+
+### Allowed Wording
+
+- "retrieved brand"
+- "visible reference brand"
+- "benchmark-based retrieved brand"
+- "category anchor"
+- "diagnostic reference"
+- "not verified direct competitor"
+
+### Disallowed Claims
+
+- calling all retrieved brands direct competitors without validation
+- "market leader" unless externally validated and user-provided
+- "best brand"
+- "customers prefer"
+- "dominates the category"
+
+---
+
+## Retrieval Role Interpretation
+
+### Purpose
+
+Explain what role each retrieved brand appears to satisfy in the tested answers.
+
+### Required Content
+
+- inferred retrieval role
+- benchmark pattern supporting the role
+- implication for the target brand
+- hypothesis label unless source-grounded validation exists
+
+### Allowed Wording
+
+- "appears to act as"
+- "is consistent with"
+- "may indicate"
+- "benchmark-based retrieval hypothesis"
+- "requires validation"
+
+### Disallowed Claims
+
+- "caused retrieval"
+- "the model selected this brand because..."
+- "proves why the competitor appeared"
+- definitive causal source attribution
+
+---
+
+## Target vs Retrieved Brand Gap
+
+### Purpose
+
+Translate benchmark patterns and optional source evidence into target evidence gaps.
+
+### Required Content
+
+- retrieved brand or reference group
+- observed benchmark signal
+- inferred target gap
+- evidence asset implication
+- required validation
+- indication of whether the gap is benchmark-based, source-grounded, or both
+
+### Allowed Wording
+
+- "may lack"
+- "gap signal"
+- "evidence gap to validate"
+- "source-grounded validation context"
+- "required validation"
+
+### Disallowed Claims
+
+- "the target lacks credibility" as fact
+- "competitors are objectively better"
+- "this proves the reason for non-detection"
+- unsupported business or market conclusions
+
+---
+
+## First Evidence Assets to Build
+
+### Purpose
+
+Prioritize concrete evidence assets designed to test candidate-set inclusion and recommendation readiness.
+
+### Required Content
+
+Each recommended asset must include:
+
+- what to build
+- why it matters
+- target retrieval driver
+- target prompt groups or query contexts
+- validation method
+
+### Allowed Wording
+
+- "build AI-citable evidence"
+- "intended to strengthen target-brand association"
+- "designed for future benchmark validation"
+- "check for candidate-set inclusion"
+- "first measurable inclusion"
+
+### Disallowed Claims
+
+- guaranteed AI mentions
+- guaranteed ranking gains
+- guaranteed share-of-voice growth
+- guaranteed revenue, sales, or conversion impact
+- fixed timelines for AI inclusion
 
 ---
 
@@ -108,29 +286,30 @@ Explain where the target brand is missing or weak in AI-generated answers.
 
 ### Purpose
 
-Translate visibility gaps into actionable GEO priorities.
+Translate visibility gaps into broader GEO priorities when the report includes a strategic planning layer.
 
 ### Required Content
 
 - priority level
 - query territory
-- competitor focus
+- competitor or retrieved-brand focus
 - recommended action
 - intended benchmark influence
+- validation method or future measurement focus
 
 ### Allowed Wording
 
-- "intended to strengthen target-brand association"
-- "designed to improve AI-citable evidence"
+- "intended benchmark influence"
+- "target query territory"
 - "recommended for future benchmark validation"
-- "may improve visibility in future runs"
+- "may improve measurable visibility in future runs"
 
 ### Disallowed Claims
 
-- guaranteed ranking gains
-- guaranteed share of voice gains
-- guaranteed revenue or sales impact
-- unsupported clinical claims
+- guaranteed ranking outcomes
+- guaranteed share-of-voice gains
+- unsupported revenue or sales impact
+- generic marketing promises disconnected from benchmark evidence
 
 ---
 
@@ -138,7 +317,7 @@ Translate visibility gaps into actionable GEO priorities.
 
 ### Purpose
 
-Provide content asset recommendations mapped to query intent, target association, and evidence needs.
+Map evidence gaps and retrieval risks to content assets and execution timing.
 
 ### Required Content
 
@@ -146,17 +325,17 @@ Provide content asset recommendations mapped to query intent, target association
 - query intent
 - content asset
 - target association
-- competitor or market signal
+- competitor or retrieved-brand signal
 - evidence needed
 - expected benchmark influence
 - suggested timing
 
 ### Allowed Wording
 
-- "intended benchmark influence"
 - "evidence needed"
 - "target association"
 - "future benchmark validation"
+- "intended benchmark influence"
 
 ### Disallowed Claims
 
@@ -179,7 +358,8 @@ Organize recommended actions into a phased execution plan.
 - 60-day action
 - 90-day action
 - target metric or directional benchmark focus
-- competitor focus where relevant
+- competitor or retrieved-brand focus where relevant
+- validation dependency
 
 ### Allowed Wording
 
@@ -193,6 +373,68 @@ Organize recommended actions into a phased execution plan.
 - exact future numeric targets unless explicitly user-provided
 - guaranteed visibility gains
 - guaranteed business outcomes
+- fixed timelines for model behavior changes
+
+---
+
+## Validation Plan
+
+### Purpose
+
+Define how to test whether evidence-building actions create measurable benchmark progress.
+
+### Required Content
+
+- what to rerun
+- what counts as first progress
+- what does not count as proof
+- prompt groups to prioritize
+- snapshot or future benchmark comparison guidance
+
+### Allowed Wording
+
+- "rerun comparable prompts"
+- "check for first measurable inclusion"
+- "validate whether the target enters the candidate set"
+- "compare benchmark snapshots over time"
+
+### Disallowed Claims
+
+- treating one mention as durable visibility
+- treating hallucinated or unrelated mentions as progress
+- promising a fixed timeline
+- guaranteeing future inclusion
+
+---
+
+## Supporting Benchmark Data
+
+### Purpose
+
+Provide the measured data behind the diagnosis.
+
+### Required Content
+
+- competitive benchmark table where available
+- top brand winners by query type where available
+- mentions
+- prompts visible
+- share of voice
+- visibility score or state
+- prompt-category context where available
+
+### Allowed Wording
+
+- "measured benchmark signal"
+- "strongest measured brand signal"
+- "within this benchmark run"
+- "supporting data"
+
+### Disallowed Claims
+
+- replacing diagnosis with raw metrics only
+- unsupported market share claims
+- unsupported customer preference claims
 
 ---
 
@@ -200,14 +442,15 @@ Organize recommended actions into a phased execution plan.
 
 ### Purpose
 
-Define what should be checked in the next benchmark cycle.
+Define what should be monitored in the next benchmark cycle.
 
 ### Required Content
 
 - current state
 - next benchmark evaluation focus
 - metrics to monitor
-- reminder that results should be compared over time
+- comparison-over-time reminder
+- reliability caveat
 
 ### Allowed Wording
 
@@ -223,7 +466,7 @@ Define what should be checked in the next benchmark cycle.
 
 ---
 
-## Methodology Notes
+## Methodology / Reliability Notes
 
 ### Purpose
 
@@ -234,6 +477,7 @@ Explain the scope and limitations of the benchmark.
 - benchmark is based on AI-generated answers
 - visibility is calculated from mentions, estimated ranking, and prompt-level appearance
 - share of voice reflects distribution of mentions among tracked competitors
+- distinction between observed benchmark signal, inferred retrieval driver, and source-grounded evidence
 - results are not market share, sales performance, consumer survey, or clinical evaluation
 - results should be re-run over time
 
@@ -242,12 +486,46 @@ Explain the scope and limitations of the benchmark.
 - stable deterministic language
 - clear limitation language
 - benchmark-specific wording
+- evidence hierarchy language
 
 ### Disallowed Claims
 
 - removing disclaimers
 - weakening limitations
 - presenting output as definitive market research
+- implying source evidence proves retrieval causality
+
+---
+
+## Source-Grounded Evidence Summary
+
+### Purpose
+
+Provide optional source-evidence validation context for target-vs-retrieved evidence gaps.
+
+### Required Content
+
+- source evidence coverage by brand
+- target-vs-retrieved evidence gaps
+- confidence levels where available
+- supported retrieval drivers
+- first source evidence assets to build
+- causality caveat
+
+### Allowed Wording
+
+- "source evidence gap"
+- "accepted source evidence"
+- "validation context"
+- "does not prove retrieval causality"
+- "retrieved brands have evidence of this type"
+
+### Disallowed Claims
+
+- "this source caused retrieval"
+- "the model used this source"
+- "this proves why the competitor appeared"
+- treating source evidence as verified competitive intelligence without analyst validation
 
 ---
 
@@ -291,12 +569,14 @@ Quick Test Mode outputs must always remain clearly marked as development-only.
 - "Quick Test Mode - Not Client Deliverable"
 - "Development-only limited-prompt output"
 - prompt limit shown in report overview
+- limited prompt set caveat
 
 ### Allowed Wording
 
 - "directional QA output"
 - "limited prompt set"
 - "not a complete benchmark"
+- "workflow testing"
 
 ### Disallowed Claims
 
