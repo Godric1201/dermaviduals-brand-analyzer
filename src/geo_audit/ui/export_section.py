@@ -17,6 +17,21 @@ def get_source_evidence_payload_for_markdown_export():
 
     return st.session_state.get(SOURCE_EVIDENCE_SESSION_KEY)
 
+def build_source_evidence_export_status_message(source_evidence_payload) -> str:
+    """Build a user-facing export status message for source evidence."""
+
+    if source_evidence_payload:
+        return (
+            "Source evidence loaded. Markdown export will include the "
+            "Source-Grounded Evidence Summary. DOCX export does not include "
+            "source evidence yet."
+        )
+
+    return (
+        "No source evidence loaded. Markdown and DOCX exports will use benchmark "
+        "signals only."
+    )
+
 def render_export_reports_section(
     t,
     brand,
