@@ -32,13 +32,13 @@ from .market_relevance import (
     MARKET_LOCK_MARKET_SPECIFIC,
     MARKET_LOCK_PARTIALLY_MARKET_SPECIFIC,
 )
-from .markdown_zero_visibility_report import (
-    _build_methodology_notes_md,
-    _build_visible_market_fit_bullets,
-    _build_zero_visibility_markdown_report,
-    _format_key_value_bullets,
-    _get_probe_field,
+from .markdown_report_helpers import (
+    build_methodology_notes_md,
+    build_visible_market_fit_bullets,
+    format_key_value_bullets,
+    get_probe_field,
 )
+from .markdown_zero_visibility_report import _build_zero_visibility_markdown_report
 from .report_diagnosis import (
     classify_visibility_state,
     get_target_visibility_metrics,
@@ -102,37 +102,37 @@ def _build_brand_understanding_probe_md(brand_understanding, display_brand):
     if not brand_understanding:
         return ""
 
-    brand_known_status = _get_probe_field(
+    brand_known_status = get_probe_field(
         brand_understanding,
         "brand_known_status",
         STATUS_NOT_ENOUGH_EVIDENCE,
     )
-    category_alignment = _get_probe_field(
+    category_alignment = get_probe_field(
         brand_understanding,
         "category_alignment",
         STATUS_NOT_ENOUGH_EVIDENCE,
     )
-    market_alignment = _get_probe_field(
+    market_alignment = get_probe_field(
         brand_understanding,
         "market_alignment",
         STATUS_NOT_ENOUGH_EVIDENCE,
     )
-    audience_alignment = _get_probe_field(
+    audience_alignment = get_probe_field(
         brand_understanding,
         "audience_alignment",
         STATUS_NOT_ENOUGH_EVIDENCE,
     )
-    recommended_interpretation = _get_probe_field(
+    recommended_interpretation = get_probe_field(
         brand_understanding,
         "recommended_interpretation",
         "Mixed diagnosis",
     )
-    diagnosis_summary = _get_probe_field(
+    diagnosis_summary = get_probe_field(
         brand_understanding,
         "diagnosis_summary",
         "",
     )
-    validation_note = _get_probe_field(
+    validation_note = get_probe_field(
         brand_understanding,
         "validation_note",
         "AI-inferred brand understanding probe. Validate before using as client-facing fact.",
@@ -182,7 +182,7 @@ def _build_brand_understanding_probe_md(brand_understanding, display_brand):
             "The AI-inferred probe is inconclusive. Treat the visibility diagnosis as provisional and validate before acting on it."
         )
 
-    probe_bullets = _format_key_value_bullets([
+    probe_bullets = format_key_value_bullets([
         ("Brand understanding", brand_known_status),
         ("Category alignment", category_alignment),
         ("Market alignment", market_alignment),
@@ -208,37 +208,37 @@ def _build_market_relevance_probe_md(market_relevance):
     if not market_relevance:
         return ""
 
-    market_lock_status = _get_probe_field(
+    market_lock_status = get_probe_field(
         market_relevance,
         "market_lock_status",
         MARKET_LOCK_INSUFFICIENT_EVIDENCE,
     )
-    local_brand_presence_signal = _get_probe_field(
+    local_brand_presence_signal = get_probe_field(
         market_relevance,
         "local_brand_presence_signal",
         "Not Enough Evidence",
     )
-    recommended_interpretation = _get_probe_field(
+    recommended_interpretation = get_probe_field(
         market_relevance,
         "recommended_interpretation",
         "Insufficient evidence",
     )
-    global_default_risk_reason = _get_probe_field(
+    global_default_risk_reason = get_probe_field(
         market_relevance,
         "global_default_risk_reason",
         "",
     )
-    market_evidence_gap_summary = _get_probe_field(
+    market_evidence_gap_summary = get_probe_field(
         market_relevance,
         "market_evidence_gap_summary",
         "",
     )
-    validation_note = _get_probe_field(
+    validation_note = get_probe_field(
         market_relevance,
         "validation_note",
         "AI-inferred market relevance probe. Validate before using as client-facing fact.",
     )
-    visible_market_fit = _get_probe_field(
+    visible_market_fit = get_probe_field(
         market_relevance,
         "visible_market_fit",
         [],
@@ -265,7 +265,7 @@ def _build_market_relevance_probe_md(market_relevance):
             "Treat this as insufficient evidence, not verified market fact."
         )
 
-    probe_bullets = _format_key_value_bullets([
+    probe_bullets = format_key_value_bullets([
         ("Market lock status", market_lock_status),
         ("Local brand presence", local_brand_presence_signal),
         ("Recommended interpretation", recommended_interpretation),
@@ -277,7 +277,7 @@ def _build_market_relevance_probe_md(market_relevance):
     )
 
     if visible_market_fit:
-        fit_bullets = _build_visible_market_fit_bullets(visible_market_fit)
+        fit_bullets = build_visible_market_fit_bullets(visible_market_fit)
         if fit_bullets:
             body += (
                 "\n\nVisible brand market-fit signals:\n\n"
@@ -616,7 +616,7 @@ def build_executive_markdown_report(
         f"## {roadmap_number}. 30 / 60 / 90 Day Roadmap\n\n{roadmap_md}",
         f"## {measurement_number}. Measurement Plan\n\n{_build_measurement_plan_md(metrics)}",
         f"## {next_step_number}. Recommended Next Step\n\n{recommended_next_step}",
-        f"## {methodology_number}. Methodology Notes\n\n{_build_methodology_notes_md(display_category, prompt_categories)}",
+        f"## {methodology_number}. Methodology Notes\n\n{build_methodology_notes_md(display_category, prompt_categories)}",
     ])
 
     appendix_sections = []
