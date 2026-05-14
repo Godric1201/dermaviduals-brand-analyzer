@@ -7,8 +7,10 @@ later.
 
 from __future__ import annotations
 
+import csv
 import json
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -62,7 +64,74 @@ def _normalize_string_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item).strip() for item in value if str(item).strip()]
+CSV_TOP_LEVEL_FIELDS = [
+    "target_brand",
+    "retrieved_brands",
+    "category",
+    "market",
+    "audience",
+]
 
+CSV_EVIDENCE_ITEM_FIELDS = [
+    "brand",
+    "evidence_type",
+    "source_url",
+    "source_title",
+    "source_domain",
+    "source_type",
+    "excerpt_or_summary",
+    "observed_claim",
+    "supported_retrieval_driver",
+    "confidence",
+    "freshness_date",
+    "validation_status",
+    "notes",
+]
+
+
+def _first_non_empty_csv_value(rows: list[dict[str, Any]], field: str) -> str:
+    for row in rows:
+        value = _as_non_empty_string(row.get(field))
+        if value:
+            return value
+    return ""
+
+
+def _parse_csv_retrieved_brands(value: str) -> list[str]:
+    return [
+        item.strip()
+        for item in str(value).split(",")
+        if item.strip()
+    ]
+
+
+def _csv_row_has_evidence_item(row: dict[str, Any]) -> bool:
+    return any(
+        _as_non_empty_string(row.get(field))
+        for field in CSV_EVIDENCE_ITEM_FIELDS
+    )
+
+
+def _csv_rows_to_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    retrieved_brands_value = _first_non_empty_csv_value(rows, "retrieved_brands")
+
+    evidence_items = [
+        {
+            field: _as_non_empty_string(row.get(field))
+            for field in CSV_EVIDENCE_ITEM_FIELDS
+        }
+        for row in rows
+        if _csv_row_has_evidence_item(row)
+    ]
+
+    return {
+        "target_brand": _first_non_empty_csv_value(rows, "target_brand"),
+        "retrieved_brands": _parse_csv_retrieved_brands(retrieved_brands_value),
+        "category": _first_non_empty_csv_value(rows, "category"),
+        "market": _first_non_empty_csv_value(rows, "market"),
+        "audience": _first_non_empty_csv_value(rows, "audience"),
+        "evidence_items": evidence_items,
+    }
 
 def validate_source_evidence_payload(raw: Any) -> SourceEvidencePayloadResult:
     """Validate and normalize a raw source evidence payload object."""
@@ -125,6 +194,31 @@ def load_source_evidence_payload_from_text(text: str) -> SourceEvidencePayloadRe
 
     return validate_source_evidence_payload(raw)
 
+def load_source_evidence_payload_from_csv_text(text: str) -> SourceEvidencePayloadResult:
+    """Load and validate a source evidence payload from CSV text."""
+
+    try:
+        reader = csv.DictReader(StringIO(text))
+        if not reader.fieldnames:
+            return SourceEvidencePayloadResult(
+                payload=None,
+                errors=["csv: expected header row"],
+            )
+        rows = list(reader)
+    except csv.Error as exc:
+        return SourceEvidencePayloadResult(
+            payload=None,
+            errors=[f"csv: {exc}"],
+        )
+
+    if not rows:
+        return SourceEvidencePayloadResult(
+            payload=None,
+            errors=["csv: expected at least one evidence row"],
+        )
+
+    raw_payload = _csv_rows_to_payload(rows)
+    return validate_source_evidence_payload(raw_payload)
 
 def load_source_evidence_payload(path: Path) -> SourceEvidencePayloadResult:
     """Load and validate a source evidence payload from a JSON file."""
@@ -139,6 +233,18 @@ def load_source_evidence_payload(path: Path) -> SourceEvidencePayloadResult:
 
     return load_source_evidence_payload_from_text(text)
 
+def load_source_evidence_payload_from_csv(path: Path) -> SourceEvidencePayloadResult:
+    """Load and validate a source evidence payload from a CSV file."""
+
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except OSError as exc:
+        return SourceEvidencePayloadResult(
+            payload=None,
+            errors=[f"file: {exc}"],
+        )
+
+    return load_source_evidence_payload_from_csv_text(text)
 
 def format_source_evidence_payload_errors(errors: list[str]) -> str:
     """Format payload validation errors for CLI or UI display."""
