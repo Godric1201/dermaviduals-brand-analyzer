@@ -30,4 +30,14 @@ def test_source_evidence_demo_report_example_matches_renderer():
     expected = render_source_evidence_demo_report(payload).rstrip() + "\n"
     actual = example_path.read_text(encoding="utf-8")
 
-    assert actual == expected    
+    assert actual == expected
+
+def test_skincare_source_evidence_summary_example_matches_renderer():
+    payload_path = ROOT / "examples" / "skincare-source-evidence-demo.json"
+    example_path = ROOT / "examples" / "skincare-source-evidence-summary.md"
+
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    expected = render_source_evidence_summary_section(payload).rstrip() + "\n"
+    actual = example_path.read_text(encoding="utf-8")
+
+    assert actual == expected
