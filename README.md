@@ -15,7 +15,8 @@ It is designed for Generative Engine Optimization (GEO), AI visibility audits, a
 
 The app runs locally and requires your own OpenAI API key. It is not a hosted SaaS product.
 
----
+
+
 
 ## Product Workflow
 
@@ -47,6 +48,7 @@ Screenshots will be added to show the end-to-end product workflow:
 5. Example Recommendation Readiness report output
 
 Planned screenshot assets:
+The app runs locally and requires your own OpenAI API key. It is not a hosted SaaS product.
 
 | Screenshot | Purpose |
 | --- | --- |
@@ -55,6 +57,31 @@ Planned screenshot assets:
 | Source Evidence Preview | Shows optional source evidence validation using JSON or CSV inputs. |
 | Export Reports | Shows Markdown / DOCX export options. |
 | Report output | Shows the generated Recommendation Readiness diagnosis. |
+
+---
+
+## Current Product Status
+
+The project currently supports:
+
+- local Streamlit-based benchmark workflow
+- recommendation-style prompt testing with a user-owned OpenAI API key
+- target-brand visibility scoring
+- retrieved-brand diagnosis and retrieval-role interpretation
+- zero-visibility Recommendation Readiness reporting
+- optional source evidence JSON / CSV upload and preview
+- source-grounded evidence gap summary
+- Markdown executive report export
+- DOCX executive report export with source evidence appendix
+- benchmark snapshot export
+- fictional generic and skincare demo fixtures
+- automated regression tests for report output, source evidence payloads, examples, and documentation links
+
+Current positioning:
+
+- The tool is a local-first product prototype, not a hosted SaaS product.
+- Source evidence JSON / CSV inputs are analyst-controlled workflow formats, not the final client-facing input experience.
+- Demo fixtures are fictional and deterministic; they are not live client data or automated web research.
 
 ---
 
