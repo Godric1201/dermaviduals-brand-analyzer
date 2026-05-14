@@ -242,3 +242,17 @@ def test_load_source_evidence_payload_from_csv_reports_file_error(tmp_path: Path
     assert not result.ok
     assert result.payload is None
     assert result.errors[0].startswith("file:")
+
+def test_skincare_source_evidence_csv_fixture_loads_successfully():
+    fixture_path = Path("examples/skincare-source-evidence-demo.csv")
+
+    result = load_source_evidence_payload_from_csv(fixture_path)
+
+    assert result.ok
+    assert result.payload.target_brand == "Example Barrier Skincare"
+    assert result.payload.retrieved_brands == [
+        "Clinical Derm Brand A",
+        "Physician Skincare Brand B",
+        "Luxury Skin Clinic Brand C",
+    ]
+    assert len(result.payload.evidence_items) == 8

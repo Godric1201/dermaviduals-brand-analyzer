@@ -114,11 +114,11 @@ def _render_payload_metadata(payload: dict[str, Any]) -> None:
         st.write(f"**{label}:** {value}")
 
 def _render_source_evidence_sample_links() -> None:
-    st.caption(
+     st.caption(
         "Sample payloads for testing: "
         "`examples/source-evidence-demo.json` for the generic JSON demo, "
         "`examples/skincare-source-evidence-demo.json` for the skincare JSON demo, "
-        "or use a CSV file with the same source evidence fields."
+        "or `examples/skincare-source-evidence-demo.csv` for the skincare CSV demo."
     )
 
 def _render_consistency_warnings(

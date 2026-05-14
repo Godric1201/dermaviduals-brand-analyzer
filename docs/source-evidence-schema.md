@@ -187,8 +187,8 @@ See:
 - [`examples/source-evidence-summary.md`](../examples/source-evidence-summary.md)
 - [`examples/skincare-source-evidence-demo.json`](../examples/skincare-source-evidence-demo.json)
 - [`examples/skincare-source-evidence-summary.md`](../examples/skincare-source-evidence-summary.md)
-
-
+skincare fixture
+- [`examples/skincare-source-evidence-demo.csv`](../examples/skincare-source-evidence-demo.csv)
 ---
 
 ## CLI Rendering
