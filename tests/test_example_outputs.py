@@ -1,7 +1,7 @@
 import json
 import sys
 from pathlib import Path
-
+from geo_audit.source_evidence_payload import load_source_evidence_payload_from_csv
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC_PATH = ROOT / "src"
@@ -41,3 +41,18 @@ def test_skincare_source_evidence_summary_example_matches_renderer():
     actual = example_path.read_text(encoding="utf-8")
 
     assert actual == expected
+
+def test_skincare_source_evidence_csv_fixture_renders_summary():
+    payload_path = ROOT / "examples" / "skincare-source-evidence-demo.csv"
+
+    result = load_source_evidence_payload_from_csv(payload_path)
+
+    assert result.ok
+
+    summary = render_source_evidence_summary_section(result.payload.to_dict())
+
+    assert summary.startswith("## Source-Grounded Evidence Summary")
+    assert "Example Barrier Skincare" in summary
+    assert "Clinical Derm Brand A" in summary
+    assert "Target vs Retrieved Evidence Gap" in summary
+    assert "First Source Evidence Assets to Build" in summary
