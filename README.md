@@ -42,15 +42,20 @@ The demo is not live client data, confidential brand data, automated web researc
 
 ## Product Workflow
 
-```mermaid
-flowchart LR
-    A[Run recommendation-style AI benchmark] --> B[Measure target-brand visibility]
-    B --> C[Identify retrieved reference brands]
-    C --> D[Diagnose retrieval roles and target gaps]
-    D --> E[Add optional source evidence JSON or CSV]
-    E --> F[Preview source-grounded evidence gaps]
-    F --> G[Export Markdown and DOCX reports]
-    G --> H[Build first evidence assets and rerun benchmark]
+```text
+AI recommendation-style benchmark prompts
+        ↓
+Measure target brand visibility
+        ↓
+Identify relevant competitor brands
+        ↓
+Diagnose retrieval and answer gaps
+        ↓
+Add optional source evidence: PDFs / CSV
+        ↓
+Generate recommended evidence gaps
+        ↓
+Export Markdown and DOCX reports
 ```
 
 The workflow separates observed benchmark signals from source-grounded evidence validation. The benchmark shows which brands appear in AI recommendation-style answers; the optional source evidence layer helps explain which evidence gaps should be investigated before building new content assets.
