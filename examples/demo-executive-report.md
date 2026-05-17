@@ -60,18 +60,21 @@ The benchmark retrieved the following visible reference brands instead of the ta
 The role labels below are benchmark-based retrieval hypotheses. They require validation and are not source-grounded facts.
 
 **Reference Brand A**
+
 - Benchmark-based retrieval role: Comparison anchor
 - Role basis: Retrieved in alternatives or comparison query contexts.
 - Why it may have been retrieved: The brand appears to provide a familiar alternative or comparison reference in the tested recommendation prompts.
 - What this implies for the target: Example Infrastructure Co. may lack retrievable comparison evidence that explains when it is a relevant option.
 
 **Reference Brand B**
+
 - Benchmark-based retrieval role: Planning / consulting authority
 - Role basis: Retrieved in audience-specific or planning-oriented query contexts.
 - Why it may have been retrieved: The brand appears to be retrieved for planning, advisory, or evaluation-oriented contexts.
 - What this implies for the target: Example Infrastructure Co. may need clearer methodology, project planning, and decision-support evidence.
 
 **Reference Brand C**
+
 - Benchmark-based retrieval role: Trust / premium reference
 - Role basis: Retrieved in trust, review, premium, or decision-stage query contexts.
 - Why it may have been retrieved: The brand appears to act as a trust or premium reference in the tested answer set.
@@ -96,6 +99,7 @@ This is benchmark-based inference, not verified competitive intelligence unless 
 These assets are intended to test whether clearer retrievable evidence improves candidate-set inclusion. They are not a promise of AI mentions or a fixed timeline.
 
 **Priority 1 - Example Infrastructure Co. service/category entity page**
+
 - What to build: A canonical page that clearly states what Example Infrastructure Co. is, what category it belongs to, which infrastructure services it provides, and which buyer problems it helps solve.
 - Why it matters: First detection requires the model to connect the brand name with a clear category and role.
 - Target retrieval driver: Entity and category understanding.
@@ -103,6 +107,7 @@ These assets are intended to test whether clearer retrievable evidence improves 
 - Validation: Re-run category prompts and check for first target-brand mention with correct category wording.
 
 **Priority 2 - Germany project proof and trust page**
+
 - What to build: A Germany-focused proof page with project examples, buyer outcomes, certifications, partner references, or other substantiated credibility signals.
 - Why it matters: Trust and decision-stage prompts tend to retrieve brands with clearer proof that they are credible options.
 - Target retrieval driver: Trust / premium reference and market relevance.
@@ -110,6 +115,7 @@ These assets are intended to test whether clearer retrievable evidence improves 
 - Validation: Re-run trust and market-qualified prompts and check whether the target appears with accurate proof context.
 
 **Priority 3 - Data center infrastructure alternatives and comparison page**
+
 - What to build: A comparison page that explains when Example Infrastructure Co. is a relevant alternative, what buyer criteria matter, and how the brand fits common infrastructure planning scenarios.
 - Why it matters: Comparison prompts need explicit evidence that the target belongs beside retrieved alternatives.
 - Target retrieval driver: Comparison anchor eligibility.
@@ -126,7 +132,7 @@ These assets are intended to test whether clearer retrievable evidence improves 
 | Is the inclusion accurate? | Review whether the target is described with the correct category, market, audience, and use-case context. |
 | Which prompt groups matter first? | Prioritize category, Germany-qualified, comparison, trust, and enterprise buyer prompts. |
 | What does not count as proof? | A single vague mention, hallucinated description, or unrelated appearance should not be treated as durable visibility. |
-| Is there a fixed timeline? | No fixed timeline should be promised. Evidence changes should be validated through future benchmarks. |
+| Is there a fixed timeline? | Evidence changes should be validated through future comparable benchmarks; there is no fixed timeline. |
 
 ---
 
@@ -197,6 +203,7 @@ These gaps are source-evidence gaps to validate. They are not proof that specifi
 ### First Source Evidence Assets to Build
 
 **Priority 1 - Comparison Evidence**
+
 - Why it matters: Retrieved brands have source evidence for this type, while the target does not.
 - Retrieved-brand signal: Reference Brand A
 - Supported retrieval drivers: Comparison anchor
@@ -204,6 +211,7 @@ These gaps are source-evidence gaps to validate. They are not proof that specifi
 - Validation: Build or improve the evidence asset, then rerun comparable recommendation prompts to check for candidate-set inclusion.
 
 **Priority 2 - Offering / Use-Case Evidence**
+
 - Why it matters: Retrieved brands have source evidence for this type, while the target does not.
 - Retrieved-brand signal: Reference Brand B
 - Supported retrieval drivers: Planning / consulting authority
@@ -211,6 +219,7 @@ These gaps are source-evidence gaps to validate. They are not proof that specifi
 - Validation: Build or improve the evidence asset, then rerun comparable recommendation prompts to check for candidate-set inclusion.
 
 **Priority 3 - Proof / Trust Evidence**
+
 - Why it matters: Retrieved brands have source evidence for this type, while the target does not.
 - Retrieved-brand signal: Reference Brand A
 - Supported retrieval drivers: Trust / premium reference
