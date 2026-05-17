@@ -439,6 +439,7 @@ You can render a reusable source-grounded evidence summary from any JSON or CSV 
 ```bash
 python scripts/render_source_evidence_summary.py examples/source-evidence-demo.json examples/source-evidence-summary.md
 ```
+
 Render from the skincare CSV fixture:
 
 ```bash
@@ -452,6 +453,8 @@ python scripts/render_source_evidence_summary.py examples/source-evidence-demo.j
 ```
 
 This command is local and deterministic. It does not call OpenAI, Streamlit, web search, or scraping.
+
+---
 
 ## Project Structure
 
@@ -598,16 +601,16 @@ Current limitations:
 - The tool measures AI answer visibility, not actual sales, revenue, customer sentiment, or market share.
 - Outputs should be interpreted as diagnostic benchmark signals, not definitive market research.
 - API usage costs depend on benchmark size, output length, and selected report mode.
-- Batch reporting is not yet implemented.
-- Multi-model comparison is not yet implemented.
-- A hosted demo is not currently provided because the app requires a private API key.
+- Batch reporting is outside the current prototype scope.
+- Multi-model comparison is outside the current prototype scope.
+- A hosted demo is unavailable because the app requires a private API key.
 - Quick Test Mode is for development smoke testing, not client-ready analysis.
 
 ---
 
 ## Roadmap
 
-Planned improvements:
+Product direction:
 
 - More polished full-report templates
 - Better distinction between tracked competitors and measured visible competitors
@@ -649,4 +652,4 @@ The tool is usable locally, includes a regression test suite, and can generate c
 
 ## License
 
-No open-source license file is currently included. Until a license is added, all rights are reserved by default.
+No open-source license file is included. All rights are reserved by default.
